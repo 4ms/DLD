@@ -6,6 +6,7 @@
 
 #include "dig_inouts.h"
 #include "params.h"
+#include "globals.h"
 #include "looping_delay.h"
 
 
@@ -19,10 +20,12 @@ extern volatile uint32_t ping_time;
 
 extern uint8_t flag_ping_was_changed;
 
-extern float param[2][6];
+extern float param[NUM_CHAN][NUM_PARAMS];
 
 uint8_t flag_inf_change[2]={0,0};
+uint8_t flag_rev_change[2]={0,0};
 uint8_t flag_time_param_changed[2]={0,0};
+uint8_t inf_jack_high[2]={0,0};
 
 uint8_t ping_button_state=0;
 uint8_t ping_jack_state=0;
@@ -79,13 +82,18 @@ void init_dig_inouts(void){
 	gpio.GPIO_PuPd = GPIO_PuPd_UP;
 
 	//Div/Mult switches
-	RCC_AHB1PeriphClockCmd(DIVSW_RCC, ENABLE);
+	RCC_AHB1PeriphClockCmd(REVSW_RCC, ENABLE);
 	RCC_AHB1PeriphClockCmd(TIMESW_RCC, ENABLE);
+/*
+//	gpio.GPIO_Pin = REVSW_CH1_T1_pin;	GPIO_Init(REVSW_CH1_T1_GPIO, &gpio);
+	gpio.GPIO_Pin = REVSW_CH1_T2_pin;	GPIO_Init(REVSW_CH1_T2_GPIO, &gpio);
+	gpio.GPIO_Pin = REVSW_CH2_T1_pin;	GPIO_Init(REVSW_CH2_T1_GPIO, &gpio);
+	gpio.GPIO_Pin = REVSW_CH2_T2_pin;	GPIO_Init(REVSW_CH2_T2_GPIO, &gpio);
+*/
 
-	gpio.GPIO_Pin = DIVSW_CH1_T1_pin;	GPIO_Init(DIVSW_CH1_T1_GPIO, &gpio);
-	gpio.GPIO_Pin = DIVSW_CH1_T2_pin;	GPIO_Init(DIVSW_CH1_T2_GPIO, &gpio);
-	gpio.GPIO_Pin = DIVSW_CH2_T1_pin;	GPIO_Init(DIVSW_CH2_T1_GPIO, &gpio);
-	gpio.GPIO_Pin = DIVSW_CH2_T2_pin;	GPIO_Init(DIVSW_CH2_T2_GPIO, &gpio);
+	gpio.GPIO_Pin = REV2SW_pin;	GPIO_Init(REV2SW_GPIO, &gpio);
+	gpio.GPIO_Pin = REV1SW_pin;	GPIO_Init(REV1SW_GPIO, &gpio);
+
 	gpio.GPIO_Pin = TIMESW_CH1_T1_pin;	GPIO_Init(TIMESW_CH1_T1_GPIO, &gpio);
 	gpio.GPIO_Pin = TIMESW_CH1_T2_pin;	GPIO_Init(TIMESW_CH1_T2_GPIO, &gpio);
 	gpio.GPIO_Pin = TIMESW_CH2_T1_pin;	GPIO_Init(TIMESW_CH2_T1_GPIO, &gpio);
@@ -115,6 +123,10 @@ void init_dig_inouts(void){
 	gpio.GPIO_Pin = INF1JACK_pin;	GPIO_Init(INF1JACK_GPIO, &gpio);
 	gpio.GPIO_Pin = INF2JACK_pin;	GPIO_Init(INF2JACK_GPIO, &gpio);
 
+	RCC_AHB1PeriphClockCmd(REV_RCC, ENABLE);
+
+	gpio.GPIO_Pin = REV1JACK_pin;	GPIO_Init(REV1JACK_GPIO, &gpio);
+	gpio.GPIO_Pin = REV2JACK_pin;	GPIO_Init(REV2JACK_GPIO, &gpio);
 
 
 }
@@ -212,7 +224,7 @@ void init_inputread_timer(void){
 	TIM_Cmd(TIM4, ENABLE);
 }
 
-uint16_t State[6] = {0,0,0,0,0,0}; // Current debounce status
+uint16_t State[9] = {0,0,0,0,0,0,0,0,0}; // Current debounce status
 
 
 // This handy routine is called every 0.39ms by the TIMER 4 interrupt.
@@ -278,34 +290,64 @@ void TIM4_IRQHandler(void)
 		//param[1][INF]=1.0-param[1][INF];
 	}
 
+
 	if (INF1JACK) t=0xe000; else t=0xe001;
 	State[3]=(State[3]<<1) | t;
 	if (State[3]==0xfff8){					//1111 1111 1111 1000 = gate low for 13 cycles (5ms), followed by gate high for 3 cycles (1.1ms)
 		flag_inf_change[0]=1;
 	}
 
+
 	if (INF2JACK) t=0xe000; else t=0xe001;
 	State[4]=(State[4]<<1) | t;
 	if (State[4]==0xfff8){
 		flag_inf_change[1]=1;
+		inf_jack_high[1]=1;
+	}
+	/*
+	if (inf_jack_high[1]==1 && State[4]==0xe000){
+		flag_inf_change[1]=1;
+		inf_jack_high[1]=0;
+	}
+*/
+
+	if (REVSW_CH1)
+		t=0xe000;
+	else
+		t=0xe001;
+	State[5]=(State[5]<<1) | t;
+	if (State[5]==0xff00){
+		flag_rev_change[0]=1;
 	}
 
+	if (REVSW_CH2)
+		t=0xe000;
+	else
+		t=0xe001;
+	State[6]=(State[6]<<1) | t;
+	if (State[6]==0xff00){
+		flag_rev_change[1]=1;
+	}
 
+	if (REV1JACK) t=0xe000; else t=0xe001;
+	State[7]=(State[7]<<1) | t;
+	if (State[7]==0xfff8){
+		flag_rev_change[0]=1;
+	}
 
+	if (REV2JACK) t=0xe000; else t=0xe001;
+	State[8]=(State[8]<<1) | t;
+	if (State[8]==0xfff8){
+		flag_rev_change[1]=1;
+	}
 
 
 
 }
 
 /*** trigouts.c ****/
-inline void update_timeinf_params(uint8_t channel){
+inline void update_quantized_params(uint8_t channel){
 
-	if (flag_inf_change[channel]){
-		flag_inf_change[channel]=0;
-
-		// Toggle INF status
-		param[channel][INF] = 1.0 - param[channel][INF];
-	}
 
 	// Update divmult time
 	if (flag_time_param_changed[channel]){
@@ -315,7 +357,25 @@ inline void update_timeinf_params(uint8_t channel){
 
 	}
 
+}
 
+inline void update_instant_params(uint8_t channel){
+
+	if (flag_inf_change[channel]){
+		flag_inf_change[channel]=0;
+
+		// Toggle INF status
+		param[channel][INF] = 1.0 - param[channel][INF];
+	}
+
+
+	if (flag_rev_change[channel]){
+		flag_rev_change[channel]=0;
+
+		swap_read_write(channel);
+
+		param[channel][REV] = 1.0 - param[channel][REV];
+	}
 }
 
 
@@ -328,8 +388,8 @@ inline void update_clkout_jack(void){
 		CLKOUT_ON;
 		reset_clkout_trigger_tmr();
 
-		update_timeinf_params(0);
-		update_timeinf_params(1);
+		update_quantized_params(0);
+		update_quantized_params(1);
 	}
 
 	// Handle the jack output: 50% duty cycle

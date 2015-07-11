@@ -11,7 +11,7 @@
 #include "adc.h"
 
 #include "params.h"
-extern float param[NUM_CHAN][6];
+extern float param[NUM_CHAN][NUM_PARAMS];
 
 extern uint8_t g_error;
 
@@ -59,13 +59,35 @@ inline void update_write_time(uint8_t channel){
 }
 */
 
+void swap_read_write(uint8_t channel){
+
+	uint32_t t;
+
+	t=write_addr[channel];
+	write_addr[channel]=read_addr[channel];
+	read_addr[channel]=t;
+
+}
+
 inline void update_read_addr(uint8_t channel){
 	uint32_t t_read_addr;
 
-	t_read_addr=write_addr[channel] - (divmult_time[channel]*2);
+	if (param[channel][REV] == 0){
 
-	while (t_read_addr < LOOP_RAM_BASE[channel])
-		t_read_addr = t_read_addr + LOOP_SIZE;
+		t_read_addr=write_addr[channel] - (divmult_time[channel]*2);
+
+		while (t_read_addr < LOOP_RAM_BASE[channel])
+			t_read_addr = t_read_addr + LOOP_SIZE;
+
+	} else {
+
+		t_read_addr=write_addr[channel] + (divmult_time[channel]*2);
+
+		while (t_read_addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
+			t_read_addr = t_read_addr - LOOP_SIZE;
+
+
+	}
 
 	t_read_addr = t_read_addr & 0xFFFFFFFE; //addresses must be even!
 	read_addr[channel]=t_read_addr;
@@ -200,6 +222,5 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 	//Write a block to memory
 	write_addr[channel] = resampling_write(write_addr[channel], channel, wr_buff, (sz/2));
 
-//	if (channel==0)
-		DEBUG0_OFF;
+//	if (channel==0) DEBUG0_OFF;
 }

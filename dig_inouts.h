@@ -35,14 +35,14 @@
 
 
 // Infinite Repeat Button and Jack
-#define INF_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOD
+#define INF_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD
 
 #define INF1BUT_pin GPIO_Pin_5
 #define INF1BUT_GPIO GPIOD
 #define INF1BUT (!(INF1BUT_GPIO->IDR & INF1BUT_pin))
 
-#define INF1JACK_pin GPIO_Pin_6
-#define INF1JACK_GPIO GPIOD
+#define INF1JACK_pin GPIO_Pin_9
+#define INF1JACK_GPIO GPIOC
 #define INF1JACK (!(INF1JACK_GPIO->IDR & INF1JACK_pin))
 
 
@@ -55,19 +55,40 @@
 #define INF2JACK (!(INF2JACK_GPIO->IDR & INF2JACK_pin))
 
 
-#define DIVSW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOE
+#define REV_RCC RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD
 
-#define DIVSW_CH1_T1_pin GPIO_Pin_9
-#define DIVSW_CH1_T1_GPIO GPIOG
-#define DIVSW_CH1_T2_pin GPIO_Pin_10
-#define DIVSW_CH1_T2_GPIO GPIOG
-#define DIVSW_CH1 ((DIVSW_CH1_T2_GPIO->IDR & DIVSW_CH1_T2_pin) ? 0b10:0b00) | ((DIVSW_CH1_T1_GPIO->IDR & DIVSW_CH1_T1_pin) ? 0b01:0b00)
+#define REV1JACK_pin GPIO_Pin_6
+#define REV1JACK_GPIO GPIOD
+#define REV1JACK (!(REV1JACK_GPIO->IDR & REV1JACK_pin))
 
-#define DIVSW_CH2_T1_pin GPIO_Pin_0
-#define DIVSW_CH2_T1_GPIO GPIOA
-#define DIVSW_CH2_T2_pin GPIO_Pin_1
-#define DIVSW_CH2_T2_GPIO GPIOA
-#define DIVSW_CH2 ((DIVSW_CH2_T2_GPIO->IDR & DIVSW_CH2_T2_pin) ? 0b10:0b00) | ((DIVSW_CH2_T1_GPIO->IDR & DIVSW_CH2_T1_pin) ? 0b01:0b00)
+#define REV2JACK_pin GPIO_Pin_3
+#define REV2JACK_GPIO GPIOD
+#define REV2JACK (!(REV2JACK_GPIO->IDR & REV2JACK_pin))
+
+
+
+#define REVSW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOE
+/*
+#define REVSW_CH1_T1_pin GPIO_Pin_9
+#define REVSW_CH1_T1_GPIO GPIOG
+#define REVSW_CH1_T2_pin GPIO_Pin_10
+#define REVSW_CH1_T2_GPIO GPIOG
+#define REVSW_CH1 ((REVSW_CH1_T2_GPIO->IDR & REVSW_CH1_T2_pin) ? 0b10:0b00) | ((REVSW_CH1_T1_GPIO->IDR & REVSW_CH1_T1_pin) ? 0b01:0b00)
+
+#define REVSW_CH2_T1_pin GPIO_Pin_0
+#define REVSW_CH2_T1_GPIO GPIOA
+#define REVSW_CH2_T2_pin GPIO_Pin_1
+#define REVSW_CH2_T2_GPIO GPIOA
+#define REVSW_CH2 ((REVSW_CH2_T2_GPIO->IDR & REVSW_CH2_T2_pin) ? 0b10:0b00) | ((REVSW_CH2_T1_GPIO->IDR & REVSW_CH2_T1_pin) ? 0b01:0b00)
+*/
+#define REV1SW_pin GPIO_Pin_10
+#define REV1SW_GPIO GPIOG
+#define REVSW_CH1 (!(REV1SW_GPIO->IDR & REV1SW_pin))
+
+#define REV2SW_pin GPIO_Pin_1
+#define REV2SW_GPIO GPIOA
+#define REVSW_CH2 (!(REV2SW_GPIO->IDR & REV2SW_pin))
+
 
 #define TIMESW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE
 
@@ -133,7 +154,7 @@
 //DEBUG pins
 #define DEBUG_RCC RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOC
 
-#define DEBUG0 GPIO_Pin_2
+#define DEBUG0 GPIO_Pin_3
 #define DEBUG0_GPIO GPIOD
 #define DEBUG0_ON DEBUG0_GPIO->BSRRL = DEBUG0
 #define DEBUG0_OFF DEBUG0_GPIO->BSRRH = DEBUG0
@@ -163,5 +184,6 @@ void update_ping_ledbut(void);
 void init_EXTI_inputs(void);
 void update_channel_leds(uint8_t channel);
 void update_inf_ledbut(uint8_t channel);
+inline void update_instant_params(uint8_t channel);
 
 #endif /* INOUTS_H_ */

@@ -12,6 +12,9 @@
 #include "globals.h"
 #include "dig_inouts.h"
 #include "params.h"
+
+extern float param[NUM_CHAN][NUM_PARAMS];
+
 extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 
 
@@ -34,9 +37,15 @@ uint32_t resampling_read(uint32_t addr, uint8_t channel, uint16_t *rd_buff, uint
 
 		rd_buff[i] = *((int16_t *)addr);
 
-		addr+=2;
-		if (addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
-			addr = LOOP_RAM_BASE[channel];
+		if (param[channel][REV] == 0){
+			addr+=2;
+			if (addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
+				addr = LOOP_RAM_BASE[channel];
+		} else {
+			addr-=2;
+			if (addr <= LOOP_RAM_BASE[channel])
+				addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
+		}
 	}
 
 	return(addr);
@@ -81,9 +90,19 @@ uint32_t resampling_write(uint32_t addr, uint8_t channel, uint16_t *wr_buff, uin
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 		*((int16_t *)addr) = wr_buff[i];
 
-		addr+=2;
-		if (addr >= LOOP_RAM_BASE[channel] + LOOP_SIZE)
-			addr = LOOP_RAM_BASE[channel];
+		if (param[channel][REV] == 0.0){
+			addr+=2;
+			if (addr >= LOOP_RAM_BASE[channel] + LOOP_SIZE)
+				addr = LOOP_RAM_BASE[channel];
+
+		} else{
+			addr-=2;
+
+			if (addr <= LOOP_RAM_BASE[channel])
+				addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
+
+		}
+
 	}
 
 	return(addr);

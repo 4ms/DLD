@@ -24,7 +24,7 @@
 #include "dig_inouts.h"
 #include "globals.h"
 #include "dac.h"
-#include "params.h"
+//#include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"
 
@@ -80,8 +80,6 @@ void main(void)
 
 	while(1){ //-O0 roughly 100kHz
 
-		DEBUG2_ON;
-
 		check_errors();
 
 		if (adc_read_ctr++ > ADC_POLL_TIME){
@@ -92,8 +90,6 @@ void main(void)
 		update_ping_ledbut();
 
 		//process_audio();
-
-		DEBUG2_OFF;
 
 		update_channel_leds(0);
 		update_channel_leds(1);
@@ -106,6 +102,9 @@ void main(void)
 			set_divmult_time(0);
 			set_divmult_time(1);
 		}
+
+		update_instant_params(0);
+		update_instant_params(1);
 
 		update_clkout_jack();
 	}

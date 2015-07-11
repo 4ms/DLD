@@ -8,6 +8,8 @@
 #ifndef PARAMS_H_
 #define PARAMS_H_
 
+#define NUM_PARAMS 7
+
 //TIME: fractional value for time multiplication, integer value for time division
 #define TIME 0
 
@@ -24,6 +26,11 @@
 
 //INF: 0 = disabled, 1 = infinite repeat enabled
 #define INF 5
+
+//REV: 0 = forward (default), 1 = reverse
+#define REV 6
+
+
 
 
 #define P_1 1.0

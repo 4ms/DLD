@@ -19,7 +19,7 @@ OBJECTS = 	$(STARTUP).o system_stm32f4xx.o main.o codec.o i2s.o \
 LDSCRIPT = stm32f429xx.ld
 
 
-CFLAGS = -g2 -O1 -mlittle-endian -mthumb
+CFLAGS = -g2 -O0 -mlittle-endian -mthumb
 CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1' -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
 CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion 
