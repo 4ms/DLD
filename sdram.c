@@ -1,9 +1,6 @@
-#include "stm32f4xx.h"
 #include "globals.h"
 #include "gpiof4.h"
-
 #include "sdram.h"
-
 #include "dig_inouts.h"
 
 uint8_t RAM_test(void){

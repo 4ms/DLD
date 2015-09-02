@@ -6,18 +6,8 @@
  *      Author: design
  */
 
-
-#include "stm32f4xx.h"
-#include "stm32f4xx_dac.h"
-#include "stm32f4xx_dma.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_rcc.h"
-#include "stm32f4xx_tim.h"
-
-
 #include "globals.h"
 #include "dig_inouts.h"
-#include "misc.h"
 #include "dac.h"
 
 

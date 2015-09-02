@@ -2,15 +2,13 @@
  * looping_delay.c
  */
 
-#include "stm32f4xx.h"
-
 #include "looping_delay.h"
 #include "globals.h"
 #include "dig_inouts.h"
 #include "sdram.h"
 #include "adc.h"
-
 #include "params.h"
+
 extern float param[NUM_CHAN][NUM_PARAMS];
 
 extern uint8_t g_error;
@@ -131,25 +129,42 @@ void process_audio(void){
 // -optimize for writing in larger blocks (SDRAM burst mode may be faster than individual writes)
 // -run this via the main loop so we spend less time in the DMA interrupt, but make sure we don't under-buffer
 
-
+//sz is 16
 void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
 {
+	//if (channel==0) DEBUG0_ON;	//12us at -O0
+
 	int32_t mainin, mix, dry, wr, rd;
 	float regen;
 	float mainin_atten;
 	int32_t auxin;
 
 	float a,b,c;
+	uint16_t i;
 
 	int16_t rd_buff[codec_BUFF_LEN/4];
 	int16_t wr_buff[codec_BUFF_LEN/4];
 
-	uint16_t i;
-
-	//if (channel==0) DEBUG0_ON;	//12us at -O0
-
 	//Read a block from memory
-	read_addr[channel] = resampling_read(read_addr[channel], channel, rd_buff, (sz/2));
+	read_addr[channel] = resampling_read(read_addr[channel], channel, rd_buff, sz/2);
+
+/*	float c0,c1,c2,c3;
+	uint16_t i_x;
+	uint16_t out_pos;
+	float rsr = 2.0;
+
+	for (out_pos=0;out_pos<((sz/2) * rsr);out_pos++){
+		i=(uint16_t)(out_pos/rsr);
+		i_x=(float)out_pos/(float)rsr;
+		i_x=i_x-(float)i;
+
+		c0 = rd_buff[i+0];
+		c1 = rd_buff[i+1] - 1/3.0*rd_buff[i-1] - 1/2.0*rd_buff[i+0] - 1/6.0*rd_buff[i+2];
+		c2 = 1/2.0*(rd_buff[i-1] + rd_buff[i+1]) - rd_buff[i+0];
+		c3 = 1/6.0*(rd_buff[i+2] - rd_buff[i-1]) + 1/2.0*(rd_buff[i+0] - rd_buff[i+1]);
+		resampled_buff[out_pos] = ((c3*i_x+c2)*i_x+c1)*i_x+c0;
+	}
+*/
 
 	for (i=0;i<(sz/2);i++){
 
@@ -164,13 +179,10 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 		rd=rd_buff[i];
 
 
-
-
-
 #ifndef INF_WP_MODE
+
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
-
 		if (param[channel][INF]==0.0){
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];

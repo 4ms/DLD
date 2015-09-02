@@ -8,11 +8,7 @@
 #ifndef __codec__
 #define __codec__
 
-#include "stm32f4xx.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_i2c.h"
-#include "stm32f4xx_spi.h"
-#include "stm32f4xx_rcc.h"
+#include <stm32f4xx.h>
 
 /* I2C clock speed configuration (in Hz)  */
 #define I2C_SPEED                       10000

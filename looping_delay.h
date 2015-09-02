@@ -7,8 +7,7 @@
 
 //#define ARM_MATH_CM4
 
-#include "stm32f4xx.h"
-//#include "arm_math.h"
+#include <stm32f4xx.h>
 #include "sdram.h"
 
 #define LOOP_SIZE (SDRAM_SIZE/2)

@@ -15,7 +15,7 @@
  *
  */
 
-#include "stm32f4xx.h"
+#include <stm32f4xx.h>
 
 #include "codec.h"
 #include "i2s.h"
@@ -62,7 +62,7 @@ void main(void)
 
 	init_timekeeper();
 	init_dig_inouts();
-	init_EXTI_inputs();
+//	init_EXTI_inputs();
 	init_inputread_timer();
 
 	Init_Pot_ADC((uint16_t *)potadc_buffer, NUM_POT_ADCS);

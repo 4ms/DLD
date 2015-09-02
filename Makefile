@@ -1,33 +1,46 @@
-# Makefile for STM32F4
-# 11-10-2011 E. Brombaugh
-# 2014-07-25 D Green
+#Based on https://github.com/nitsky/stm32-example 
+#Modified by Dan Green http://github.com/4ms
 
-#Startup file
-#STARTUP = startup_stm32f4xx
+BUILDDIR = build
+
+DEVICE = stm32/device
+CORE = stm32/core
+PERIPH = stm32/periph
+
 STARTUP = startup_stm32f429_439xx
 
-# Object files
-OBJECTS = 	$(STARTUP).o system_stm32f4xx.o main.o codec.o i2s.o \
-			adc.o dig_inouts.o dac.o looping_delay.o \
-			sdram.o gpiof4.o params.o timekeeper.o resample.o \
-			stm32f4xx_gpio.o stm32f4xx_i2c.o stm32f4xx_rcc.o \
-			stm32f4xx_spi.o stm32f4xx_dma.o stm32f4xx_adc.o misc.o \
-			stm32f4xx_dac.o stm32f4xx_tim.o stm32f4xx_exti.o stm32f4xx_syscfg.o \
-			stm32f4xx_fmc.o
- 
-# Linker script
-LDSCRIPT = stm32f429xx.ld
+SOURCES +=	\
+		   $(PERIPH)/src/stm32f4xx_adc.c \
+		   $(PERIPH)/src/stm32f4xx_dac.c \
+		   $(PERIPH)/src/stm32f4xx_dma.c \
+		   $(PERIPH)/src/stm32f4xx_exti.c \
+		   $(PERIPH)/src/stm32f4xx_fmc.c \
+		   $(PERIPH)/src/stm32f4xx_gpio.c \
+		   $(PERIPH)/src/stm32f4xx_i2c.c \
+		   $(PERIPH)/src/stm32f4xx_rcc.c \
+		   $(PERIPH)/src/stm32f4xx_spi.c \
+		   $(PERIPH)/src/stm32f4xx_syscfg.c \
+		   $(PERIPH)/src/stm32f4xx_tim.c \
+		   $(PERIPH)/src/misc.c
 
+SOURCES += $(DEVICE)/$(STARTUP).s
+SOURCES += $(DEVICE)/system_stm32f4xx.c
 
-CFLAGS = -g2 -O0 -mlittle-endian -mthumb
-CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1' -DUSE_STDPERIPH_DRIVER
-CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
-CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion 
+SOURCES += main.c codec.c i2s.c \
+			adc.c dig_inouts.c dac.c looping_delay.c \
+			sdram.c gpiof4.c params.c timekeeper.c resample.c \
 
-AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4 
-LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
+OBJECTS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(SOURCES))))
 
-# Executables
+INCLUDES += -I$(DEVICE)/include \
+			-I$(CORE)/include \
+			-I$(PERIPH)/include \
+			-I\
+
+ELF = $(BUILDDIR)/main.elf
+HEX = $(BUILDDIR)/main.hex
+BIN = $(BUILDDIR)/main.bin
+
 ARCH = arm-none-eabi
 CC = $(ARCH)-gcc
 LD = $(ARCH)-ld -v
@@ -36,42 +49,52 @@ OBJCPY = $(ARCH)-objcopy
 OBJDMP = $(ARCH)-objdump
 GDB = $(ARCH)-gdb
 
-CPFLAGS = --output-target=binary -j .text -j .data
-ODFLAGS	= -x --syms
+ 	
+#CFLAGS  = -O0 -g -Wall -I.\
+#   -mcpu=cortex-m4 -mthumb \
+#   -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
+#   $(INCLUDES) -DUSE_STDPERIPH_DRIVER
 
-FLASH = st-flash
 
-# Targets
-all: Makefile main.bin
+CFLAGS = -g2 -O0 -mlittle-endian -mthumb 
+CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
+CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
+CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion 
+
+AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4 
+
+LDSCRIPT = $(DEVICE)/stm32f429xx.ld
+#LDFLAGS += -T$(LDSCRIPT) -mthumb -mcpu=cortex-m4 -nostdlib
+LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
+
+
+all: Makefile $(BIN)
+
+$(BIN): $(ELF)
+	$(OBJCPY) -O binary $< $@
+	$(OBJDMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
+	ls -l $@ $<
+
+$(HEX): $(ELF)
+	$(OBJCPY) --output-target=ihex $< $@
+
+$(ELF): $(OBJECTS)
+	$(LD) $(LFLAGS) -o $@ $(OBJECTS)
+
+
+$(BUILDDIR)/%.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) -c $(CFLAGS) $< -o $@
+
+
+$(BUILDDIR)/%.o: %.s
+	mkdir -p $(dir $@)
+	$(AS) $(AFLAGS) $< -o $@ > $(addprefix $(BUILDDIR)/, $(addsuffix .lst, $(basename $<)))
+#	$(CC) -c $(CFLAGS) $< -o $@
+
+
+flash: $(BIN)
+	st-flash write $(BIN) 0x8000000
 
 clean:
-	-rm -f $(OBJECTS) *.lst *.elf *.bin *.map *.dmp
-
-flash: gdb_flash
-
-stlink_flash: main.bin
-	$(FLASH) write main.bin 0x08000000
-	
-gdb_flash: main.elf
-	$(GDB) -x flash_cmd.gdb -batch
-
-disassemble: main.elf
-	$(OBJDMP) -dS main.elf > main.dis
-	
-main.hex: main.elf
-	$(OBJCPY) --output-target=ihex main.elf main.hex
-
-main.bin: main.elf 
-	$(OBJCPY) $(CPFLAGS) main.elf main.bin
-	$(OBJDMP) $(ODFLAGS) main.elf > main.dmp
-	ls -l main.elf main.bin
-
-main.elf: $(OBJECTS) $(LDSCRIPT)
-	$(LD) $(LFLAGS) -o main.elf $(OBJECTS)
-
-$(STARTUP).o: $(STARTUP).s
-	$(AS) $(AFLAGS) $(STARTUP).s -o $(STARTUP).o > $(STARTUP).lst
-
-%.o: %.c %.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
+	rm -rf build

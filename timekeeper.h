@@ -7,6 +7,7 @@
 
 #ifndef TIMEKEEPER_H_
 #define TIMEKEEPER_H_
+#include <stm32f4xx.h>
 
 void init_timekeeper(void);
 

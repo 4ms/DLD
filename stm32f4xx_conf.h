@@ -31,7 +31,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 /* Uncomment the line below to enable peripheral header file inclusion */
-#include "stm32f4xx_adc.h"
+#include <stm32f4xx_adc.h>
 //#include "stm32f4xx_can.h"
 //#include "stm32f4xx_crc.h"
 //#include "stm32f4xx_cryp.h"
@@ -42,9 +42,9 @@
 #include "stm32f4xx_exti.h"
 //#include "stm32f4xx_flash.h"
 //#include "stm32f4xx_fsmc.h"
-#include "stm32f4xx_fmc.h"
+#include <stm32f4xx_fmc.h>
 //#include "stm32f4xx_hash.h"
-#include "stm32f4xx_gpio.h"
+#include <stm32f4xx_gpio.h>
 #include "stm32f4xx_i2c.h"
 //#include "stm32f4xx_iwdg.h"
 //#include "stm32f4xx_pwr.h"

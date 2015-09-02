@@ -76,7 +76,6 @@ void update_adc_params(void){
 
 		base_time = get_clk_div_nominal(t_combined);
 
-
 		// Adjust TIME by the time switch position
 
 		if (i==0){

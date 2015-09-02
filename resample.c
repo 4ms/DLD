@@ -5,9 +5,7 @@
  *      Author: design
  */
 
-#include "stm32f4xx.h"
 #include "resample.h"
-
 #include "looping_delay.h"
 #include "globals.h"
 #include "dig_inouts.h"
@@ -18,24 +16,28 @@ extern float param[NUM_CHAN][NUM_PARAMS];
 extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 
 
-float r_rs=0.5; //read resample rate: 0.5 = read 16 bits and convert to 8 bits
-float w_rs=2.0; //write resample rate: 2.0 = convert 8 bits to 16 bits which are written
+//float r_rs=0.5; //read resample rate: 0.5 = read 16 samples and convert to 8 samples
+//float w_rs=2.0; //write resample rate: 2.0 = convert 8 samples to 16 samples which are written
 
 
 uint32_t resampling_read(uint32_t addr, uint8_t channel, uint16_t *rd_buff, uint8_t num_samples_out){
 	uint8_t i;
 	uint32_t num_samples_in;
+	//static uint16 rd_buff_last=0;
 
 	//num_samples_in = (uint32_t) (r_rs * (float)num_samples_out);
 	num_samples_in = num_samples_out;
 
+	//Set rd_buff[0] to the last element of the previous rd_buff
+	//rd_buff[0]=rd_buff_last;
+
 	//Loop of 8 takes 2.5us
 	//read from SDRAM. first one takes 200us, subsequent reads take 50ns
-
 	for (i=0;i<num_samples_in;i++){
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
 		rd_buff[i] = *((int16_t *)addr);
+		//rd_buff[i+1] = *((int16_t *)addr);
 
 		if (param[channel][REV] == 0){
 			addr+=2;
@@ -47,6 +49,7 @@ uint32_t resampling_read(uint32_t addr, uint8_t channel, uint16_t *rd_buff, uint
 				addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
 		}
 	}
+	//rd_buff_last=rd_buff[num_samples_in];
 
 	return(addr);
 }
@@ -76,9 +79,7 @@ for (i=0;i<num_samples_in - 2;i++) {
 	xm1=rd_buff[i];
 }
 
-
-
- */
+*/
 
 
 

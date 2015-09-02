@@ -3,13 +3,12 @@
  *
  * */
 
-#include "stm32f4xx.h"
-
 #include "i2s.h"
 #include "timekeeper.h"
 #include "codec.h"
 #include "dig_inouts.h"
 #include "globals.h"
+
 extern uint32_t g_error;
 
 

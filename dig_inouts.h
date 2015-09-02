@@ -4,6 +4,7 @@
 
 #ifndef INOUTS_H_
 #define INOUTS_H_
+#include <stm32f4xx.h>
 
 //INPUTS
 
@@ -41,8 +42,8 @@
 #define INF1BUT_GPIO GPIOD
 #define INF1BUT (!(INF1BUT_GPIO->IDR & INF1BUT_pin))
 
-#define INF1JACK_pin GPIO_Pin_9
-#define INF1JACK_GPIO GPIOC
+#define INF1JACK_pin GPIO_Pin_6
+#define INF1JACK_GPIO GPIOD
 #define INF1JACK (!(INF1JACK_GPIO->IDR & INF1JACK_pin))
 
 
@@ -55,9 +56,9 @@
 #define INF2JACK (!(INF2JACK_GPIO->IDR & INF2JACK_pin))
 
 
-#define REV_RCC RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD
+#define REV_RCC RCC_AHB1Periph_GPIOD
 
-#define REV1JACK_pin GPIO_Pin_6
+#define REV1JACK_pin GPIO_Pin_2
 #define REV1JACK_GPIO GPIOD
 #define REV1JACK (!(REV1JACK_GPIO->IDR & REV1JACK_pin))
 
@@ -67,20 +68,8 @@
 
 
 
-#define REVSW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOE
-/*
-#define REVSW_CH1_T1_pin GPIO_Pin_9
-#define REVSW_CH1_T1_GPIO GPIOG
-#define REVSW_CH1_T2_pin GPIO_Pin_10
-#define REVSW_CH1_T2_GPIO GPIOG
-#define REVSW_CH1 ((REVSW_CH1_T2_GPIO->IDR & REVSW_CH1_T2_pin) ? 0b10:0b00) | ((REVSW_CH1_T1_GPIO->IDR & REVSW_CH1_T1_pin) ? 0b01:0b00)
+#define REVSW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOG
 
-#define REVSW_CH2_T1_pin GPIO_Pin_0
-#define REVSW_CH2_T1_GPIO GPIOA
-#define REVSW_CH2_T2_pin GPIO_Pin_1
-#define REVSW_CH2_T2_GPIO GPIOA
-#define REVSW_CH2 ((REVSW_CH2_T2_GPIO->IDR & REVSW_CH2_T2_pin) ? 0b10:0b00) | ((REVSW_CH2_T1_GPIO->IDR & REVSW_CH2_T1_pin) ? 0b01:0b00)
-*/
 #define REV1SW_pin GPIO_Pin_10
 #define REV1SW_GPIO GPIOG
 #define REVSW_CH1 (!(REV1SW_GPIO->IDR & REV1SW_pin))
