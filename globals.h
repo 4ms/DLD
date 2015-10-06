@@ -33,6 +33,8 @@
 //Number of channels
 #define NUM_CHAN 2
 
+
+
 //About 50ms delay
 #define delay()						\
 do {							\

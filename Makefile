@@ -1,34 +1,22 @@
 #Based on https://github.com/nitsky/stm32-example 
 #Modified by Dan Green http://github.com/4ms
 
-BUILDDIR = build
+BINARYNAME = main
+
+STARTUP = startup_stm32f427_437xx.s
+SYSTEM = system_stm32f4xx.c
+LOADFILE = stm32f427.ld
 
 DEVICE = stm32/device
 CORE = stm32/core
 PERIPH = stm32/periph
 
-STARTUP = startup_stm32f429_439xx
+BUILDDIR = build
 
-SOURCES +=	\
-		   $(PERIPH)/src/stm32f4xx_adc.c \
-		   $(PERIPH)/src/stm32f4xx_dac.c \
-		   $(PERIPH)/src/stm32f4xx_dma.c \
-		   $(PERIPH)/src/stm32f4xx_exti.c \
-		   $(PERIPH)/src/stm32f4xx_fmc.c \
-		   $(PERIPH)/src/stm32f4xx_gpio.c \
-		   $(PERIPH)/src/stm32f4xx_i2c.c \
-		   $(PERIPH)/src/stm32f4xx_rcc.c \
-		   $(PERIPH)/src/stm32f4xx_spi.c \
-		   $(PERIPH)/src/stm32f4xx_syscfg.c \
-		   $(PERIPH)/src/stm32f4xx_tim.c \
-		   $(PERIPH)/src/misc.c
-
-SOURCES += $(DEVICE)/$(STARTUP).s
-SOURCES += $(DEVICE)/system_stm32f4xx.c
-
-SOURCES += main.c codec.c i2s.c \
-			adc.c dig_inouts.c dac.c looping_delay.c \
-			sdram.c gpiof4.c params.c timekeeper.c resample.c \
+SOURCES += $(wildcard $(PERIPH)/src/*.c)
+SOURCES += $(DEVICE)/src/$(STARTUP)
+SOURCES += $(DEVICE)/src/$(SYSTEM)
+SOURCES += $(wildcard *.c)
 
 OBJECTS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(SOURCES))))
 
@@ -37,9 +25,9 @@ INCLUDES += -I$(DEVICE)/include \
 			-I$(PERIPH)/include \
 			-I\
 
-ELF = $(BUILDDIR)/main.elf
-HEX = $(BUILDDIR)/main.hex
-BIN = $(BUILDDIR)/main.bin
+ELF = $(BUILDDIR)/$(BINARYNAME).elf
+HEX = $(BUILDDIR)/$(BINARYNAME).hex
+BIN = $(BUILDDIR)/$(BINARYNAME).bin
 
 ARCH = arm-none-eabi
 CC = $(ARCH)-gcc
@@ -55,7 +43,7 @@ GDB = $(ARCH)-gdb
 #   -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
 #   $(INCLUDES) -DUSE_STDPERIPH_DRIVER
 
-
+#CFLAGS = -g2 -Ofast -fno-tree-loop-distribute-patterns
 CFLAGS = -g2 -O0 -mlittle-endian -mthumb 
 CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
@@ -63,12 +51,11 @@ CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 
 AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4 
 
-LDSCRIPT = $(DEVICE)/stm32f429xx.ld
-#LDFLAGS += -T$(LDSCRIPT) -mthumb -mcpu=cortex-m4 -nostdlib
+LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
 
 
-all: Makefile $(BIN)
+all: Makefile $(BIN) $(HEX)
 
 $(BIN): $(ELF)
 	$(OBJCPY) -O binary $< $@
@@ -78,7 +65,7 @@ $(BIN): $(ELF)
 $(HEX): $(ELF)
 	$(OBJCPY) --output-target=ihex $< $@
 
-$(ELF): $(OBJECTS)
+$(ELF): $(OBJECTS) $(wildcard *.h)
 	$(LD) $(LFLAGS) -o $@ $(OBJECTS)
 
 
@@ -90,11 +77,22 @@ $(BUILDDIR)/%.o: %.c
 $(BUILDDIR)/%.o: %.s
 	mkdir -p $(dir $@)
 	$(AS) $(AFLAGS) $< -o $@ > $(addprefix $(BUILDDIR)/, $(addsuffix .lst, $(basename $<)))
-#	$(CC) -c $(CFLAGS) $< -o $@
 
 
 flash: $(BIN)
-	st-flash write $(BIN) 0x8000000
+	st-flash write $(BIN) 0x8008000
 
 clean:
 	rm -rf build
+	
+wav: fsk-wav
+
+qpsk-wav: $(BIN)
+	python stm_audio_bootloader/qpsk/encoder.py \
+		-t stm32f4 -s 48000 -b 12000 -c 6000 -p 256 \
+		$(BIN)
+
+fsk-wav: $(BIN)
+	python stm_audio_bootloader/fsk/encoder.py \
+		-s 48000 -b 16 -n 8 -z 4 -p 256 -g 16384 -k 1100 \
+		$(BIN)

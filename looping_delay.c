@@ -57,6 +57,7 @@ inline void update_write_time(uint8_t channel){
 }
 */
 
+
 void swap_read_write(uint8_t channel){
 
 	uint32_t t;
@@ -110,6 +111,9 @@ inline void set_divmult_time(uint8_t channel){
 
 		//update_write_time(channel);
 		update_read_addr(channel);
+
+
+
 	}
 
 }
@@ -146,25 +150,7 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 	int16_t wr_buff[codec_BUFF_LEN/4];
 
 	//Read a block from memory
-	read_addr[channel] = resampling_read(read_addr[channel], channel, rd_buff, sz/2);
-
-/*	float c0,c1,c2,c3;
-	uint16_t i_x;
-	uint16_t out_pos;
-	float rsr = 2.0;
-
-	for (out_pos=0;out_pos<((sz/2) * rsr);out_pos++){
-		i=(uint16_t)(out_pos/rsr);
-		i_x=(float)out_pos/(float)rsr;
-		i_x=i_x-(float)i;
-
-		c0 = rd_buff[i+0];
-		c1 = rd_buff[i+1] - 1/3.0*rd_buff[i-1] - 1/2.0*rd_buff[i+0] - 1/6.0*rd_buff[i+2];
-		c2 = 1/2.0*(rd_buff[i-1] + rd_buff[i+1]) - rd_buff[i+0];
-		c3 = 1/6.0*(rd_buff[i+2] - rd_buff[i-1]) + 1/2.0*(rd_buff[i+0] - rd_buff[i+1]);
-		resampled_buff[out_pos] = ((c3*i_x+c2)*i_x+c1)*i_x+c0;
-	}
-*/
+	read_addr[channel] = sdram_read(read_addr[channel], channel, rd_buff, sz/2);
 
 	for (i=0;i<(sz/2);i++){
 
@@ -232,7 +218,7 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 	}
 
 	//Write a block to memory
-	write_addr[channel] = resampling_write(write_addr[channel], channel, wr_buff, (sz/2));
+	write_addr[channel] = sdram_write(write_addr[channel], channel, wr_buff, (sz/2));
 
 //	if (channel==0) DEBUG0_OFF;
 }

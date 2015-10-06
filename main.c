@@ -23,7 +23,6 @@
 #include "looping_delay.h"
 #include "dig_inouts.h"
 #include "globals.h"
-#include "dac.h"
 //#include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"
@@ -57,6 +56,7 @@ void main(void)
 	int16_t i;
 	uint32_t adc_read_ctr=0;
 
+    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
 	Codec_Init(I2S_AudioFreq_48k);
 

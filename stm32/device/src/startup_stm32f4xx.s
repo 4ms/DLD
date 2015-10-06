@@ -1,16 +1,16 @@
 /**
   ******************************************************************************
-  * @file      startup_stm32f429_439xx.s
+  * @file      startup_stm32f4xx.s
   * @author    MCD Application Team
-  * @version   V1.3.0
-  * @date      08-November-2013
-  * @brief     STM32F429xx/439xx Devices vector table for RIDE7 toolchain.          
+  * @version   V1.0.0
+  * @date      30-September-2011
+  * @brief     STM32F4xx Devices vector table for RIDE7 toolchain. 
   *            This module performs:
   *                - Set the initial SP
   *                - Set the initial PC == Reset_Handler,
   *                - Set the vector table entries with the exceptions ISR address
   *                - Configure the clock system and the external SRAM mounted on 
-  *                  STM324x9I-EVAL board to be used as data memory (optional, 
+  *                  STM324xG-EVAL board to be used as data memory (optional, 
   *                  to be enabled by user)
   *                - Branches to main in the C library (which eventually
   *                  calls main()).
@@ -19,20 +19,14 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT 2013 STMicroelectronics</center></h2>
+  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
+  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
+  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
+  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
+  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
+  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
   *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
+  * <h2><center>&copy; COPYRIGHT 2011 STMicroelectronics</center></h2>
   ******************************************************************************
   */
     
@@ -231,16 +225,7 @@ g_pfnVectors:
   .word     CRYP_IRQHandler                   /* CRYP crypto                  */                   
   .word     HASH_RNG_IRQHandler               /* Hash and Rng                 */
   .word     FPU_IRQHandler                    /* FPU                          */                         
-  .word     UART7_IRQHandler                  /* UART7                        */
-  .word     UART8_IRQHandler                  /* UART8                        */
-  .word     SPI4_IRQHandler                   /* SPI4                         */
-  .word     SPI5_IRQHandler                   /* SPI5                         */
-  .word     SPI6_IRQHandler                   /* SPI6                         */
-  .word     SAI1_IRQHandler                   /* SAI1                         */
-  .word     LTDC_IRQHandler                   /* LTDC                         */
-  .word     LTDC_ER_IRQHandler                /* LTDC error                   */
-  .word     DMA2D_IRQHandler                  /* DMA2D                        */
-                              
+                         
 /*******************************************************************************
 *
 * Provide weak aliases for each Exception handler to the Default_Handler. 
@@ -519,33 +504,6 @@ g_pfnVectors:
    .thumb_set HASH_RNG_IRQHandler,Default_Handler   
 
    .weak      FPU_IRQHandler                  
-   .thumb_set FPU_IRQHandler,Default_Handler 
+   .thumb_set FPU_IRQHandler,Default_Handler  
    
-   .weak      UART7_IRQHandler                  
-   .thumb_set UART7_IRQHandler,Default_Handler                   
-   
-   .weak      UART8_IRQHandler                  
-   .thumb_set UART8_IRQHandler,Default_Handler 
-   
-   .weak      SPI4_IRQHandler                   
-   .thumb_set SPI4_IRQHandler,Default_Handler 
-   
-   .weak      SPI5_IRQHandler                   
-   .thumb_set SPI5_IRQHandler,Default_Handler 
-   
-   .weak      SPI6_IRQHandler
-   .thumb_set SPI6_IRQHandler,Default_Handler
-   
-   .weak      SAI1_IRQHandler
-   .thumb_set SAI1_IRQHandler,Default_Handler 
-   
-   .weak      LTDC_IRQHandler
-   .thumb_set LTDC_IRQHandler,Default_Handler 
-   
-   .weak      LTDC_ER_IRQHandler
-   .thumb_set LTDC_ER_IRQHandler,Default_Handler 
-   
-   .weak      DMA2D_IRQHandler
-   .thumb_set DMA2D_IRQHandler,Default_Handler                    
-   
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+/*******************   (C)   COPYRIGHT   2011   STMicroelectronics   *****END   OF   FILE****/

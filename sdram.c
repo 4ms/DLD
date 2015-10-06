@@ -328,10 +328,8 @@ void FMC_Config(void){
 
 /* Step 4 --------------------------------------------------------------------*/
   /* Insert 100 ms delay */
-  DEBUG2_ON;
  delay();
  delay();
-DEBUG2_OFF;
 
 /* Step 5 --------------------------------------------------------------------*/
   /* Configure a PALL (precharge all) command */

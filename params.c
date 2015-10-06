@@ -36,7 +36,7 @@ void update_adc_params(void){
 	int16_t adc;
 	uint8_t switch1_val, switch2_val;
 
-//	DEBUG3_ON; //runs every 3ms, takes 10-40us
+//	runs every 3ms, takes 10-40us
 
 	//Ignore small variations in the ADC
 	//To-do: do true hysteris checking for discrete value parameters (TIME)
@@ -139,7 +139,6 @@ void update_adc_params(void){
 
 
 	}
-//	DEBUG3_OFF;
 
 }
 

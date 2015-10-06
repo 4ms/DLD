@@ -54,25 +54,20 @@ void init_dig_inouts(void){
 	gpio.GPIO_Pin = LED_INF2_pin;	GPIO_Init(LED_INF2_GPIO, &gpio);
 
 
-	//CLKOUT
+	//CLKOUT Jacks
 	RCC_AHB1PeriphClockCmd(CLKOUT_RCC, ENABLE);
 	gpio.GPIO_Pin = CLKOUT_pin;	GPIO_Init(CLKOUT_GPIO, &gpio);
+	gpio.GPIO_Pin = CLKOUT1_pin;	GPIO_Init(CLKOUT1_GPIO, &gpio);
+	gpio.GPIO_Pin = CLKOUT2_pin;	GPIO_Init(CLKOUT2_GPIO, &gpio);
 	CLKOUT_OFF;
+	CLKOUT1_ON;
+	CLKOUT2_ON;
 
 	//DEBUG pins
 	RCC_AHB1PeriphClockCmd(DEBUG_RCC, ENABLE);
 
 	gpio.GPIO_Pin = DEBUG0;	GPIO_Init(DEBUG0_GPIO, &gpio);
-	gpio.GPIO_Pin = DEBUG1;	GPIO_Init(DEBUG1_GPIO, &gpio);
-	gpio.GPIO_Pin = DEBUG2;	GPIO_Init(DEBUG2_GPIO, &gpio);
-	gpio.GPIO_Pin = DEBUG3;	GPIO_Init(DEBUG3_GPIO, &gpio);
-	gpio.GPIO_Pin = DEBUG4;	GPIO_Init(DEBUG4_GPIO, &gpio);
-
-	 DEBUG0_OFF;
-	 DEBUG1_OFF;
-	 DEBUG2_OFF;
-	 DEBUG3_OFF;
-	 DEBUG4_OFF;
+	DEBUG0_OFF;
 
 
 	//Configure inputs
@@ -224,11 +219,11 @@ void init_inputread_timer(void){
 uint16_t State[10] = {0,0,0,0,0,0,0,0,0,0}; // Current debounce status
 
 
-// This handy routine is called every 0.39ms by the TIMER 4 interrupt.
+// This handy routine is called every 0.39us by the TIMER 4 interrupt.
 // It checks each button and digital input jack to see if it's been low for a certain number of cycles,
 // and high for a certain number of cycles. We shift 0's and 1's down a 16-bit variable (State[]) to indicate high/low status.
 // 16 bits x 0.39us means we can't change status any faster than 6.2ms or 160Hz.
-// This could be sped up by checking less bits, or by running TIM4 faster (shorter Period).
+// This could be sped up by checking less bits, or by running TIM4 faster (shorter tim.TIM_Period).
 
 void TIM4_IRQHandler(void)
 {
@@ -451,12 +446,24 @@ void update_ping_ledbut(void){
 void update_channel_leds(uint8_t channel){
 	// Check if clkout timer has overflowed
 	if (pingled_tmr[channel]>=divmult_time[channel]){
-		if (channel==0) LED_OVLD1_ON; else LED_OVLD2_ON;
+		if (channel==0) {
+			CLKOUT1_ON;
+			LED_OVLD1_ON;
+		} else {
+			CLKOUT2_ON;
+			LED_OVLD2_ON;
+		}
 
 		reset_pingled_tmr(channel);
 
 	} else if (pingled_tmr[channel] >= (divmult_time[channel]>>1)){
-		if (channel==0) LED_OVLD1_OFF; else LED_OVLD2_OFF;
+		if (channel==0) {
+			CLKOUT1_OFF;
+			LED_OVLD1_OFF;
+		} else {
+			CLKOUT2_OFF;
+			LED_OVLD2_OFF;
+		}
 	}
 }
 
