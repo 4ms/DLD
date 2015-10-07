@@ -110,7 +110,9 @@
 #define CLKOUT1_ON CLKOUT1_GPIO->BSRRL = CLKOUT1_pin
 #define CLKOUT1_OFF CLKOUT1_GPIO->BSRRH = CLKOUT1_pin
 
-//should be PC10 in p4
+
+//p3 board has this wired to PC9, manually cut and moved to PA5
+//should be PC5 in p4
 #define CLKOUT2_pin GPIO_Pin_5
 #define CLKOUT2_GPIO GPIOA
 #define CLKOUT2_ON CLKOUT2_GPIO->BSRRL = CLKOUT2_pin

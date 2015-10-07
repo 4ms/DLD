@@ -17,7 +17,7 @@ extern volatile uint32_t pingled_tmr[2];
 extern volatile uint32_t divmult_time[2];
 extern volatile uint32_t ping_time;
 
-extern uint8_t flag_ping_was_changed;
+uint8_t flag_ping_was_changed;
 
 extern float param[NUM_CHAN][NUM_PARAMS];
 
@@ -372,6 +372,7 @@ void TIM4_IRQHandler(void)
 }
 
 /*** trigouts.c ****/
+/*
 inline void update_quantized_params(uint8_t channel){
 
 
@@ -384,13 +385,13 @@ inline void update_quantized_params(uint8_t channel){
 	}
 
 }
+*/
 
 inline void update_instant_params(uint8_t channel){
 
 	if (flag_inf_change[channel]){
 		flag_inf_change[channel]=0;
 
-		// Toggle INF status
 		param[channel][INF] = 1.0 - param[channel][INF];
 	}
 
@@ -398,10 +399,18 @@ inline void update_instant_params(uint8_t channel){
 	if (flag_rev_change[channel]){
 		flag_rev_change[channel]=0;
 
-		swap_read_write(channel);
+		reverse_read_head(channel);
+		//swap_read_write(channel);
 
 		param[channel][REV] = 1.0 - param[channel][REV];
 	}
+
+	if (flag_time_param_changed[channel] || flag_ping_was_changed){
+			flag_time_param_changed[channel]=0;
+
+			set_divmult_time(channel);
+
+		}
 }
 
 
@@ -414,8 +423,8 @@ inline void update_clkout_jack(void){
 		CLKOUT_ON;
 		reset_clkout_trigger_tmr();
 
-		update_quantized_params(0);
-		update_quantized_params(1);
+//		update_quantized_params(0);
+//		update_quantized_params(1);
 	}
 
 	// Handle the jack output: 50% duty cycle

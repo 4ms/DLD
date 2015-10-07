@@ -31,7 +31,6 @@ uint32_t g_error=0;
 
 __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
-uint8_t flag_ping_was_changed;
 
 
 
@@ -48,7 +47,8 @@ inline uint32_t diff_circular(uint32_t leader, uint32_t follower){
 }
 */
 
-#define ADC_POLL_TIME 1000
+//1000 is about every 7ms
+#define ADC_POLL_TIME 100
 
 void main(void)
 {
@@ -96,12 +96,6 @@ void main(void)
 
 		update_inf_ledbut(0);
 		update_inf_ledbut(1);
-
-		if (flag_ping_was_changed){
-			flag_ping_was_changed=0;
-			set_divmult_time(0);
-			set_divmult_time(1);
-		}
 
 		update_instant_params(0);
 		update_instant_params(1);
