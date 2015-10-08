@@ -5,7 +5,7 @@
  *      Author: design
  */
 
-#define QUANTIZE_TIMECV 1
+#define QUANTIZE_TIMECV 0
 
 #include "adc.h"
 #include "dig_inouts.h"
@@ -31,13 +31,9 @@ const int32_t MIN_CV_ADC_CHANGE[NUM_CV_ADCS] = {60, 60, 20, 20, 20, 20};
 const float POT_LPF_COEF[NUM_POT_ADCS] = {0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99};
 const float CV_LPF_COEF[NUM_CV_ADCS] = {0.9, 0.9, 0.9, 0.9, 0.9, 0.9};
 
+
 inline float LowPassSmoothingFilter(float current_value, float new_value, float coef){
-
 	return (current_value * coef) + (new_value * (1.0f-coef));
-
-//	current_value *= coef;
-//	current_value += (1.0f - coef) * new_value;
-
 }
 
 
@@ -50,6 +46,7 @@ void update_adc_params(void){
 
 	uint8_t i, channel;
 	int32_t t;
+	float t_f;
 	uint32_t t_combined;
 	float base_time;
 	int16_t adc;
@@ -70,10 +67,23 @@ void update_adc_params(void){
 
 		//Add TIME pot and cv values, hard clip at 4096
 
-		t_combined = i_smoothed_potadc[TIME*2+channel] + i_smoothed_cvadc[TIME*2+channel];
-		if (t_combined>4095) t_combined = 4095;
+		if (QUANTIZE_TIMECV){
+			t_combined = i_smoothed_potadc[TIME*2+channel] + i_smoothed_cvadc[TIME*2+channel];
+			if (t_combined>4095) t_combined = 4095;
 
-		base_time = get_clk_div_nominal(t_combined);
+			base_time = get_clk_div_nominal(t_combined);
+
+		} else {
+
+			base_time = get_clk_div_nominal(i_smoothed_potadc[TIME*2+channel]);
+
+			t_f=epp_lut[i_smoothed_cvadc[TIME*2+channel]>>1];
+			if (t_f==0.0) t_f=0.0003;
+
+			base_time = base_time * t_f;
+
+			//base_time *= (4096.0-smoothed_cvadc[TIME*2+channel]) / 4096.0;
+		}
 
 		// Adjust TIME by the time switch position
 
@@ -83,9 +93,9 @@ void update_adc_params(void){
 			switch1_val = TIMESW_CH2;
 		}
 
-		if (switch1_val==0b10) base_time = base_time + 16; //switch up: 17-32
+		if (switch1_val==0b10) base_time = base_time + 16.0; //switch up: 17-32
 		else if (switch1_val==0b11) base_time = base_time; //switch in middle: 1-16
-		else if (switch1_val==0b01) base_time = base_time / 8; //switch down: eighth notes
+		else if (switch1_val==0b01) base_time = base_time / 8.0; //switch down: eighth notes
 
 
 		if (base_time!=param[channel][TIME]){
@@ -100,7 +110,6 @@ void update_adc_params(void){
 																#ifndef INF_WP_MODE
 		if (param[channel][INF]==0.0){
 																#endif
-
 			t_combined = i_smoothed_potadc[LEVEL*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
 			if (t_combined>4095) t_combined = 4095;
 
@@ -135,8 +144,6 @@ void update_adc_params(void){
 		param[channel][MIX_DRY]=epp_lut[i_smoothed_potadc[MIXPOT*2+channel]];
 
 		param[channel][MIX_WET]=epp_lut[4095 - i_smoothed_potadc[MIXPOT*2+channel]];
-
-
 
 	}
 

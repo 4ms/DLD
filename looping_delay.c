@@ -63,22 +63,6 @@ inline void update_write_time(uint8_t channel){
 }
 */
 
-void reverse_read_head(uint8_t channel){
-	uint32_t t;
-
-
-
-}
-
-void swap_read_write(uint8_t channel){
-
-	uint32_t t;
-
-	t=write_addr[channel];
-	write_addr[channel]=read_addr[channel];
-	read_addr[channel]=t;
-
-}
 
 inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	uint32_t t_read_addr;
@@ -104,6 +88,34 @@ inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 }
 
 
+void swap_read_write(uint8_t channel){
+
+	uint32_t prev_write_addr;
+
+	prev_write_addr=write_addr[channel];
+
+	write_addr[channel]=read_addr[channel];
+
+
+	// If we're not cross-fading read head then
+	//	-Initiate a read head fade to the write head's old address
+
+	if (fade_pos[channel] < FADE_INCREMENT){
+
+		fade_dest_read_addr[channel] = prev_write_addr;
+		fade_pos[channel] = FADE_INCREMENT;
+
+		fade_queued_dest_divmult_time[channel] = 0;
+
+	} else {
+
+		fade_queued_dest_divmult_time[channel]=divmult_time[channel];
+
+	}
+
+}
+
+
 inline void set_divmult_time(uint8_t channel){
 	uint32_t t_divmult_time;
 	static uint32_t old_divmult_time[2]={0,0};
@@ -113,21 +125,14 @@ inline void set_divmult_time(uint8_t channel){
 	// Check for valid divmult time range
 	if (t_divmult_time > LOOP_SIZE>>1)
 		t_divmult_time = LOOP_SIZE>>1;
-		//OVLD LED comes on?
 
-/*
-	if (old_divmult_time[channel] != t_divmult_time){
-		old_divmult_time[channel] = t_divmult_time;
+	// If we are not cross-fading the read head:
+	//	-See if the new divmult_time is different than the existing one
+	//		-If so, initiate a cross-fade.
+	//	-Set divmult_time to the destination divmult_time
+	//
+	// Otherwise, if we are in the middle of a cross-fade, then just queue the new divmult_time
 
-		divmult_time[channel] = t_divmult_time;
-
-		read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
-
-	}
-	*/
-	//If we are not cross-fading the read head currently, then see if the new divmult_time is different than the existing one
-	//If so, initiate a cross-fade.
-	//Set divmult_time to the destination divmult_time (we don't cross fade this value)
 	if (fade_pos[channel] < FADE_INCREMENT){
 
 		if (old_divmult_time[channel] != t_divmult_time){
@@ -136,26 +141,22 @@ inline void set_divmult_time(uint8_t channel){
 			divmult_time[channel] = t_divmult_time;
 
 			fade_pos[channel] = FADE_INCREMENT;
-
 			fade_queued_dest_divmult_time[channel] = 0;
-
 			fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
 
 		}
 
-	//Otherwise, if we are in the middle of a cross-fade, then just queue the new divmult_time
 	} else {
 
 		fade_queued_dest_divmult_time[channel]=t_divmult_time;
 
 	}
-
-
-
-
 }
 
 inline void process_read_addr_fade(uint8_t channel){
+
+	//If we're fading, increment the fade position
+	//Otherwise, do nothing
 
 	if (fade_pos[channel]>0.0){
 		fade_pos[channel] += FADE_INCREMENT;
@@ -164,20 +165,16 @@ inline void process_read_addr_fade(uint8_t channel){
 		//	-Stop the cross-fade
 		//	-Set read_addr to the destination
 		//	-Load the next queued fade (if it exists)
-		//
-		if (fade_pos[channel] >= 1.0){
 
+		if (fade_pos[channel] >= 1.0){
 			fade_pos[channel] = 0.0;
 
 			read_addr[channel] = fade_dest_read_addr[channel];
 
 			if (fade_queued_dest_divmult_time[channel]){
-
 				divmult_time[channel] = fade_queued_dest_divmult_time[channel];
-
 				fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
 			}
-
 		}
 	}
 }
@@ -201,8 +198,6 @@ void process_audio(void){
 //sz is 16
 void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
 {
-	//if (channel==0) DEBUG0_ON;	//12us at -O0
-
 	int32_t mainin, mix, dry, wr, rd;
 	float regen;
 	float mainin_atten;
@@ -232,7 +227,6 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 
 		// Read from the loop and save this value so we can output it to the Delay Out jack
 		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
-		//rd = rd_buff[i];
 
 #ifndef INF_WP_MODE
 
@@ -292,5 +286,4 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
 
-//	if (channel==0) DEBUG0_OFF;
 }

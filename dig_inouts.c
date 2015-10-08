@@ -399,10 +399,8 @@ inline void update_instant_params(uint8_t channel){
 	if (flag_rev_change[channel]){
 		flag_rev_change[channel]=0;
 
-		reverse_read_head(channel);
-		//swap_read_write(channel);
-
 		param[channel][REV] = 1.0 - param[channel][REV];
+		swap_read_write(channel);
 	}
 
 	if (flag_time_param_changed[channel] || flag_ping_was_changed){
@@ -423,8 +421,6 @@ inline void update_clkout_jack(void){
 		CLKOUT_ON;
 		reset_clkout_trigger_tmr();
 
-//		update_quantized_params(0);
-//		update_quantized_params(1);
 	}
 
 	// Handle the jack output: 50% duty cycle
