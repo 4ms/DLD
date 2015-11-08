@@ -23,7 +23,7 @@
 #include "looping_delay.h"
 #include "dig_inouts.h"
 #include "globals.h"
-//#include "params.h"
+#include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"
 
@@ -57,7 +57,17 @@ void main(void)
 	uint32_t adc_read_ctr=0;
 
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
+/*
+	init_dig_inouts();
 
+	while(1){
+		LED_OVLD1_ON;
+		LED_OVLD2_ON;
+		LED_INF1_ON;
+		LED_INF2_ON;
+		LED_PINGBUT_ON;
+	}
+*/
 	Codec_Init(I2S_AudioFreq_48k);
 
 	init_timekeeper();
@@ -77,8 +87,10 @@ void main(void)
 	Init_I2S_Channel2();
 	Init_I2S_Channel1();
 
-	while(1){ //-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
-//DEBUG0_ON;
+
+	while(1){//-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
+		//DEBUG0_ON;
+
 		check_errors();
 
 		//if (adc_read_ctr++ > ADC_POLL_TIME){

@@ -38,12 +38,9 @@ OBJDMP = $(ARCH)-objdump
 GDB = $(ARCH)-gdb
 
  	
-#CFLAGS  = -O0 -g -Wall -I.\
-#   -mcpu=cortex-m4 -mthumb \
-#   -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
-#   $(INCLUDES) -DUSE_STDPERIPH_DRIVER
+CFLAGS  = -O0 -g -Wall
 
-CFLAGS = -g2 -O1 \
+#CFLAGS = -g2 -O1 \
           -fthread-jumps \
           -falign-functions  -falign-jumps \
           -falign-loops  -falign-labels \

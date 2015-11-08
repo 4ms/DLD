@@ -92,23 +92,23 @@ Hardware Configuration defines parameters
 #define CODEC_I2S3ext_GPIO_AF			GPIO_AF_I2S3ext
 #define CODEC_I2S3_IRQ                  SPI3_IRQn
 #define CODEC_I2S3_EXT_IRQ              SPI3_IRQn
-#define CODEC_I2S3_GPIO_CLOCK           (RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC)
+#define CODEC_I2S3_GPIO_CLOCK           (RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC)
 
 #define CODEC_I2S3_GPIO                 GPIOA
-#define CODEC_I2S3_WS_PIN               GPIO_Pin_15
-#define CODEC_I2S3_WS_PINSRC            GPIO_PinSource15
+#define CODEC_I2S3_WS_PIN               GPIO_Pin_4
+#define CODEC_I2S3_WS_PINSRC            GPIO_PinSource4
 
-#define CODEC_I2S3_GPIO_CK              GPIOB
-#define CODEC_I2S3_SCK_PIN              GPIO_Pin_3
-#define CODEC_I2S3_SCK_PINSRC           GPIO_PinSource3
+#define CODEC_I2S3_GPIO_CK              GPIOC
+#define CODEC_I2S3_SCK_PIN              GPIO_Pin_10
+#define CODEC_I2S3_SCK_PINSRC           GPIO_PinSource10
 
 #define CODEC_I2S3_GPIO_SD              GPIOC
 #define CODEC_I2S3_SDO_PINSRC           GPIO_PinSource12
 #define CODEC_I2S3_SDO_PIN              GPIO_Pin_12
 
-#define CODEC_I2S3_GPIO_SDI             GPIOB
-#define CODEC_I2S3_SDI_PIN              GPIO_Pin_4
-#define CODEC_I2S3_SDI_PINSRC           GPIO_PinSource4
+#define CODEC_I2S3_GPIO_SDI             GPIOC
+#define CODEC_I2S3_SDI_PIN              GPIO_Pin_11
+#define CODEC_I2S3_SDI_PINSRC           GPIO_PinSource11
 
 #define CODEC_I2S3_MCK_GPIO             GPIOC
 #define CODEC_I2S3_MCK_PIN              GPIO_Pin_7

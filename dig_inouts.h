@@ -37,13 +37,13 @@
 
 
 // Infinite Repeat Button and Jack
-#define INF_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD
+#define INF_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_GPIOD
 
-#define INF1BUT_pin GPIO_Pin_5
+#define INF1BUT_pin GPIO_Pin_13
 #define INF1BUT_GPIO GPIOD
 #define INF1BUT (!(INF1BUT_GPIO->IDR & INF1BUT_pin))
 
-#define INF1JACK_pin GPIO_Pin_6
+#define INF1JACK_pin GPIO_Pin_7
 #define INF1JACK_GPIO GPIOD
 #define INF1JACK (!(INF1JACK_GPIO->IDR & INF1JACK_pin))
 
@@ -52,8 +52,8 @@
 #define INF2BUT_GPIO GPIOA
 #define INF2BUT (!(INF2BUT_GPIO->IDR & INF2BUT_pin))
 
-#define INF2JACK_pin GPIO_Pin_8
-#define INF2JACK_GPIO GPIOA
+#define INF2JACK_pin GPIO_Pin_3
+#define INF2JACK_GPIO GPIOG
 #define INF2JACK (!(INF2JACK_GPIO->IDR & INF2JACK_pin))
 
 
@@ -95,6 +95,20 @@
 #define TIMESW_CH2 ((TIMESW_CH2_T2_GPIO->IDR & TIMESW_CH2_T2_pin) ? 0b10:0b00) | ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01:0b00)
 
 
+#define JUMPER_RCC RCC_AHB1Periph_GPIOG
+
+#define JUMPER_1_GPIO GPIOG
+#define JUMPER_1_pin GPIO_Pin_9
+#define JUMPER_1 (!(JUMPER_1_GPIO->IDR & JUMPER_1_pin))
+
+#define JUMPER_2_GPIO GPIOG
+#define JUMPER_2_pin GPIO_Pin_13
+#define JUMPER_2 (!(JUMPER_2_GPIO->IDR & JUMPER_2_pin))
+
+#define JUMPER_3_GPIO GPIOG
+#define JUMPER_3_pin GPIO_Pin_14
+#define JUMPER_3 (!(JUMPER_3_GPIO->IDR & JUMPER_3_pin))
+
 //OUTPUTS
 
 //CLK OUT
@@ -115,7 +129,7 @@
 //p3 board has this wired to PC9, manually cut and moved to PA5
 //should be PC5 in p4
 #define CLKOUT2_pin GPIO_Pin_5
-#define CLKOUT2_GPIO GPIOA
+#define CLKOUT2_GPIO GPIOC
 #define CLKOUT2_ON CLKOUT2_GPIO->BSRRL = CLKOUT2_pin
 #define CLKOUT2_OFF CLKOUT2_GPIO->BSRRH = CLKOUT2_pin
 
@@ -168,5 +182,7 @@ void init_EXTI_inputs(void);
 void update_channel_leds(uint8_t channel);
 void update_inf_ledbut(uint8_t channel);
 inline void update_instant_params(uint8_t channel);
+void init_inputread_timer(void);
+
 
 #endif /* INOUTS_H_ */
