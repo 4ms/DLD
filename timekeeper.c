@@ -13,6 +13,7 @@ volatile uint32_t ping_ledbut_tmr;
 volatile uint32_t clkout_trigger_tmr;
 volatile uint32_t pingled_tmr[2];
 volatile uint32_t sys_time=0;
+extern volatile uint32_t ping_time;
 
 
 inline void inc_tmrs(void){
@@ -21,6 +22,13 @@ inline void inc_tmrs(void){
 	clkout_trigger_tmr++;
 	pingled_tmr[0]++;
 	pingled_tmr[1]++;
+
+	if (clkout_trigger_tmr>=ping_time){
+		CLKOUT_ON;
+		clkout_trigger_tmr=0;
+	} else if (clkout_trigger_tmr >= (ping_time>>1)){
+			CLKOUT_OFF;
+	}
 }
 
 inline void reset_ping_ledbut_tmr(void){

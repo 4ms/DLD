@@ -71,26 +71,26 @@ void main(void)
 	delay();
 
 	SDRAM_Init();
-//	FMC_Config();
 
 	Audio_Init();
 
 	Init_I2S_Channel2();
 	Init_I2S_Channel1();
 
-	while(1){ //-O0 roughly 100kHz
-
+	while(1){ //-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
+//DEBUG0_ON;
 		check_errors();
 
-		if (adc_read_ctr++ > ADC_POLL_TIME){
-			adc_read_ctr=0;
+		//if (adc_read_ctr++ > ADC_POLL_TIME){
+		//	adc_read_ctr=0;
 			update_adc_params();
-		}
+		//}
 		
 		update_ping_ledbut();
 
 		//process_audio();
 
+//DEBUG0_OFF;
 		update_channel_leds(0);
 		update_channel_leds(1);
 
@@ -100,7 +100,7 @@ void main(void)
 		update_instant_params(0);
 		update_instant_params(1);
 
-		update_clkout_jack();
+//		update_clkout_jack();
 	}
 }
 

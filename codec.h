@@ -184,7 +184,7 @@ void Codec_CtrlInterface_Init(void);
 
 void Codec_AudioInterface_Init(uint32_t AudioFreq);
 
-uint32_t Codec_Reset(I2C_TypeDef *CODEC);
+uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave);
 
 uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint16_t RegisterValue, I2C_TypeDef *CODEC);
 

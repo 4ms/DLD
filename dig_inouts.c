@@ -124,9 +124,9 @@ void init_dig_inouts(void){
 /**exti_ins.c**/
 
 void init_EXTI_inputs(void){
-/*	  EXTI_InitTypeDef   EXTI_InitStructure;
+	  EXTI_InitTypeDef   EXTI_InitStructure;
 	  NVIC_InitTypeDef   NVIC_InitStructure;
-
+/*
 	  //Set Priority Grouping mode to 2-bits for priority and 2-bits for sub-priority
 	  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 
@@ -198,13 +198,15 @@ void init_inputread_timer(void){
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 
 	nvic.NVIC_IRQChannel = TIM4_IRQn;
-	nvic.NVIC_IRQChannelPreemptionPriority = 3;
+	nvic.NVIC_IRQChannelPreemptionPriority = 0;
 	nvic.NVIC_IRQChannelSubPriority = 3;
 	nvic.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 32767; //168MHZ / 2 / 32767 = 2.56kHz
+	//168MHZ / 2 / 32767 = 2.56kHz
+	//3000 --> 28kHz
+	tim.TIM_Period = 3000;
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
@@ -219,47 +221,77 @@ void init_inputread_timer(void){
 uint16_t State[10] = {0,0,0,0,0,0,0,0,0,0}; // Current debounce status
 
 
-// This handy routine is called every 0.39us by the TIMER 4 interrupt.
+// This handy routine is called by the TIMER 4 interrupt.
 // It checks each button and digital input jack to see if it's been low for a certain number of cycles,
 // and high for a certain number of cycles. We shift 0's and 1's down a 16-bit variable (State[]) to indicate high/low status.
-// 16 bits x 0.39us means we can't change status any faster than 6.2ms or 160Hz.
-// This could be sped up by checking less bits, or by running TIM4 faster (shorter tim.TIM_Period).
 
+// takes 2-3us
+// runs every 35us
 void TIM4_IRQHandler(void)
 {
+
 	uint16_t t;
+	uint32_t t32;
+	float t_f;
+	static uint16_t ping_tracking=100;
 
 	// Clear TIM4 update interrupt
 	TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
 
 	// Check Ping jack
+	// ping detection time is 60us typical, 100us max from incoming clock until this line
 	if (PINGJACK){
-		LED_PINGBUT_ON;
 		t=0xe000;
-	} else
+	} else{
 		t=0xe001;
+	}
 
 	State[9]=(State[9]<<1) | t;
-	if (State[9]==0xff00){
+	if (State[9]==0xfffe){ //jack low for 12 times (1ms), then detected high 1 time
 
 		ping_button_state = 0;
 
 		if (ping_jack_state==1){ //second time we got a rising edge
+
 			ping_jack_state = 0;
 
-			//Log how much time has elapsed since last ping
-			ping_time=ping_tmr;
+			t32=ping_tmr;
 
-			//Reset the timers
-			ping_ledbut_tmr=0;
-			clkout_trigger_tmr=0;
+			//See if new clock differs from existing ping time by +/-3%, or if we're tracking the ping
+			t_f = (float)t32 / (float)ping_time;
 
-			//Flag to update the divmult parameters
-			flag_ping_was_changed=1;
+			//If the ping clock changes by +/-3% then track it until it's stable for more than 100 cycles *  35uS = 3.5ms
+			if (t_f>1.03 || t_f<0.97)
+				ping_tracking=100;
+
+			if (ping_tracking){
+
+				CLKOUT_ON;
+				reset_clkout_trigger_tmr();
+
+				LED_PINGBUT_ON;
+				reset_ping_ledbut_tmr();
+
+				ping_time=t32;
+
+				//Flag to update the divmult parameters
+				flag_ping_was_changed=1;
+
+				//Decrement ping_tracking so that we eventually stop tracking it closely
+				ping_tracking--;
+
+			}
+
 		} else {
 
+			CLKOUT_ON;
+			reset_clkout_trigger_tmr();
+
+			LED_PINGBUT_ON;
+			reset_ping_ledbut_tmr();
+
 			// This is the first rising edge, so start the ping timer
-			ping_tmr = 0;
+			reset_ping_tmr();
 			ping_jack_state = 1;
 		}
 	}
@@ -274,7 +306,7 @@ void TIM4_IRQHandler(void)
 	} else
 		t=0xe001;
 	State[0]=(State[0]<<1) | t;
-	if (State[0]==0xff00){ 						//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
+	if (State[0]==0xff00){ 	//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
 
 		//Clear the ping jack state
 		ping_jack_state = 0;
@@ -297,9 +329,6 @@ void TIM4_IRQHandler(void)
 			ping_tmr = 0;
 			ping_button_state = 1;
 		}
-
-
-
 	}
 
 	if (INF1BUT) t=0xe000; else t=0xe001;
@@ -368,6 +397,7 @@ void TIM4_IRQHandler(void)
 	}
 
 
+	DEBUG0_OFF;
 
 }
 
@@ -416,15 +446,14 @@ inline void update_clkout_jack(void){
 
 	// Check if clkout timer has overflowed
 	// If so, we can change the Time parameters and INF status
-
+/*
 	if (clkout_trigger_tmr>=ping_time){
 		CLKOUT_ON;
 		reset_clkout_trigger_tmr();
-
 	}
-
-	// Handle the jack output: 50% duty cycle
-	if (ping_time > CLKOUT_TRIG_TIME<<1){
+*/
+	// Turn off the Clock Out jack after the 50% duty cycle
+/*	if (ping_time > CLKOUT_TRIG_TIME<<1){
 		if (clkout_trigger_tmr > CLKOUT_TRIG_TIME){
 			CLKOUT_OFF;
 		}
@@ -433,6 +462,7 @@ inline void update_clkout_jack(void){
 			CLKOUT_OFF;
 		}
 	}
+	*/
 }
 
 /*** leds.c ***/
@@ -449,8 +479,10 @@ void update_ping_ledbut(void){
 }
 
 void update_channel_leds(uint8_t channel){
+
 	// Check if clkout timer has overflowed
-	if (pingled_tmr[channel]>=divmult_time[channel]){
+
+	if (pingled_tmr[channel] >= divmult_time[channel]){
 		if (channel==0) {
 			CLKOUT1_ON;
 			LED_OVLD1_ON;

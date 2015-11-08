@@ -2,7 +2,23 @@
  * codec.c
  */
 
-  
+#define CODEC_SLAVE 0
+#define CODEC_MASTER 1
+
+#define MCLK_SRC_STM 0
+#define MCLK_SRC_EXTERNAL 1
+#define MCLK_SRC_CODEC 2
+
+
+//CODECA is left channel of the DLD (I2C1, I2S3)
+//CODECB is right channel of the DLD (I2C2, I2S2)
+#define CODECA_MODE CODEC_SLAVE
+#define CODECB_MODE CODEC_SLAVE
+
+#define CODECA_MCLK_SRC MCLK_SRC_STM
+#define CODECB_MCLK_SRC MCLK_SRC_STM
+
+
 #include "codec.h"
 
 /* Mask for the bit EN of the I2S CFGR register */
@@ -59,6 +75,9 @@
 #define format_24b (2<<2)
 #define format_32b (3<<2)
 
+#define Master_Mode (1<<6)
+#define Slave_Mode (0<<6)
+
 #define ADCHPFDisable 1
 #define ADCHPFEnable 0
 
@@ -68,7 +87,8 @@
 // Using format_MSB_Left works (I2S periph has to be set up I2S_Standard_LSB or I2S_Standard_MSB).
 // Also, format_MSB_Right does not seem to work at all (with the I2S set to LSB or MSB)
 
-const uint16_t w8731_init_data[] = 
+
+const uint16_t w8731_init_data_slave[] =
 {
 	VOL_0dB,			// Reg 00: Left Line In (0dB, mute off)
 	VOL_0dB,			// Reg 01: Right Line In (0dB, mute off)
@@ -78,10 +98,28 @@ const uint16_t w8731_init_data[] =
 	(0b00000110 | ADCHPFEnable),			// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
 	0x062,				// Reg 06: Power Down Control (Clkout, Osc, Mic Off)
 	(format_16b
-	| format_MSB_Left),	// Reg 07: Digital Audio Interface Format (16-bit, slave)
+	| format_MSB_Left
+	| Slave_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, slave)
 	0x000,				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
 	0x001				// Reg 09: Active Control
 };
+
+const uint16_t w8731_init_data_master[] =
+{
+	VOL_0dB,			// Reg 00: Left Line In (0dB, mute off)
+	VOL_0dB,			// Reg 01: Right Line In (0dB, mute off)
+	0b0101111,			// Reg 02: Left Headphone out (Mute)
+	0b0101111,			// Reg 03: Right Headphone out (Mute)
+	0b00010010,			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
+	(0b00000110 | ADCHPFEnable),			// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
+	0x062,				// Reg 06: Power Down Control (Clkout, Osc, Mic Off)
+	(format_16b
+	| format_MSB_Left
+	| Master_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, master)
+	0x000,				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
+	0x001				// Reg 09: Active Control
+};
+
 
 /* The 7 bits Codec address (sent through I2C interface) */
 #define CODEC_ADDRESS           (W8731_ADDR_0<<1)
@@ -127,25 +165,32 @@ uint32_t Codec_Init(uint32_t AudioFreq)
 
 	//init_i2s_clkin();
 
-	Codec_AudioInterface_Init(AudioFreq);  
+	Codec_AudioInterface_Init(AudioFreq);
 
-	err=Codec_Reset(CODEC_I2C2);
-	err=Codec_Reset(CODEC_I2C1);
+	err=Codec_Reset(CODEC_I2C2, CODECB_MODE);
+	err=Codec_Reset(CODEC_I2C1, CODECA_MODE);
 
 
 	return err;
 }
 
 
-uint32_t Codec_Reset(I2C_TypeDef *CODEC)
+
+uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
 {
 	uint8_t i;
 	uint32_t err=0;
 	
 	err=Codec_WriteRegister(0x0f, 0, CODEC);
 	
-	for(i=0;i<W8731_NUM_REGS;i++)
-		err=Codec_WriteRegister(i, w8731_init_data[i], CODEC);
+	if (master_slave==CODEC_MASTER){
+		for(i=0;i<W8731_NUM_REGS;i++)
+			err=Codec_WriteRegister(i, w8731_init_data_master[i], CODEC);
+	} else {
+		for(i=0;i<W8731_NUM_REGS;i++)
+			err=Codec_WriteRegister(i, w8731_init_data_slave[i], CODEC);
+	}
+
 
 	err=Codec_WriteRegister(0b1001, 0, CODEC); //reset active interface bit
 	err=Codec_WriteRegister(0b1001, 1, CODEC); //set active interface bit
@@ -269,6 +314,7 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	I2S_InitTypeDef I2S_InitStructure;
 
 
+	//CODEC B: Right channel of DLD (I2S2, I2C2)
 	/* Enable the CODEC_I2S peripheral clock */
 	RCC_APB1PeriphClockCmd(CODEC_I2S2_CLK, ENABLE);
 
@@ -278,9 +324,21 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	I2S_InitStructure.I2S_Standard = I2S_STANDARD;
 	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_16b;//extended;
 	I2S_InitStructure.I2S_CPOL = I2S_CPOL_Low;
-	I2S_InitStructure.I2S_Mode = I2S_Mode_MasterTx;
-	I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
 
+
+	if (CODECB_MODE==CODEC_MASTER)
+		I2S_InitStructure.I2S_Mode = I2S_Mode_SlaveTx;
+	else
+		I2S_InitStructure.I2S_Mode = I2S_Mode_MasterTx;
+
+	if (CODECB_MODE==CODEC_MASTER)
+		I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
+	else {
+		if (CODECB_MCLK_SRC==MCLK_SRC_STM)
+			I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
+		else
+			I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
+	}
 	/* Initialize the I2S main channel for TX */
 	I2S_Init(CODEC_I2S2, &I2S_InitStructure);
 
@@ -288,7 +346,7 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	I2S_FullDuplexConfig(CODEC_I2S2_EXT, &I2S_InitStructure);
 
 
-
+	// CODEC A: DLD Left Channel
 	// Enable the CODEC_I2S peripheral clock
 	RCC_APB1PeriphClockCmd(CODEC_I2S3_CLK, ENABLE);
 
@@ -298,8 +356,20 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	I2S_InitStructure.I2S_Standard = I2S_STANDARD;
 	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_16b;//extended;
 	I2S_InitStructure.I2S_CPOL = I2S_CPOL_Low;
-	I2S_InitStructure.I2S_Mode = I2S_Mode_MasterTx;
-	I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
+
+	if (CODECA_MODE==CODEC_MASTER)
+		I2S_InitStructure.I2S_Mode = I2S_Mode_SlaveTx;
+	else
+		I2S_InitStructure.I2S_Mode = I2S_Mode_MasterTx;
+
+	if (CODECA_MODE==CODEC_MASTER)
+		I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
+	else {
+		if (CODECA_MCLK_SRC==MCLK_SRC_STM)
+			I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
+		else
+			I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
+	}
 
 	// Initialize the I2S main channel for TX
 	I2S_Init(CODEC_I2S3, &I2S_InitStructure);
@@ -348,26 +418,62 @@ void Codec_GPIO_Init(void)
 	gpio.GPIO_Pin = CODEC_I2S2_SDI_PIN;	GPIO_Init(CODEC_I2S2_GPIO_SDI, &gpio);
 	gpio.GPIO_Pin = CODEC_I2S2_SCK_PIN;	GPIO_Init(CODEC_I2S2_GPIO_CK, &gpio);
 	gpio.GPIO_Pin = CODEC_I2S2_SDO_PIN;	GPIO_Init(CODEC_I2S2_GPIO_SD, &gpio);
-	gpio.GPIO_Pin = CODEC_I2S2_MCK_PIN; GPIO_Init(CODEC_I2S2_MCK_GPIO, &gpio);
 
 	gpio.GPIO_Pin = CODEC_I2S3_WS_PIN;	GPIO_Init(CODEC_I2S3_GPIO, &gpio);
 	gpio.GPIO_Pin = CODEC_I2S3_SDI_PIN;	GPIO_Init(CODEC_I2S3_GPIO_SDI, &gpio);
 	gpio.GPIO_Pin = CODEC_I2S3_SCK_PIN;	GPIO_Init(CODEC_I2S3_GPIO_CK, &gpio);
 	gpio.GPIO_Pin = CODEC_I2S3_SDO_PIN;	GPIO_Init(CODEC_I2S3_GPIO_SD, &gpio);
-	gpio.GPIO_Pin = CODEC_I2S3_MCK_PIN; GPIO_Init(CODEC_I2S3_MCK_GPIO, &gpio);
 
 	GPIO_PinAFConfig(CODEC_I2S2_GPIO, CODEC_I2S2_WS_PINSRC, CODEC_I2S2_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S2_GPIO_CK, CODEC_I2S2_SCK_PINSRC, CODEC_I2S2_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S2_GPIO_SD, CODEC_I2S2_SDO_PINSRC, CODEC_I2S2_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S2_GPIO_SDI, CODEC_I2S2_SDI_PINSRC, CODEC_I2S2ext_GPIO_AF);
-	GPIO_PinAFConfig(CODEC_I2S2_MCK_GPIO, CODEC_I2S2_MCK_PINSRC, CODEC_I2S2_GPIO_AF);
 
 	GPIO_PinAFConfig(CODEC_I2S3_GPIO, CODEC_I2S3_WS_PINSRC, CODEC_I2S3_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S3_GPIO_CK, CODEC_I2S3_SCK_PINSRC, CODEC_I2S3_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S3_GPIO_SD, CODEC_I2S3_SDO_PINSRC, CODEC_I2S3_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S3_GPIO_SDI, CODEC_I2S3_SDI_PINSRC, CODEC_I2S3ext_GPIO_AF);
-	GPIO_PinAFConfig(CODEC_I2S3_MCK_GPIO, CODEC_I2S3_MCK_PINSRC, CODEC_I2S3_GPIO_AF);
 
+	if (CODECA_MCLK_SRC==MCLK_SRC_STM){
+
+		gpio.GPIO_Mode = GPIO_Mode_AF;
+		gpio.GPIO_Speed = GPIO_Speed_25MHz;
+		gpio.GPIO_OType = GPIO_OType_PP;
+		gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+		gpio.GPIO_Pin = CODEC_I2S3_MCK_PIN; GPIO_Init(CODEC_I2S3_MCK_GPIO, &gpio);
+		GPIO_PinAFConfig(CODEC_I2S3_MCK_GPIO, CODEC_I2S3_MCK_PINSRC, CODEC_I2S3_GPIO_AF);
+
+	} else if (CODECA_MCLK_SRC==MCLK_SRC_EXTERNAL){
+
+		gpio.GPIO_Mode = GPIO_Mode_IN;
+		gpio.GPIO_Speed = GPIO_Speed_25MHz;
+		gpio.GPIO_OType = GPIO_OType_PP;
+		gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+		gpio.GPIO_Pin = CODEC_I2S3_MCK_PIN; GPIO_Init(CODEC_I2S3_MCK_GPIO, &gpio);
+
+	}
+
+	if (CODECB_MCLK_SRC==MCLK_SRC_STM){
+		gpio.GPIO_Mode = GPIO_Mode_AF;
+		gpio.GPIO_Speed = GPIO_Speed_25MHz;
+		gpio.GPIO_OType = GPIO_OType_PP;
+		gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+		gpio.GPIO_Pin = CODEC_I2S2_MCK_PIN; GPIO_Init(CODEC_I2S2_MCK_GPIO, &gpio);
+		GPIO_PinAFConfig(CODEC_I2S2_MCK_GPIO, CODEC_I2S2_MCK_PINSRC, CODEC_I2S2_GPIO_AF);
+
+	} else if (CODECB_MCLK_SRC==MCLK_SRC_EXTERNAL){
+
+		gpio.GPIO_Mode = GPIO_Mode_IN;
+		gpio.GPIO_Speed = GPIO_Speed_25MHz;
+		gpio.GPIO_OType = GPIO_OType_PP;
+		gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+		gpio.GPIO_Pin = CODEC_I2S2_MCK_PIN; GPIO_Init(CODEC_I2S2_MCK_GPIO, &gpio);
+
+	}
 }
 
 

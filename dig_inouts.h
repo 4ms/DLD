@@ -29,6 +29,7 @@
 #define EXTI_CLOCK_line EXTI_Line10
 #define EXTI_CLOCK_IRQ EXTI15_10_IRQn
 */
+//Same pin as WS clock of I2S2 (LRCLK), as defined in codec.h
 #define EXTI_CLOCK_GPIO EXTI_PortSourceGPIOB
 #define EXTI_CLOCK_pin EXTI_PinSource12
 #define EXTI_CLOCK_line EXTI_Line12

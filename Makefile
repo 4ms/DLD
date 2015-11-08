@@ -43,8 +43,36 @@ GDB = $(ARCH)-gdb
 #   -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
 #   $(INCLUDES) -DUSE_STDPERIPH_DRIVER
 
-#CFLAGS = -g2 -Ofast -fno-tree-loop-distribute-patterns
-CFLAGS = -g2 -O0 -mlittle-endian -mthumb 
+CFLAGS = -g2 -O1 \
+          -fthread-jumps \
+          -falign-functions  -falign-jumps \
+          -falign-loops  -falign-labels \
+          -fcaller-saves \
+          -fcrossjumping \
+          -fcse-follow-jumps  -fcse-skip-blocks \
+          -fdelete-null-pointer-checks \
+          -fexpensive-optimizations \
+          -fgcse  -fgcse-lm  \
+          -findirect-inlining \
+          -foptimize-sibling-calls \
+          -fpeephole2 \
+          -fregmove \
+          -freorder-blocks  -freorder-functions \
+          -frerun-cse-after-loop  \
+          -fsched-interblock  -fsched-spec \
+          -fstrict-aliasing -fstrict-overflow \
+          -ftree-switch-conversion \
+          -ftree-pre \
+          -ftree-vrp \
+          -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload -ftree-vectorize
+          
+# Causes Freeze on run: -fschedule-insns  -fschedule-insns2 
+
+
+
+#CFLAGS = -g0 -O1
+# -O3 -fno-tree-loop-distribute-patterns 
+CFLAGS += -mlittle-endian -mthumb 
 CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
 CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion 

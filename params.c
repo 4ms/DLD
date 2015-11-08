@@ -5,13 +5,15 @@
  *      Author: design
  */
 
-#define QUANTIZE_TIMECV 0
+#define QUANTIZE_TIMECV_CH1 0
+#define QUANTIZE_TIMECV_CH2 1
 
 #include "adc.h"
 #include "dig_inouts.h"
 #include "params.h"
 #include "globals.h"
 #include "equalpowpan_lut.h"
+#include "exp_1voct.h"
 
 extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 extern __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
@@ -24,12 +26,9 @@ float param[NUM_CHAN][NUM_PARAMS] = { {1.0,0,0,0,0,0,0}, {1.0,0,0,0,0,0,0} };
 const int32_t MIN_POT_ADC_CHANGE[NUM_POT_ADCS] = {60, 60, 20, 20, 20, 20, 20, 20};
 const int32_t MIN_CV_ADC_CHANGE[NUM_CV_ADCS] = {60, 60, 20, 20, 20, 20};
 
-//@update_adc_params() runs every 700uS:
-//0.99 is 1-100 or 70ms (14Hz) to reach full value
-//0.9 is 1-10 or 7ms (140Hz) to reach full value
 
-const float POT_LPF_COEF[NUM_POT_ADCS] = {0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99};
-const float CV_LPF_COEF[NUM_CV_ADCS] = {0.9, 0.9, 0.9, 0.9, 0.9, 0.9};
+const float POT_LPF_COEF[NUM_POT_ADCS] = {0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999};
+const float CV_LPF_COEF[NUM_CV_ADCS] = {0.99, 0.99, 0.99, 0.99, 0.99, 0.99};
 
 
 inline float LowPassSmoothingFilter(float current_value, float new_value, float coef){
@@ -44,8 +43,11 @@ void update_adc_params(void){
 	static float smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
 	static float smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
 
+	static int16_t old_smoothed_cvadc[2]={0,0};
+	static int16_t old_smoothed_potadc[2]={0,0};
+
 	uint8_t i, channel;
-	int32_t t;
+	int32_t t,t2;
 	float t_f;
 	uint32_t t_combined;
 	float base_time;
@@ -59,7 +61,7 @@ void update_adc_params(void){
 
 	for (i=0;i<NUM_CV_ADCS;i++){
 		smoothed_cvadc[i] = LowPassSmoothingFilter(smoothed_cvadc[i], (float)cvadc_buffer[i], CV_LPF_COEF[i]);
-		i_smoothed_cvadc[i] = smoothed_cvadc[i];
+		i_smoothed_cvadc[i] = (int16_t)smoothed_cvadc[i];
 	}
 
 
@@ -67,7 +69,8 @@ void update_adc_params(void){
 
 		//Add TIME pot and cv values, hard clip at 4096
 
-		if (QUANTIZE_TIMECV){
+		if ((channel==0 && QUANTIZE_TIMECV_CH1) || (channel==1 && QUANTIZE_TIMECV_CH2)){
+
 			t_combined = i_smoothed_potadc[TIME*2+channel] + i_smoothed_cvadc[TIME*2+channel];
 			if (t_combined>4095) t_combined = 4095;
 
@@ -75,14 +78,21 @@ void update_adc_params(void){
 
 		} else {
 
-			base_time = get_clk_div_nominal(i_smoothed_potadc[TIME*2+channel]);
+			t=i_smoothed_cvadc[TIME*2+channel] - old_smoothed_cvadc[channel];
+			t2=i_smoothed_potadc[TIME*2+channel] - old_smoothed_potadc[channel];
 
-			t_f=epp_lut[i_smoothed_cvadc[TIME*2+channel]>>1];
-			if (t_f==0.0) t_f=0.0003;
+			if ( t>50 || t<-50 || t2<-50 || t2>50 ){
+				old_smoothed_cvadc[channel] = i_smoothed_cvadc[TIME*2+channel];
+				old_smoothed_potadc[channel] = i_smoothed_potadc[TIME*2+channel];
+			}
+
+			base_time = get_clk_div_nominal(old_smoothed_potadc[channel]);
+
+			t_f=exp_1voct[old_smoothed_cvadc[channel]>>1];
+			if (t_f < 1.1) t_f=1.0;
 
 			base_time = base_time * t_f;
 
-			//base_time *= (4096.0-smoothed_cvadc[TIME*2+channel]) / 4096.0;
 		}
 
 		// Adjust TIME by the time switch position
@@ -94,7 +104,7 @@ void update_adc_params(void){
 		}
 
 		if (switch1_val==0b10) base_time = base_time + 16.0; //switch up: 17-32
-		else if (switch1_val==0b11) base_time = base_time; //switch in middle: 1-16
+		//else if (switch1_val==0b11) base_time = base_time; //switch in middle: 1-16
 		else if (switch1_val==0b01) base_time = base_time / 8.0; //switch down: eighth notes
 
 
