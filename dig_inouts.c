@@ -25,7 +25,6 @@ extern uint8_t mode[NUM_CHAN][NUM_MODES];
 
 uint8_t flag_inf_change[2]={0,0};
 uint8_t flag_rev_change[2]={0,0};
-uint8_t flag_time_param_changed[2]={0,0};
 uint8_t inf_jack_high[2]={0,0};
 
 uint8_t ping_button_state=0;
@@ -437,42 +436,7 @@ inline void update_quantized_params(uint8_t channel){
 }
 */
 
-inline void update_instant_params(uint8_t channel){
 
-	if (flag_inf_change[channel])
-	{
-		flag_inf_change[channel]=0;
-
-		mode[channel][INF] = 1 - mode[channel][INF];
-	}
-
-
-	if (flag_rev_change[channel])
-	{
-		flag_rev_change[channel]=0;
-
-		mode[channel][REV] = 1- mode[channel][REV];
-
-		if (channel==0)
-		{
-			if (mode[channel][REV]) LED_REV1_ON;
-			else LED_REV1_OFF;
-		} else {
-			if (mode[channel][REV]) LED_REV2_ON;
-			else LED_REV2_OFF;
-		}
-
-		swap_read_write(channel);
-	}
-
-
-	if (flag_time_param_changed[channel] || flag_ping_was_changed)
-	{
-		flag_time_param_changed[channel]=0;
-
-		set_divmult_time(channel);
-	}
-}
 
 
 /*

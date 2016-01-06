@@ -15,11 +15,24 @@
 #include "equalpowpan_lut.h"
 #include "exp_1voct.h"
 #include "si5153a.h"
+#include "looping_delay.h"
 
 extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 extern __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
-extern uint8_t flag_time_param_changed[2];
+uint8_t flag_time_param_changed[2]={0,0};
+
+extern volatile uint32_t write_addr[NUM_CHAN];
+extern volatile uint32_t read_addr[NUM_CHAN];
+
+extern uint32_t loop_start[NUM_CHAN];
+extern uint32_t loop_end[NUM_CHAN];
+extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
+
+extern uint8_t flag_ping_was_changed;
+extern uint8_t flag_inf_change[2];
+extern uint8_t flag_rev_change[2];
+
 
 float param[NUM_CHAN][NUM_PARAMS];
 uint8_t mode[NUM_CHAN][NUM_MODES];
@@ -238,9 +251,9 @@ void update_adc_params(void)
 
 		// Set LEVEL and REGEN to 0 and 1 if we're in infinite repeat mode
 		// Otherwise combine Pot and CV, and hard-clip at 4096
-																#ifndef INF_WP_MODE
+
 		if (mode[channel][INF] == 0){
-																#endif
+
 			t_combined = i_smoothed_potadc[LEVEL*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
 			if (t_combined>4095) t_combined = 4095;
 
@@ -261,13 +274,10 @@ void update_adc_params(void)
 			else
 				param[channel][REGEN]=t_combined/3723.0; // 4096/3723 = 110% regeneration
 
-
-																#ifndef INF_WP_MODE
 		} else {
 			param[channel][LEVEL]=0.0;
 			param[channel][REGEN]=1.0;
 		}
-																#endif
 
 		// MIX uses an equal power panning lookup table
 		// Each MIX pot sets two parameters: wet and dry
@@ -276,6 +286,60 @@ void update_adc_params(void)
 
 		param[channel][MIX_WET]=epp_lut[4095 - i_smoothed_potadc[MIXPOT*2+channel]];
 
+	}
+}
+
+inline void update_instant_params(uint8_t channel){
+
+	if (flag_inf_change[channel])
+	{
+		flag_inf_change[channel]=0;
+		//mode[channel][INF] = 1 - mode[channel][INF];
+
+		if (mode[channel][INF])
+		{
+			mode[channel][INF] = 0;
+
+			//read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+			set_divmult_time(channel);
+
+			loop_start[channel] = LOOP_RAM_BASE[channel];
+			loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
+
+		} else {
+			mode[channel][INF] = 1;
+
+			loop_start[channel]=read_addr[channel];
+			loop_end[channel]=write_addr[channel];
+		}
+
+	}
+
+
+	if (flag_rev_change[channel])
+	{
+		flag_rev_change[channel]=0;
+
+		mode[channel][REV] = 1- mode[channel][REV];
+
+		if (channel==0)
+		{
+			if (mode[channel][REV]) LED_REV1_ON;
+			else LED_REV1_OFF;
+		} else {
+			if (mode[channel][REV]) LED_REV2_ON;
+			else LED_REV2_OFF;
+		}
+
+		swap_read_write(channel);
+	}
+
+
+	if (flag_time_param_changed[channel] || flag_ping_was_changed)
+	{
+		flag_time_param_changed[channel]=0;
+
+		set_divmult_time(channel);
 	}
 }
 

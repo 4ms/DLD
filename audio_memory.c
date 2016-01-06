@@ -34,15 +34,8 @@ uint32_t sdram_read(uint32_t addr, uint8_t channel, int16_t *rd_buff, uint8_t nu
 
 		rd_buff[i] = *((int16_t *)(addr & 0xFFFFFFFE));
 
-		if (mode[channel][REV] == 0){
-			addr+=2;
-			if (addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
-				addr = LOOP_RAM_BASE[channel];
-		} else {
-			addr-=2;
-			if (addr <= LOOP_RAM_BASE[channel])
-				addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
-		}
+		addr = inc_addr(addr, channel);
+
 	}
 
 	return(addr);
@@ -65,18 +58,7 @@ uint32_t sdram_write(uint32_t addr, uint8_t channel, int16_t *wr_buff, uint8_t n
 
 		*((int16_t *)addr) = wr_buff[i];
 
-		if (mode[channel][REV] == 0){
-			addr+=2;
-			if (addr >= LOOP_RAM_BASE[channel] + LOOP_SIZE)
-				addr = LOOP_RAM_BASE[channel];
-
-		} else{
-			addr-=2;
-
-			if (addr <= LOOP_RAM_BASE[channel])
-				addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
-
-		}
+		addr = inc_addr(addr, channel);
 
 	}
 

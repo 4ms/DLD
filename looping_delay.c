@@ -22,13 +22,18 @@ volatile uint32_t divmult_time[NUM_CHAN];
 volatile uint32_t write_addr[NUM_CHAN];
 volatile uint32_t read_addr[NUM_CHAN];
 
+uint32_t loop_start[NUM_CHAN];
+uint32_t loop_end[NUM_CHAN];
+
+const uint32_t LOOP_RAM_BASE[NUM_CHAN] = {SDRAM_BASE, SDRAM_BASE + LOOP_SIZE};
+
+
 uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
 
 #define FADE_INCREMENT 0.01
 
-const uint32_t LOOP_RAM_BASE[NUM_CHAN] = {SDRAM_BASE, SDRAM_BASE + LOOP_SIZE};
 
 
 void Audio_Init(void)
@@ -50,6 +55,8 @@ void Audio_Init(void)
 		divmult_time[i]=ping_time;
 		set_divmult_time(i);
 
+		loop_start[i] = LOOP_RAM_BASE[i];
+		loop_end[i] = LOOP_RAM_BASE[i] + LOOP_SIZE;
 	}
 }
 
@@ -122,6 +129,27 @@ void swap_read_write(uint8_t channel){
 }
 
 
+
+inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
+{
+	if (mode[channel][REV] == 0)
+	{
+		addr+=2;
+		if (addr >= loop_end[channel])
+			addr = loop_start[channel];
+	}
+	else
+	{
+		addr-=2;
+		if (addr <= loop_start[channel])
+			addr = loop_end[channel] - 2;
+	}
+
+	return(addr & 0xFFFFFFFE);
+}
+
+
+
 inline void set_divmult_time(uint8_t channel){
 	uint32_t t_divmult_time;
 	static uint32_t old_divmult_time[2]={0,0};
@@ -149,6 +177,9 @@ inline void set_divmult_time(uint8_t channel){
 			fade_pos[channel] = FADE_INCREMENT;
 			fade_queued_dest_divmult_time[channel] = 0;
 			fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+
+			if (mode[channel][INF])
+				loop_start[channel]=fade_dest_read_addr[channel];
 
 		}
 
@@ -237,11 +268,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		// Read from the loop and save this value so we can output it to the Delay Out jack
 		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
 
-#ifndef INF_WP_MODE
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
-		if (mode[channel][INF] < 0.5){
+
+		if (mode[channel][INF] == 0){
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];
 
@@ -258,24 +289,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		}
 
 
-#else		// Disabled: Write to the loop only if we're not in infinite repeat mode
-
-		if (mode[channel][INF] < 0.5){
-
-			// Attenuate the delayed signal with REGEN
-			regen = ((float)rd) * param[channel][REGEN];
-
-			// Attenuate the clean signal by the LEVEL parameter
-			mainin_atten = ((float)mainin) * param[channel][LEVEL];
-
-			// Add the loop contents to the input signal, as well as the auxin signal
-			wr = (int32_t)(regen + mainin_atten + (float)auxin);
-			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
-
-
-		}
-#endif
-
 
 		// Wet/dry mix, as determined by the MIX parameter
 		mix = ( (float)dry * param[channel][MIX_DRY] + (float)rd * param[channel][MIX_WET] );
@@ -289,7 +302,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	}
 
 	//Write a block to memory
-	write_addr[channel] = sdram_write(write_addr[channel], channel, wr_buff, (sz/2));
+	if (mode[channel][INF] == 0)
+		write_addr[channel] = sdram_write(write_addr[channel], channel, wr_buff, (sz/2));
 
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
