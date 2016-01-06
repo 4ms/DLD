@@ -7,6 +7,8 @@
 
 #include "timekeeper.h"
 #include "dig_inouts.h"
+#include "params.h"
+
 
 volatile uint32_t ping_tmr;
 volatile uint32_t ping_ledbut_tmr;
@@ -23,11 +25,14 @@ inline void inc_tmrs(void){
 	pingled_tmr[0]++;
 	pingled_tmr[1]++;
 
-	if (clkout_trigger_tmr>=ping_time){
+	if (clkout_trigger_tmr>=ping_time)
+	{
 		CLKOUT_ON;
 		clkout_trigger_tmr=0;
-	} else if (clkout_trigger_tmr >= (ping_time>>1)){
-			CLKOUT_OFF;
+	}
+	else if (clkout_trigger_tmr >= (ping_time>>1))
+	{
+		CLKOUT_OFF;
 	}
 }
 
@@ -50,7 +55,7 @@ inline void reset_pingled_tmr(uint8_t channel){
 
 void init_timekeeper(void){
 	TIM_TimeBaseInitTypeDef tim;
-	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitTypeDef nvic;
 	EXTI_InitTypeDef   EXTI_InitStructure;
 
 
@@ -73,31 +78,39 @@ void init_timekeeper(void){
 	EXTI_Init(&EXTI_InitStructure);
 
 
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI_CLOCK_IRQ;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	nvic.NVIC_IRQChannel = EXTI_CLOCK_IRQ;
+	nvic.NVIC_IRQChannelPreemptionPriority = 0;
+	nvic.NVIC_IRQChannelSubPriority = 0;
+	nvic.NVIC_IRQChannelCmd = ENABLE;
 
-	NVIC_Init(&NVIC_InitStructure);
+	NVIC_Init(&nvic);
 
 	//  NVIC_SetPriority(EXTI_CLOCK_IRQ, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 1, 0));
 
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+	nvic.NVIC_IRQChannel = TIM2_IRQn;
+	nvic.NVIC_IRQChannelPreemptionPriority = 0;
+	nvic.NVIC_IRQChannelSubPriority = 0;
+	nvic.NVIC_IRQChannelCmd = DISABLE;
+	NVIC_Init(&nvic);
+
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 65355;
+	//tim.TIM_Period = 1875; //180MHz / 2 / 1875 = 48kHz
+	tim.TIM_Period = 1750; //168MHz / 2 / 1750 = 48kHz
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM9, &tim);
-	TIM_Cmd(TIM9, ENABLE);
-	TIM_ITConfig(TIM9, TIM_IT_Update, ENABLE);
 
+	TIM_TimeBaseInit(TIM2, &tim);
+	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+	TIM_Cmd(TIM2, ENABLE);
 
 }
 
 // Sample Clock EXTI line (I2S2 LRCLK)
-void EXTI15_10_IRQHandler(void)
+void EXTI_Handler(void)
 {
 	if(EXTI_GetITStatus(EXTI_CLOCK_line) != RESET) {
 		inc_tmrs();
@@ -106,49 +119,50 @@ void EXTI15_10_IRQHandler(void)
 }
 
 
-void TIM1_BRK_TIM9_IRQHandler(void)
+void TIM2_IRQHandler(void)
 {
-	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
-		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
+	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
+
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 		sys_time++;
+		//inc_tmrs();
+
 	}
 }
 
+void init_adc_param_update_timer(void)
+{
+	TIM_TimeBaseInitTypeDef  tim;
 
-/*
-RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE);
+	NVIC_InitTypeDef nvic;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE);
 
-NVIC_InitStructure.NVIC_IRQChannel = TIM1_BRK_TIM9_IRQn;
-NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-NVIC_Init(&NVIC_InitStructure);
+	nvic.NVIC_IRQChannel = TIM1_BRK_TIM9_IRQn;
+	nvic.NVIC_IRQChannelPreemptionPriority = 3;
+	nvic.NVIC_IRQChannelSubPriority = 2;
+	nvic.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&nvic);
 
+	//168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
+	TIM_TimeBaseStructInit(&tim);
+	tim.TIM_Period = 30000;
+	tim.TIM_Prescaler = 0x3;
+	tim.TIM_ClockDivision = 0;
+	tim.TIM_CounterMode = TIM_CounterMode_Up;
 
-TIM_TimeBaseStructInit(&tim);
-//tim.TIM_Period = 0xFFFF; //  60 = 2.99MHz or 335ns x 2^32 = 1440 sec or 24minutes
-//tim.TIM_Period = 874; //  874 = 206kHz or 4.85ns x 2^32 = 5.8hours before ping_tmr overflow
-tim.TIM_Period = 3499; //  should be between 3500 and 3499 for no drift
-//tim.TIM_Period = 0xFFFF; //  65535 = 2.75kHz or 364us x 2^32 = 434hours
-tim.TIM_Prescaler = 0;
-tim.TIM_ClockDivision = 0;
-tim.TIM_CounterMode = TIM_CounterMode_Up;
-TIM_TimeBaseInit(TIM9, &tim);
+	TIM_TimeBaseInit(TIM9, &tim);
 
-TIM_Cmd(TIM9, ENABLE);
+	TIM_ITConfig(TIM9, TIM_IT_Update, ENABLE);
 
-TIM_ITConfig(TIM9, TIM_IT_Update, ENABLE);
-*/
-/*
+	TIM_Cmd(TIM9, ENABLE);
+}
+
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
-		inc_tmrs();
-
+		update_adc_params();
 	}
-
-
 }
-*/
+

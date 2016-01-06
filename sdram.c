@@ -6,9 +6,7 @@
 uint8_t RAM_test(void){
 
 	uint32_t addr;
-	int32_t t;
 	uint32_t i;
-	t=0;
 
 	addr=SDRAM_BASE;
 	for (i=0;i<5000;i++){
@@ -23,7 +21,7 @@ uint8_t RAM_test(void){
 	for (i=0;i<5000;i++){
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		t = *((int16_t *)addr);
+		//t = *((int16_t *)addr);
 
 		addr+=2;
 	}
@@ -79,7 +77,7 @@ static uint8_t const PINInitTable[] = {
 //=================================================================================================
 void SDRAM_Init(void)
 {
-	volatile uint32_t ptr = 0;
+	//volatile uint32_t ptr = 0;
 	volatile uint32_t i = 0;
 
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN | RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN | RCC_AHB1ENR_GPIOGEN;

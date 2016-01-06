@@ -16,7 +16,7 @@ inline void reset_ping_ledbut_tmr(void);
 inline void reset_ping_tmr(void);
 inline void reset_clkout_trigger_tmr(void);
 inline void reset_pingled_tmr(uint8_t channel);
-
+void init_adc_param_update_timer(void);
 
 
 #endif /* TIMEKEEPER_H_ */

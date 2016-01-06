@@ -7,6 +7,7 @@
 #include "params.h"
 #include "globals.h"
 #include "looping_delay.h"
+#include "timekeeper.h"
 
 
 extern volatile uint32_t ping_tmr;
@@ -20,6 +21,7 @@ extern volatile uint32_t ping_time;
 uint8_t flag_ping_was_changed;
 
 extern float param[NUM_CHAN][NUM_PARAMS];
+extern uint8_t mode[NUM_CHAN][NUM_MODES];
 
 uint8_t flag_inf_change[2]={0,0};
 uint8_t flag_rev_change[2]={0,0};
@@ -33,6 +35,7 @@ uint8_t ping_jack_state=0;
 void init_dig_inouts(void){
 	GPIO_InitTypeDef gpio;
 	GPIO_StructInit(&gpio);
+
 
 	//Configure outputs
 	gpio.GPIO_Mode = GPIO_Mode_OUT;
@@ -53,6 +56,11 @@ void init_dig_inouts(void){
 	RCC_AHB1PeriphClockCmd(INF2_BUTLED_RCC, ENABLE);
 	gpio.GPIO_Pin = LED_INF2_pin;	GPIO_Init(LED_INF2_GPIO, &gpio);
 
+	RCC_AHB1PeriphClockCmd(REV1_BUTLED_RCC, ENABLE);
+	gpio.GPIO_Pin = LED_REV1_pin;	GPIO_Init(LED_REV1_GPIO, &gpio);
+
+	RCC_AHB1PeriphClockCmd(REV2_BUTLED_RCC, ENABLE);
+	gpio.GPIO_Pin = LED_REV2_pin;	GPIO_Init(LED_REV2_GPIO, &gpio);
 
 	//CLKOUT Jacks
 	RCC_AHB1PeriphClockCmd(CLKOUT_RCC, ENABLE);
@@ -66,9 +74,16 @@ void init_dig_inouts(void){
 	//DEBUG pins
 	RCC_AHB1PeriphClockCmd(DEBUG_RCC, ENABLE);
 
-	gpio.GPIO_Pin = DEBUG0;	GPIO_Init(DEBUG0_GPIO, &gpio);
-	DEBUG0_OFF;
-
+	//gpio.GPIO_Pin = DEBUG0;	GPIO_Init(DEBUG0_GPIO, &gpio);
+	//gpio.GPIO_Pin = DEBUG1;	GPIO_Init(DEBUG1_GPIO, &gpio);
+	gpio.GPIO_Pin = DEBUG2;	GPIO_Init(DEBUG2_GPIO, &gpio);
+	gpio.GPIO_Pin = DEBUG3;	GPIO_Init(DEBUG3_GPIO, &gpio);
+	gpio.GPIO_Pin = DEBUG4;	GPIO_Init(DEBUG4_GPIO, &gpio);
+	//DEBUG0_OFF;
+	//DEBUG1_OFF;
+	DEBUG2_OFF;
+	DEBUG3_OFF;
+	DEBUG4_OFF;
 
 	//Configure inputs
 	gpio.GPIO_Mode = GPIO_Mode_IN;
@@ -97,7 +112,6 @@ void init_dig_inouts(void){
 
 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	gpio.GPIO_Pin = PINGJACK_pin;	GPIO_Init(PINGJACK_GPIO, &gpio);
-	gpio.GPIO_Pin = GPIO_Pin_10;	GPIO_Init(GPIOC, &gpio);
 
 
 	// Inf Repeat buttons and jacks
@@ -131,8 +145,8 @@ void init_dig_inouts(void){
 /**exti_ins.c**/
 
 void init_EXTI_inputs(void){
-	  EXTI_InitTypeDef   EXTI_InitStructure;
-	  NVIC_InitTypeDef   NVIC_InitStructure;
+	//  EXTI_InitTypeDef   EXTI_InitStructure;
+	//  NVIC_InitTypeDef   NVIC_InitStructure;
 /*
 	  //Set Priority Grouping mode to 2-bits for priority and 2-bits for sub-priority
 	  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
@@ -156,8 +170,8 @@ void init_EXTI_inputs(void){
 
 }
 
-void EXTI2_IRQHandler(void)
-{
+//void EXTI2_IRQHandler(void)
+//{
 	/*
   if(EXTI_GetITStatus(EXTI_PINGJACK_line) != RESET)
   {
@@ -191,7 +205,7 @@ void EXTI2_IRQHandler(void)
     EXTI_ClearITPendingBit(EXTI_PINGJACK_line);
   }
   */
-}
+//}
 
 
 
@@ -205,7 +219,7 @@ void init_inputread_timer(void){
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 
 	nvic.NVIC_IRQChannel = TIM4_IRQn;
-	nvic.NVIC_IRQChannelPreemptionPriority = 0;
+	nvic.NVIC_IRQChannelPreemptionPriority = 3;
 	nvic.NVIC_IRQChannelSubPriority = 3;
 	nvic.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvic);
@@ -312,6 +326,7 @@ void TIM4_IRQHandler(void)
 		t=0xe000;
 	} else
 		t=0xe001;
+
 	State[0]=(State[0]<<1) | t;
 	if (State[0]==0xff00){ 	//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
 
@@ -342,14 +357,14 @@ void TIM4_IRQHandler(void)
 	State[1]=(State[1]<<1) | t;
 	if (State[1]==0xf000){
 		flag_inf_change[0]=1;
-		//param[0][INF]=1.0-param[0][INF];
+		//mode[0][INF]=1-mode[0][INF];
 	}
 
 	if (INF2BUT) t=0xe000; else t=0xe001;
 	State[2]=(State[2]<<1) | t;
 	if (State[2]==0xf000){
 		flag_inf_change[1]=1;
-		//param[1][INF]=1.0-param[1][INF];
+		//mode[1][INF]=1-mode[1][INF];
 	}
 
 
@@ -366,7 +381,7 @@ void TIM4_IRQHandler(void)
 		flag_inf_change[1]=1;
 		inf_jack_high[1]=1;
 	}
-	/*
+/*
 	if (inf_jack_high[1]==1 && State[4]==0xe000){
 		flag_inf_change[1]=1;
 		inf_jack_high[1]=0;
@@ -404,8 +419,6 @@ void TIM4_IRQHandler(void)
 	}
 
 
-	DEBUG0_OFF;
-
 }
 
 /*** trigouts.c ****/
@@ -426,41 +439,57 @@ inline void update_quantized_params(uint8_t channel){
 
 inline void update_instant_params(uint8_t channel){
 
-	if (flag_inf_change[channel]){
+	if (flag_inf_change[channel])
+	{
 		flag_inf_change[channel]=0;
 
-		param[channel][INF] = 1.0 - param[channel][INF];
+		mode[channel][INF] = 1 - mode[channel][INF];
 	}
 
 
-	if (flag_rev_change[channel]){
+	if (flag_rev_change[channel])
+	{
 		flag_rev_change[channel]=0;
 
-		param[channel][REV] = 1.0 - param[channel][REV];
+		mode[channel][REV] = 1- mode[channel][REV];
+
+		if (channel==0)
+		{
+			if (mode[channel][REV]) LED_REV1_ON;
+			else LED_REV1_OFF;
+		} else {
+			if (mode[channel][REV]) LED_REV2_ON;
+			else LED_REV2_OFF;
+		}
+
 		swap_read_write(channel);
 	}
 
-	if (flag_time_param_changed[channel] || flag_ping_was_changed){
-			flag_time_param_changed[channel]=0;
 
-			set_divmult_time(channel);
+	if (flag_time_param_changed[channel] || flag_ping_was_changed)
+	{
+		flag_time_param_changed[channel]=0;
 
-		}
+		set_divmult_time(channel);
+	}
 }
 
 
+/*
+ *
+ moved to inc_tmrs()
 inline void update_clkout_jack(void){
 
 	// Check if clkout timer has overflowed
 	// If so, we can change the Time parameters and INF status
-/*
+
 	if (clkout_trigger_tmr>=ping_time){
 		CLKOUT_ON;
 		reset_clkout_trigger_tmr();
 	}
-*/
+
 	// Turn off the Clock Out jack after the 50% duty cycle
-/*	if (ping_time > CLKOUT_TRIG_TIME<<1){
+	if (ping_time > CLKOUT_TRIG_TIME<<1){
 		if (clkout_trigger_tmr > CLKOUT_TRIG_TIME){
 			CLKOUT_OFF;
 		}
@@ -469,26 +498,27 @@ inline void update_clkout_jack(void){
 			CLKOUT_OFF;
 		}
 	}
-	*/
+
 }
+*/
 
 /*** leds.c ***/
 
-void update_ping_ledbut(void){
-	// Check if clkout timer has overflowed
+void update_ping_ledbut(void)
+{
 	if (ping_ledbut_tmr>=ping_time){
 		LED_PINGBUT_ON;
 		reset_ping_ledbut_tmr();
 
-	} else if (ping_ledbut_tmr >= (ping_time>>1)){
+	}
+	else if (ping_ledbut_tmr >= (ping_time>>1))
+	{
 		LED_PINGBUT_OFF;
 	}
 }
 
-void update_channel_leds(uint8_t channel){
-
-	// Check if clkout timer has overflowed
-
+void update_channel_leds(uint8_t channel)
+{
 	if (pingled_tmr[channel] >= divmult_time[channel]){
 		if (channel==0) {
 			CLKOUT1_ON;
@@ -500,7 +530,9 @@ void update_channel_leds(uint8_t channel){
 
 		reset_pingled_tmr(channel);
 
-	} else if (pingled_tmr[channel] >= (divmult_time[channel]>>1)){
+	}
+	else if (pingled_tmr[channel] >= (divmult_time[channel]>>1))
+	{
 		if (channel==0) {
 			CLKOUT1_OFF;
 			LED_OVLD1_OFF;
@@ -512,10 +544,19 @@ void update_channel_leds(uint8_t channel){
 }
 
 void update_inf_ledbut(uint8_t channel){
-	if (param[channel][INF]==0.0){
-		if (channel==0) LED_INF1_OFF; else LED_INF2_OFF;
-	}else{
-		if (channel==0) LED_INF1_ON; else LED_INF2_ON;
+
+	if (mode[channel][INF]){
+		if (channel==0)
+			LED_INF1_ON;
+		else
+			LED_INF2_ON;
+	}
+	else
+	{
+		if (channel==0)
+			LED_INF1_OFF;
+		else
+			LED_INF2_OFF;
 	}
 
 }

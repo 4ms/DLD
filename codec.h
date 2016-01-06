@@ -60,6 +60,7 @@ Hardware Configuration defines parameters
 #define AUDIO_I2S2_IRQHandler           SPI2_IRQHandler
 #define AUDIO_I2S2_EXT_IRQHandler       SPI2_IRQHandler
 
+//SPI2_TX: S4 C0
 #define AUDIO_I2S2_DMA_CLOCK            RCC_AHB1Periph_DMA1
 #define AUDIO_I2S2_DMA_STREAM           DMA1_Stream4
 #define AUDIO_I2S2_DMA_DREG             CODEC_I2S2_ADDRESS
@@ -71,6 +72,7 @@ Hardware Configuration defines parameters
 #define AUDIO_I2S2_DMA_FLAG_TE          DMA_FLAG_TEIF0
 #define AUDIO_I2S2_DMA_FLAG_DME         DMA_FLAG_DMEIF0
 
+//I2S2_EXT_RX: S3 C3
 #define AUDIO_I2S2_EXT_DMA_STREAM       DMA1_Stream3
 #define AUDIO_I2S2_EXT_DMA_DREG         CODEC_I2S2_EXT_ADDRESS
 #define AUDIO_I2S2_EXT_DMA_CHANNEL      DMA_Channel_3
@@ -89,26 +91,35 @@ Hardware Configuration defines parameters
 #define CODEC_I2S3_ADDRESS              0x40003C0C
 #define CODEC_I2S3_EXT_ADDRESS          0x4000400C
 #define CODEC_I2S3_GPIO_AF              GPIO_AF_SPI3
-#define CODEC_I2S3ext_GPIO_AF			GPIO_AF_I2S3ext
+
+#define CODEC_I2S3ext_GPIO_AF			((uint8_t)0x05) /* for PC11 */
+//#define CODEC_I2S3ext_GPIO_AF			GPIO_AF_I2S3ext /* for PB4 */
+
 #define CODEC_I2S3_IRQ                  SPI3_IRQn
 #define CODEC_I2S3_EXT_IRQ              SPI3_IRQn
-#define CODEC_I2S3_GPIO_CLOCK           (RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC)
+#define CODEC_I2S3_GPIO_CLOCK           (RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC)
 
-#define CODEC_I2S3_GPIO                 GPIOA
+#define CODEC_I2S3_GPIO_WS              GPIOA
 #define CODEC_I2S3_WS_PIN               GPIO_Pin_4
 #define CODEC_I2S3_WS_PINSRC            GPIO_PinSource4
 
-#define CODEC_I2S3_GPIO_CK              GPIOC
+#define CODEC_I2S3_GPIO_SCK             GPIOC
 #define CODEC_I2S3_SCK_PIN              GPIO_Pin_10
 #define CODEC_I2S3_SCK_PINSRC           GPIO_PinSource10
+//#define CODEC_I2S3_GPIO_SCK             GPIOB
+//#define CODEC_I2S3_SCK_PIN              GPIO_Pin_3
+//#define CODEC_I2S3_SCK_PINSRC           GPIO_PinSource3
 
-#define CODEC_I2S3_GPIO_SD              GPIOC
-#define CODEC_I2S3_SDO_PINSRC           GPIO_PinSource12
+#define CODEC_I2S3_GPIO_SDO             GPIOC
 #define CODEC_I2S3_SDO_PIN              GPIO_Pin_12
+#define CODEC_I2S3_SDO_PINSRC           GPIO_PinSource12
 
 #define CODEC_I2S3_GPIO_SDI             GPIOC
 #define CODEC_I2S3_SDI_PIN              GPIO_Pin_11
 #define CODEC_I2S3_SDI_PINSRC           GPIO_PinSource11
+//#define CODEC_I2S3_GPIO_SDI             GPIOB
+//#define CODEC_I2S3_SDI_PIN              GPIO_Pin_4
+//#define CODEC_I2S3_SDI_PINSRC           GPIO_PinSource4
 
 #define CODEC_I2S3_MCK_GPIO             GPIOC
 #define CODEC_I2S3_MCK_PIN              GPIO_Pin_7
@@ -117,6 +128,7 @@ Hardware Configuration defines parameters
 #define AUDIO_I2S3_IRQHandler           SPI3_IRQHandler
 #define AUDIO_I2S3_EXT_IRQHandler       SPI3_IRQHandler
 
+//SPI3_TX: S5 C0 or S7 C0
 #define AUDIO_I2S3_DMA_CLOCK            RCC_AHB1Periph_DMA1
 #define AUDIO_I2S3_DMA_STREAM           DMA1_Stream5
 #define AUDIO_I2S3_DMA_DREG             CODEC_I2S3_ADDRESS
@@ -128,6 +140,7 @@ Hardware Configuration defines parameters
 #define AUDIO_I2S3_DMA_FLAG_TE          DMA_FLAG_TEIF0
 #define AUDIO_I2S3_DMA_FLAG_DME         DMA_FLAG_DMEIF0
 
+//I2S3_EXT_RX: S0 C3 or S2 C2
 #define AUDIO_I2S3_EXT_DMA_STREAM       DMA1_Stream2
 #define AUDIO_I2S3_EXT_DMA_DREG         CODEC_I2S3_EXT_ADDRESS
 #define AUDIO_I2S3_EXT_DMA_CHANNEL      DMA_Channel_2

@@ -23,24 +23,18 @@
 #define EXTI_PINGJACK_line EXTI_Line2
 #define EXTI_PINGJACK_IRQ EXTI2_IRQn
 
-/*Pin 111, adjacent to PA15/I2S3.WS
-#define EXTI_CLOCK_GPIO EXTI_PortSourceGPIOC
-#define EXTI_CLOCK_pin EXTI_PinSource10
-#define EXTI_CLOCK_line EXTI_Line10
-#define EXTI_CLOCK_IRQ EXTI15_10_IRQn
-*/
 //Same pin as WS clock of I2S2 (LRCLK), as defined in codec.h
 #define EXTI_CLOCK_GPIO EXTI_PortSourceGPIOB
 #define EXTI_CLOCK_pin EXTI_PinSource12
 #define EXTI_CLOCK_line EXTI_Line12
 #define EXTI_CLOCK_IRQ EXTI15_10_IRQn
-
+#define EXTI_Handler EXTI15_10_IRQHandler
 
 // Infinite Repeat Button and Jack
-#define INF_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_GPIOD
+#define INF_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOG
 
 #define INF1BUT_pin GPIO_Pin_13
-#define INF1BUT_GPIO GPIOD
+#define INF1BUT_GPIO GPIOC
 #define INF1BUT (!(INF1BUT_GPIO->IDR & INF1BUT_pin))
 
 #define INF1JACK_pin GPIO_Pin_7
@@ -52,14 +46,14 @@
 #define INF2BUT_GPIO GPIOA
 #define INF2BUT (!(INF2BUT_GPIO->IDR & INF2BUT_pin))
 
-#define INF2JACK_pin GPIO_Pin_3
+#define INF2JACK_pin GPIO_Pin_6
 #define INF2JACK_GPIO GPIOG
 #define INF2JACK (!(INF2JACK_GPIO->IDR & INF2JACK_pin))
 
 
 #define REV_RCC RCC_AHB1Periph_GPIOD
 
-#define REV1JACK_pin GPIO_Pin_2
+#define REV1JACK_pin GPIO_Pin_11
 #define REV1JACK_GPIO GPIOD
 #define REV1JACK (!(REV1JACK_GPIO->IDR & REV1JACK_pin))
 
@@ -154,7 +148,18 @@
 #define LED_INF2_ON LED_INF2_GPIO->BSRRL = LED_INF2_pin
 #define LED_INF2_OFF LED_INF2_GPIO->BSRRH = LED_INF2_pin
 
+//p5 board: REV1_LED is PA15
+#define REV1_BUTLED_RCC RCC_AHB1Periph_GPIOB
+#define LED_REV1_pin GPIO_Pin_4
+#define LED_REV1_GPIO GPIOB
+#define LED_REV1_ON LED_REV1_GPIO->BSRRL = LED_REV1_pin
+#define LED_REV1_OFF LED_REV1_GPIO->BSRRH = LED_REV1_pin
 
+#define REV2_BUTLED_RCC RCC_AHB1Periph_GPIOD
+#define LED_REV2_pin GPIO_Pin_2
+#define LED_REV2_GPIO GPIOD
+#define LED_REV2_ON LED_REV2_GPIO->BSRRL = LED_REV2_pin
+#define LED_REV2_OFF LED_REV2_GPIO->BSRRH = LED_REV2_pin
 
 
 //OVLD LEDs
@@ -169,12 +174,33 @@
 #define LED_OVLD2_OFF LED_GPIO->BSRRH = LED_OVLD2
 
 //DEBUG pins
-#define DEBUG_RCC RCC_AHB1Periph_GPIOA
-
-#define DEBUG0 GPIO_Pin_4
-#define DEBUG0_GPIO GPIOA
+#define DEBUG_RCC (RCC_AHB1Periph_GPIOG)
+/*
+#define DEBUG0 GPIO_Pin_2
+#define DEBUG0_GPIO GPIOD
 #define DEBUG0_ON DEBUG0_GPIO->BSRRL = DEBUG0
 #define DEBUG0_OFF DEBUG0_GPIO->BSRRH = DEBUG0
+
+#define DEBUG1 GPIO_Pin_4
+#define DEBUG1_GPIO GPIOB
+#define DEBUG1_ON DEBUG1_GPIO->BSRRL = DEBUG1
+#define DEBUG1_OFF DEBUG1_GPIO->BSRRH = DEBUG1
+*/
+#define DEBUG2 GPIO_Pin_9
+#define DEBUG2_GPIO GPIOG
+#define DEBUG2_ON DEBUG2_GPIO->BSRRL = DEBUG2
+#define DEBUG2_OFF DEBUG2_GPIO->BSRRH = DEBUG2
+
+#define DEBUG3 GPIO_Pin_13
+#define DEBUG3_GPIO GPIOG
+#define DEBUG3_ON DEBUG3_GPIO->BSRRL = DEBUG3
+#define DEBUG3_OFF DEBUG3_GPIO->BSRRH = DEBUG3
+
+#define DEBUG4 GPIO_Pin_14
+#define DEBUG4_GPIO GPIOG
+#define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
+#define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
+
 
 void init_dig_inouts(void);
 void update_ping_ledbut(void);

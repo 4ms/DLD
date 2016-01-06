@@ -26,6 +26,7 @@
 #include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"
+#include "si5153a.h"
 
 uint32_t g_error=0;
 
@@ -47,31 +48,38 @@ inline uint32_t diff_circular(uint32_t leader, uint32_t follower){
 }
 */
 
-//1000 is about every 7ms
-#define ADC_POLL_TIME 100
-
-void main(void)
+int main(void)
 {
-	uint8_t err=0;
-	int16_t i;
-	uint32_t adc_read_ctr=0;
-
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
-/*
 	init_dig_inouts();
 
-	while(1){
-		LED_OVLD1_ON;
-		LED_OVLD2_ON;
-		LED_INF1_ON;
-		LED_INF2_ON;
-		LED_PINGBUT_ON;
-	}
-*/
-	Codec_Init(I2S_AudioFreq_48k);
+	DeInit_I2SDMA_Channel1();
+	DeInit_I2SDMA_Channel2();
+
+	//375MHz PLL
+	//XO divider range 15+1/4 to 800
+	//XO output: 24.59MHz to 0.46875MHz
+	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
+	//SR = 48kHz to 915Hz
+
+	init_VCXO();
+
+#ifdef USE_VCXO
+	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
+	setupPLLInt(SI5351_PLL_B, 15);
+	setupMultisynth(0, SI5351_PLL_A, 30, 265, 512);
+	setupMultisynth(1, SI5351_PLL_A, 30, 265, 512);
+
+	delay();
+
+	Si5351a_enableOutputs(1);
+#else
+	Si5351a_enableOutputs(0);
+#endif
+
+	delay();
 
 	init_timekeeper();
-	init_dig_inouts();
 //	init_EXTI_inputs();
 	init_inputread_timer();
 
@@ -81,28 +89,31 @@ void main(void)
 	delay();
 
 	SDRAM_Init();
-
 	Audio_Init();
 
-	Init_I2S_Channel2();
-	Init_I2S_Channel1();
+	init_LowPassCoefs();
+	init_params();
+	init_modes();
 
+	delay();
+	Codec_Init(I2S_AudioFreq_48k);
+
+	//SWAP 4: norm: 2 1, swapped: 1 2
+	//delay();
+	Init_I2SDMA_Channel2(); //Codec B
+	//delay();
+	Init_I2SDMA_Channel1(); //Codec A
+
+	init_adc_param_update_timer();
 
 	while(1){//-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
-		//DEBUG0_ON;
-
 		check_errors();
 
-		//if (adc_read_ctr++ > ADC_POLL_TIME){
-		//	adc_read_ctr=0;
-			update_adc_params();
-		//}
+		//update_adc_params();
 		
 		update_ping_ledbut();
 
 		//process_audio();
-
-//DEBUG0_OFF;
 		update_channel_leds(0);
 		update_channel_leds(1);
 
@@ -114,6 +125,8 @@ void main(void)
 
 //		update_clkout_jack();
 	}
+
+	return(1);
 }
 
 //#define USE_FULL_ASSERT
@@ -151,8 +164,17 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 { 
 	uint8_t foobar;
+	uint32_t hfsr,dfsr,afsr,bfar,mmfar,cfsr;
 
 	foobar=0;
+	mmfar=SCB->MMFAR;
+	bfar=SCB->BFAR;
+
+	hfsr=SCB->HFSR;
+	afsr=SCB->AFSR;
+	dfsr=SCB->DFSR;
+	cfsr=SCB->CFSR;
+
 
 	if (foobar){
 		return;

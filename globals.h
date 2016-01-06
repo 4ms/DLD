@@ -34,6 +34,7 @@
 #define NUM_CHAN 2
 
 
+//#define USE_VCXO
 
 //About 50ms delay
 #define delay()						\

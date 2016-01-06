@@ -9,7 +9,13 @@
 #define PARAMS_H_
 #include <stm32f4xx.h>
 
-#define NUM_PARAMS 7
+
+//
+// Params
+// Params are float values related to pots and CV jacks
+//
+
+#define NUM_PARAMS 5
 
 //TIME: fractional value for time multiplication, integer value for time division
 #define TIME 0
@@ -25,13 +31,30 @@
 #define MIX_DRY 3
 #define MIX_WET 4
 
+
+// Modes
+// Modes are integer values (often) related to switches or settings
+
+
+#define NUM_MODES 4
+
 //INF: 0 = disabled, 1 = infinite repeat enabled
-#define INF 5
+#define INF 0
 
 //REV: 0 = forward (default), 1 = reverse
-#define REV 6
+#define REV 1
 
+//TIMEMODE
+#define TIMEMODE_POT 2
+#define TIMEMODE_JACK 3
 
+//TIMEMODE values:
+enum Time_Modes {
+	MOD_READWRITE_TIME,
+	MOD_SAMPLE_RATE_NOQ,
+	MOD_SAMPLE_RATE_Q,
+	MOD_SR_INVRW
+};
 
 
 #define P_1 1.0
@@ -55,9 +78,10 @@
 #define P_19 16.0
 
 
-
 void update_adc_params(void);
 float get_clk_div_nominal(uint16_t adc_val);
-
+void init_LowPassCoefs(void);
+void init_params(void);
+void init_modes(void);
 
 #endif /* PARAMS_H_ */

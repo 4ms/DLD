@@ -8,8 +8,11 @@
 #include "sdram.h"
 #include "adc.h"
 #include "params.h"
+#include "audio_memory.h"
+
 
 extern float param[NUM_CHAN][NUM_PARAMS];
+extern uint8_t mode[NUM_CHAN][NUM_MODES];
 
 extern uint8_t g_error;
 
@@ -28,7 +31,6 @@ float fade_pos[NUM_CHAN];
 const uint32_t LOOP_RAM_BASE[NUM_CHAN] = {SDRAM_BASE, SDRAM_BASE + LOOP_SIZE};
 
 
-
 void Audio_Init(void)
 {
 	uint32_t i;
@@ -44,6 +46,8 @@ void Audio_Init(void)
 	for(i=0;i<NUM_CHAN;i++){
 		write_addr[i]=LOOP_RAM_BASE[i] + ping_time;
 		read_addr[i] = LOOP_RAM_BASE[i];
+		fade_dest_read_addr[i] = LOOP_RAM_BASE[i];
+		divmult_time[i]=ping_time;
 		set_divmult_time(i);
 
 	}
@@ -63,11 +67,16 @@ inline void update_write_time(uint8_t channel){
 }
 */
 
-
+// Here we are saying that divmult_time * 2 = memory offset.
+//
+// If we use something other than a sample clock to increment our tmrs (ping_tmr and thus ping_time and divmult_time)
+// then we need to use a scaled value other than 2
+// However that can lead to sticky issues, if we are off by one sample every loop, that could lead to drift
+//
 inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	uint32_t t_read_addr;
 
-	if (param[channel][REV] == 0){
+	if (mode[channel][REV] == 0){
 
 		t_read_addr=write_addr[channel] - ((int32_t)new_divmult_time*2);
 
@@ -96,7 +105,6 @@ void swap_read_write(uint8_t channel){
 
 	write_addr[channel]=read_addr[channel];
 
-
 	// If we're not cross-fading read head then
 	//	-Initiate a read head fade to the write head's old address
 
@@ -108,9 +116,7 @@ void swap_read_write(uint8_t channel){
 		fade_queued_dest_divmult_time[channel] = 0;
 
 	} else {
-
 		fade_queued_dest_divmult_time[channel]=divmult_time[channel];
-
 	}
 
 }
@@ -196,14 +202,13 @@ void process_audio(void){
 // -run this via the main loop so we spend less time in the DMA interrupt, but make sure we don't under-buffer
 
 //sz is 16
-void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
+void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
 {
 	int32_t mainin, mix, dry, wr, rd;
 	float regen;
 	float mainin_atten;
 	int32_t auxin;
 
-	float a,b,c;
 	uint16_t i;
 
 	int16_t rd_buff[codec_BUFF_LEN/4];
@@ -211,12 +216,16 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 
 	int16_t wr_buff[codec_BUFF_LEN/4];
 
+	//if (channel==0)
+		DEBUG2_ON;
+
 	//Read a block from memory
 	read_addr[channel] = sdram_read(read_addr[channel], channel, rd_buff, sz/2);
 
 	fade_dest_read_addr[channel] = sdram_read(fade_dest_read_addr[channel], channel, rd_buff_dest, sz/2);
 
 	for (i=0;i<(sz/2);i++){
+
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 		mainin = *src++;
@@ -232,7 +241,7 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
-		if (param[channel][INF]==0.0){
+		if (mode[channel][INF] < 0.5){
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];
 
@@ -251,7 +260,7 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 
 #else		// Disabled: Write to the loop only if we're not in infinite repeat mode
 
-		if (param[channel][INF]==0.0){
+		if (mode[channel][INF] < 0.5){
 
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];
@@ -275,7 +284,6 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 		// Combine stereo: Left<=Mix, Right<=Wet
 		*dst++ = mix; //left
 		*dst++ = rd; //right
-
 		wr_buff[i]=wr;
 
 	}
@@ -286,4 +294,6 @@ void process_audio_block(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
 
+	//if (channel==0)
+		DEBUG2_OFF;
 }
