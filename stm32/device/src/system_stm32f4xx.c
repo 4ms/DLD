@@ -166,7 +166,7 @@
 
 /* PLLI2S_VCO = (HSE_VALUE Or HSI_VALUE / PLL_M) * PLLI2S_N
    I2SCLK = PLLI2S_VCO / PLLI2S_R */
-#define PLLI2S_N   258
+#define PLLI2S_N   144
 #define PLLI2S_R   3
 
 /******************************************************************************/

@@ -1,9 +1,9 @@
 /*
  * looping_delay.c
- */
 
-#include "looping_delay.h"
+ */
 #include "globals.h"
+#include "looping_delay.h"
 #include "dig_inouts.h"
 #include "sdram.h"
 #include "adc.h"
@@ -12,15 +12,15 @@
 
 
 extern float param[NUM_CHAN][NUM_PARAMS];
-extern uint8_t mode[NUM_CHAN][NUM_MODES];
+extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 extern uint8_t g_error;
 
 volatile uint32_t ping_time;
 volatile uint32_t divmult_time[NUM_CHAN];
 
-volatile uint32_t write_addr[NUM_CHAN];
-volatile uint32_t read_addr[NUM_CHAN];
+uint32_t write_addr[NUM_CHAN];
+uint32_t read_addr[NUM_CHAN];
 
 uint32_t loop_start[NUM_CHAN];
 uint32_t loop_end[NUM_CHAN];
@@ -29,11 +29,29 @@ const uint32_t LOOP_RAM_BASE[NUM_CHAN] = {SDRAM_BASE, SDRAM_BASE + LOOP_SIZE};
 
 
 uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
+uint32_t fade_queued_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
 
 #define FADE_INCREMENT 0.01
+//#define FADE_INCREMENT 0.1
+//#define FADE_INCREMENT 0.05
+//#define FADE_INCREMENT 0.025
 
+//FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
+///???
+//100 --> 1600 --> 1584
+//20 --> 320 --> 300
+
+//#define FADE_ADDRESSES 1584 /* this worked with 0.01 */
+#define FADE_ADDRESSES 1440
+//#define FADE_ADDRESSES 144
+//#define FADE_ADDRESSES 288
+//#define FADE_ADDRESSES 620
+
+//0.01 ===> 16.5 ms fade time
+//0.05 ===> 3.0 ms fade time
+//0.1  ===> 1.5ms fade time
 
 
 void Audio_Init(void)
@@ -53,6 +71,7 @@ void Audio_Init(void)
 		read_addr[i] = LOOP_RAM_BASE[i];
 		fade_dest_read_addr[i] = LOOP_RAM_BASE[i];
 		divmult_time[i]=ping_time;
+
 		set_divmult_time(i);
 
 		loop_start[i] = LOOP_RAM_BASE[i];
@@ -60,19 +79,29 @@ void Audio_Init(void)
 	}
 }
 
-/*
-inline void update_write_time(uint8_t channel){
-	uint32_t t_write_addr;
+inline uint32_t calculate_addr_offset(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract){
+	uint32_t t_addr;
 
-	t_write_addr=read_addr[channel] + (divmult_time[channel]*2);
+	if (subtract == 0){
 
-	if (t_write_addr >= LOOP_RAM_BASE[channel] + LOOP_SIZE)
-		t_write_addr = LOOP_RAM_BASE[channel];
+		t_addr = base_addr + offset;
 
-	write_addr[channel] = t_write_addr;
+		while (t_addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
+			t_addr = t_addr - LOOP_SIZE;
 
+	} else {
+
+		t_addr = base_addr - offset;
+
+		while (t_addr < LOOP_RAM_BASE[channel])
+			t_addr = t_addr + LOOP_SIZE;
+
+	}
+
+	t_addr = t_addr & 0xFFFFFFFE; //addresses must be even!
+	return (t_addr);
 }
-*/
+
 
 // Here we are saying that divmult_time * 2 = memory offset.
 //
@@ -82,7 +111,7 @@ inline void update_write_time(uint8_t channel){
 //
 inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	uint32_t t_read_addr;
-
+/*
 	if (mode[channel][REV] == 0){
 
 		t_read_addr=write_addr[channel] - ((int32_t)new_divmult_time*2);
@@ -100,8 +129,11 @@ inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	}
 
 	t_read_addr = t_read_addr & 0xFFFFFFFE; //addresses must be even!
+*/
+	t_read_addr = calculate_addr_offset(channel, write_addr[channel], new_divmult_time*2, 1-mode[channel][REV]);
 	return (t_read_addr);
 }
+
 
 
 void swap_read_write(uint8_t channel){
@@ -132,22 +164,74 @@ void swap_read_write(uint8_t channel){
 
 inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 {
+
 	if (mode[channel][REV] == 0)
 	{
 		addr+=2;
-		if (addr >= loop_end[channel])
-			addr = loop_start[channel];
+		if (addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
+			addr = LOOP_RAM_BASE[channel];
 	}
 	else
 	{
 		addr-=2;
-		if (addr <= loop_start[channel])
-			addr = loop_end[channel] - 2;
+		if (addr <= LOOP_RAM_BASE[channel])
+			addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
 	}
 
 	return(addr & 0xFFFFFFFE);
+
+	//return (calculate_addr_offset(channel, addr, 2, mode[channel][REV]));
 }
 
+
+// Utility function to determine if address mid is in between addresses beg and end in a circular (ring) buffer.
+// To Do: draw a truth table and condense this into one or two boolean logic functions
+uint8_t in_between(uint32_t mid, uint32_t beg, uint32_t end, uint8_t reverse)
+{
+	uint32_t t;
+
+	if (beg==end) //zero length, trivial case?
+	{
+		if (mid!=beg) return(0);
+		else return(1);
+	}
+
+	if (reverse) {
+		t=end;
+		end=beg;
+		beg=t;
+	}
+
+	if (end>beg) //not wrapped around
+	{
+		if ((mid>=beg) && (mid<=end)) return(1);
+		else return(0);
+
+	}
+	else //end has wrapped around
+	{
+		if ((mid<=end) || (mid>=beg)) return(1);
+		else return(0);
+	}
+}
+
+
+/* ******************
+ *  set_divmult_time
+ * ******************
+ *
+ * Changing divmult (Time knob or jack, or Ping clock speed) results in moving the read addr
+ * Unless we're in INF mode, then move the loop end
+ *
+ * To move the read addr, we have to pay attention to the cross-fading status:
+ * If we are not cross-fading the read head then
+ *  -See if the new divmult_time is different than the existing one
+ *   	-If so, initiate a cross-fade.
+ * -Set divmult_time to the destination divmult_time
+ *
+ * Otherwise, if we are in the middle of a cross-fade, then just queue the new divmult_time
+ *
+ */
 
 
 inline void set_divmult_time(uint8_t channel){
@@ -156,36 +240,65 @@ inline void set_divmult_time(uint8_t channel){
 
 	t_divmult_time = ping_time * param[channel][TIME];
 
+	t_divmult_time = t_divmult_time & 0xFFFFFFFC; //force it to be a multiple of 4
+
 	// Check for valid divmult time range
 	if (t_divmult_time > LOOP_SIZE>>1)
 		t_divmult_time = LOOP_SIZE>>1;
 
-	// If we are not cross-fading the read head:
-	//	-See if the new divmult_time is different than the existing one
-	//		-If so, initiate a cross-fade.
-	//	-Set divmult_time to the destination divmult_time
-	//
-	// Otherwise, if we are in the middle of a cross-fade, then just queue the new divmult_time
-
-	if (fade_pos[channel] < FADE_INCREMENT){
-
+	if (mode[channel][INF])
+	{
 		if (old_divmult_time[channel] != t_divmult_time){
 			old_divmult_time[channel] = t_divmult_time;
-
 			divmult_time[channel] = t_divmult_time;
 
-			fade_pos[channel] = FADE_INCREMENT;
-			fade_queued_dest_divmult_time[channel] = 0;
-			fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+			if (mode[channel][REV])
+			{
+				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, 1);
+			}
+			else
+			{
+				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, 0);
+				//loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1);
+			}
 
-			if (mode[channel][INF])
-				loop_start[channel]=fade_dest_read_addr[channel];
+			// If the read addr is not in between the loop start and end, then fade to the loop start
+			if (!in_between(read_addr[channel], loop_start[channel], loop_end[channel],mode[channel][REV]))
+			{
+				if (fade_pos[channel] < FADE_INCREMENT)
+				{
+					fade_pos[channel] = FADE_INCREMENT;
+					fade_queued_dest_divmult_time[channel] = 0;
 
+					fade_dest_read_addr[channel] = loop_start[channel];
+				}
+				else
+					fade_queued_dest_read_addr[channel]=loop_start[channel];
+
+			}
 		}
+	}
+	else
+	{
+		if (fade_pos[channel] < FADE_INCREMENT)
+		{
 
-	} else {
+		//	if (old_divmult_time[channel] != t_divmult_time){
+		//		old_divmult_time[channel] = t_divmult_time;
 
-		fade_queued_dest_divmult_time[channel]=t_divmult_time;
+				divmult_time[channel] = t_divmult_time;
+
+				fade_queued_dest_divmult_time[channel] = 0;
+
+				fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+
+				if (fade_dest_read_addr[channel] != read_addr[channel])
+					fade_pos[channel] = FADE_INCREMENT;
+
+		//	}
+
+		} else
+			fade_queued_dest_divmult_time[channel]=t_divmult_time;
 
 	}
 }
@@ -203,14 +316,23 @@ inline void process_read_addr_fade(uint8_t channel){
 		//	-Set read_addr to the destination
 		//	-Load the next queued fade (if it exists)
 
-		if (fade_pos[channel] >= 1.0){
+		if (fade_pos[channel] > 1.0){
 			fade_pos[channel] = 0.0;
 
 			read_addr[channel] = fade_dest_read_addr[channel];
 
-			if (fade_queued_dest_divmult_time[channel]){
+			if (fade_queued_dest_divmult_time[channel])
+			{
 				divmult_time[channel] = fade_queued_dest_divmult_time[channel];
+				fade_queued_dest_divmult_time[channel]=0;
 				fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+				fade_pos[channel] = FADE_INCREMENT;
+			}
+			else if (fade_queued_dest_read_addr[channel])
+			{
+				fade_dest_read_addr[channel] = fade_queued_dest_read_addr[channel];
+				fade_queued_dest_read_addr[channel]=0;
+				fade_pos[channel] = FADE_INCREMENT;
 			}
 		}
 	}
@@ -247,13 +369,67 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	int16_t wr_buff[codec_BUFF_LEN/4];
 
+	uint32_t passed_end_of_loop;
+	uint32_t start_fade_addr;
+
+
 	//if (channel==0)
-		DEBUG2_ON;
+		//DEBUG0_ON;
+
+	if (fade_pos[0]<FADE_INCREMENT)
+		DEBUG0_OFF;
+	else
+		DEBUG0_ON;
+
+
+	if (fade_pos[1]<FADE_INCREMENT)
+		DEBUG1_OFF;
+	else
+		DEBUG1_ON;
+
+
+	//Sanity check to made sure the read_addr is inside the loop.
+	//We shouldn't have to do this. The likely reason the read_addr escapes the loop
+	//is that it passes the start_fade_addr and triggers the passed_end_of_loop block,
+	//while at the same time already in the middle of a cross fade due to change in divmult_time or reverse
+	//What to do? If we queue to passed_end_of_loop fade then we risk overflowing out of the loop
+	//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
+	//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
+	//one crossfade period, maybe 3ms or so. Acceptable??
+
+	if (mode[channel][INF] && (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
+	{
+		if (fade_pos[channel] < FADE_INCREMENT)
+		{
+			fade_pos[channel] = FADE_INCREMENT;
+			fade_queued_dest_divmult_time[channel] = 0;
+
+			fade_dest_read_addr[channel] = loop_start[channel];
+		}
+		else
+			fade_queued_dest_read_addr[channel]=loop_start[channel];
+	}
+
 
 	//Read a block from memory
-	read_addr[channel] = sdram_read(read_addr[channel], channel, rd_buff, sz/2);
+	start_fade_addr = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, 1);
 
-	fade_dest_read_addr[channel] = sdram_read(fade_dest_read_addr[channel], channel, rd_buff_dest, sz/2);
+	passed_end_of_loop = sdram_read(read_addr, channel, rd_buff, sz/2, start_fade_addr);
+
+	//if read addr crosses the end of the loop, reset it to the beginning of the loop
+	if (mode[channel][INF] && passed_end_of_loop)
+	{
+		fade_pos[channel] = FADE_INCREMENT;
+		fade_queued_dest_divmult_time[channel]=0;
+
+		if (mode[channel][REV])
+			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)-8, 1);
+		else
+			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)+8, 1);
+
+	}
+
+	sdram_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0);
 
 	for (i=0;i<(sz/2);i++){
 
@@ -295,6 +471,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
 		// Combine stereo: Left<=Mix, Right<=Wet
+//DEBUG: write zeros
+if (INF1BUT && INF2BUT && REVSW_CH1 && REVSW_CH2){
+mix=0;
+rd=0;
+wr=0;
+}
 		*dst++ = mix; //left
 		*dst++ = rd; //right
 		wr_buff[i]=wr;
@@ -303,11 +485,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	//Write a block to memory
 	if (mode[channel][INF] == 0)
-		write_addr[channel] = sdram_write(write_addr[channel], channel, wr_buff, (sz/2));
+		sdram_write(write_addr, channel, wr_buff, sz/2);
 
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
 
 	//if (channel==0)
-		DEBUG2_OFF;
+		//DEBUG0_OFF;
 }

@@ -1,5 +1,4 @@
-/*
-  * globals.h
+/*  * globals.h
  *
  *  Created on: Jun 8, 2014
  *      Author: design
@@ -11,12 +10,16 @@
 //codec_BUFF_LEN = Size (in samples) of the DMA rx/tx buffers:
 //Each channel = codec_BUFF_LEN/2 samples
 //We process the rx buffer when it's half-full and 100% full, so codec_BUFF_LEN/4 samples are processed at one time
-#define codec_BUFF_LEN 32
+#define codec_BUFF_LEN 16
 //32 is 6kHz (48kHz / 32/4)
 //16 is 12kHz
 //8 is 24kHz but seems glitchy...
 
 
+//not working:???
+//#define PCB_PROTO_VERSION_4
+//#define PCB_PROTO_VERSION_5
+#define PCB_PROTO_VERSION_6
 
 //Error codes for g_error
 #define OUT_OF_MEM 1
@@ -33,6 +36,7 @@
 //Number of channels
 #define NUM_CHAN 2
 
+#define TRIG_TIME 196
 
 //#define USE_VCXO
 

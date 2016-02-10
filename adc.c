@@ -1,7 +1,7 @@
 /*
  * adc.c - adc setup
  */
- 
+#include "globals.h"
 #include "adc.h"
 
 void Init_Pot_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
@@ -73,9 +73,13 @@ void Init_Pot_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, LVL2_POT+1, ADC_SampleTime_144Cycles); //[3]: PB2
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_11, REGEN1_POT+1, ADC_SampleTime_144Cycles); //[4]: PC1
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_12, REGEN2_POT+1, ADC_SampleTime_144Cycles); //[5]: PC2
+#ifdef PCB_PROTO_VERSION_6
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, MIX1_POT+1, ADC_SampleTime_144Cycles); //[6]: PC4
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_13, MIX2_POT+1, ADC_SampleTime_144Cycles); //[7]: PC3
+#else
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_13, MIX1_POT+1, ADC_SampleTime_144Cycles); //[6]: PC3
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, MIX2_POT+1, ADC_SampleTime_144Cycles); //[7]: PC4
-
+#endif
 
 	//DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
    	//NVIC_EnableIRQ(DMA2_Stream0_IRQn);

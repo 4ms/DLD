@@ -8,6 +8,7 @@
 #include "timekeeper.h"
 #include "dig_inouts.h"
 #include "params.h"
+#include "globals.h"
 
 
 volatile uint32_t ping_tmr;
@@ -16,6 +17,7 @@ volatile uint32_t clkout_trigger_tmr;
 volatile uint32_t pingled_tmr[2];
 volatile uint32_t sys_time=0;
 extern volatile uint32_t ping_time;
+extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 
 inline void inc_tmrs(void){
@@ -34,6 +36,9 @@ inline void inc_tmrs(void){
 	{
 		CLKOUT_OFF;
 	}
+	else if (mode[0][MAIN_CLOCK_JACK]==TRIG_MODE && clkout_trigger_tmr >= TRIG_TIME){
+		CLKOUT_OFF;
+	}
 }
 
 inline void reset_ping_ledbut_tmr(void){
@@ -50,6 +55,15 @@ inline void reset_clkout_trigger_tmr(void){
 
 inline void reset_pingled_tmr(uint8_t channel){
 	pingled_tmr[channel]=0;
+
+	if (channel==0) {
+		CLKOUT1_ON;
+		LED_OVLD1_ON;
+	} else {
+		CLKOUT2_ON;
+		LED_OVLD2_ON;
+	}
+
 }
 
 

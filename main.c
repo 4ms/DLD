@@ -62,19 +62,21 @@ int main(void)
 	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
 	//SR = 48kHz to 915Hz
 
-	init_VCXO();
+	//init_VCXO();
 
 #ifdef USE_VCXO
 	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
 	setupPLLInt(SI5351_PLL_B, 15);
-	setupMultisynth(0, SI5351_PLL_A, 30, 265, 512);
-	setupMultisynth(1, SI5351_PLL_A, 30, 265, 512);
+	//setupMultisynth(0, SI5351_PLL_A, 30, 265, 512);
+	//setupMultisynth(1, SI5351_PLL_A, 30, 265, 512);
+	setupMultisynth(0, SI5351_PLL_A, 36, 265, 512);
+	setupMultisynth(1, SI5351_PLL_A, 40, 265, 512);
 
 	delay();
 
 	Si5351a_enableOutputs(1);
 #else
-	Si5351a_enableOutputs(0);
+	//Si5351a_enableOutputs(0);
 #endif
 
 	delay();
@@ -88,12 +90,13 @@ int main(void)
 
 	delay();
 
-	SDRAM_Init();
-	Audio_Init();
-
 	init_LowPassCoefs();
 	init_params();
 	init_modes();
+
+	SDRAM_Init();
+	Audio_Init();
+
 
 	delay();
 	Codec_Init(I2S_AudioFreq_48k);

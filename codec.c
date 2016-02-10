@@ -83,15 +83,18 @@
 #define INBOTH		(1<<8)
 
 
-//Reg 4: Analog Audio Path
-#define MICBOOST (1<<0)
-#define MUTEMIC (1<<1)
-#define INSEL (1<<2)
-#define BYPASS (1<<3)
-#define DACSEL (1<<4)
-#define SIDETONE (1<<5)
-#define SIDEATT0 (1<<6)
-#define SIDEATT1 (1<<7)
+//Register 4: Analogue Audio Path Control
+#define MICBOOST 		(1 << 0)	/* Boost Mic level */
+#define MUTEMIC			(1 << 1)	/* Mute Mic to ADC */
+#define INSEL_mic		(1 << 2)	/* Mic Select*/
+#define INSEL_line		(0 << 2)	/* LineIn Select*/
+#define BYPASS			(1 << 3)	/* Bypass Enable */
+#define DACSEL			(1 << 4)	/* Select DAC */
+#define SIDETONE		(1 << 5)	/* Enable Sidetone */
+#define SIDEATT_neg15dB	(0b11 << 6)
+#define SIDEATT_neg12dB	(0b10 << 6)
+#define SIDEATT_neg9dB	(0b01 << 6)
+#define SIDEATT_neg6dB	(0b00 << 6)
 
 
 //Reg 5: Digital Audio Path
@@ -157,13 +160,21 @@ const uint16_t w8731_init_data_slave[] =
 	VOL_0dB,			// Reg 01: Right Line In (0dB, mute off)
 	0b0101111,			// Reg 02: Left Headphone out (Mute)
 	0b0101111,			// Reg 03: Right Headphone out (Mute)
-	0b00010010,			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
-	(0b00000110
+
+	(MUTEMIC 			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
+	| INSEL_line
+	| DACSEL
+	| SIDEATT_neg6dB),
+
+	(DEEMP_48k
 	| ADCHPFEnable),	// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
+
 	(MICPD | OSCPD),	// Reg 06: Power Down Control (Osc, Mic Off)
+
 	(format_16b
 	| format_MSB_Left
 	| Slave_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, slave)
+
 	0x000,				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
 	0x001				// Reg 09: Active Control
 };
@@ -174,14 +185,22 @@ const uint16_t w8731_init_data_master[] =
 	VOL_0dB,			// Reg 01: Right Line In (0dB, mute off)
 	0b0101111,			// Reg 02: Left Headphone out (Mute)
 	0b0101111,			// Reg 03: Right Headphone out (Mute)
-	0b00010010,			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
-	(DEEMP_Disable
+
+	(MUTEMIC 			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
+	| INSEL_line
+	| DACSEL
+	| SIDEATT_neg6dB),
+
+	(DEEMP_48k
 	| ADCHPFEnable),	// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
+
 	(MICPD | OSCPD),	// Reg 06: Power Down Control (Osc, Mic Off)
+
 	(format_16b
 	| format_MSB_Left
 	| Master_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, master)
-	0x000,					// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
+
+	0x000,				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
 	0x001				// Reg 09: Active Control
 };
 

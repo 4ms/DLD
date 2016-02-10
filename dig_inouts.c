@@ -2,10 +2,9 @@
  * dig_inouts.c
  */
 
-
+#include "globals.h"
 #include "dig_inouts.h"
 #include "params.h"
-#include "globals.h"
 #include "looping_delay.h"
 #include "timekeeper.h"
 
@@ -21,7 +20,7 @@ extern volatile uint32_t ping_time;
 uint8_t flag_ping_was_changed;
 
 extern float param[NUM_CHAN][NUM_PARAMS];
-extern uint8_t mode[NUM_CHAN][NUM_MODES];
+extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 uint8_t flag_inf_change[2]={0,0};
 uint8_t flag_rev_change[2]={0,0};
@@ -73,13 +72,13 @@ void init_dig_inouts(void){
 	//DEBUG pins
 	RCC_AHB1PeriphClockCmd(DEBUG_RCC, ENABLE);
 
-	//gpio.GPIO_Pin = DEBUG0;	GPIO_Init(DEBUG0_GPIO, &gpio);
-	//gpio.GPIO_Pin = DEBUG1;	GPIO_Init(DEBUG1_GPIO, &gpio);
+	gpio.GPIO_Pin = DEBUG0;	GPIO_Init(DEBUG0_GPIO, &gpio);
+	gpio.GPIO_Pin = DEBUG1;	GPIO_Init(DEBUG1_GPIO, &gpio);
 	gpio.GPIO_Pin = DEBUG2;	GPIO_Init(DEBUG2_GPIO, &gpio);
 	gpio.GPIO_Pin = DEBUG3;	GPIO_Init(DEBUG3_GPIO, &gpio);
 	gpio.GPIO_Pin = DEBUG4;	GPIO_Init(DEBUG4_GPIO, &gpio);
-	//DEBUG0_OFF;
-	//DEBUG1_OFF;
+	DEBUG0_OFF;
+	DEBUG1_OFF;
 	DEBUG2_OFF;
 	DEBUG3_OFF;
 	DEBUG4_OFF;
@@ -380,12 +379,7 @@ void TIM4_IRQHandler(void)
 		flag_inf_change[1]=1;
 		inf_jack_high[1]=1;
 	}
-/*
-	if (inf_jack_high[1]==1 && State[4]==0xe000){
-		flag_inf_change[1]=1;
-		inf_jack_high[1]=0;
-	}
-*/
+
 
 	if (REVSW_CH1)
 		t=0xe000;
@@ -420,51 +414,6 @@ void TIM4_IRQHandler(void)
 
 }
 
-/*** trigouts.c ****/
-/*
-inline void update_quantized_params(uint8_t channel){
-
-
-	// Update divmult time
-	if (flag_time_param_changed[channel]){
-		flag_time_param_changed[channel]=0;
-
-		set_divmult_time(channel);
-
-	}
-
-}
-*/
-
-
-
-
-/*
- *
- moved to inc_tmrs()
-inline void update_clkout_jack(void){
-
-	// Check if clkout timer has overflowed
-	// If so, we can change the Time parameters and INF status
-
-	if (clkout_trigger_tmr>=ping_time){
-		CLKOUT_ON;
-		reset_clkout_trigger_tmr();
-	}
-
-	// Turn off the Clock Out jack after the 50% duty cycle
-	if (ping_time > CLKOUT_TRIG_TIME<<1){
-		if (clkout_trigger_tmr > CLKOUT_TRIG_TIME){
-			CLKOUT_OFF;
-		}
-	} else {
-		if (clkout_trigger_tmr > ping_time>>1){
-			CLKOUT_OFF;
-		}
-	}
-
-}
-*/
 
 /*** leds.c ***/
 
@@ -484,17 +433,9 @@ void update_ping_ledbut(void)
 void update_channel_leds(uint8_t channel)
 {
 	if (pingled_tmr[channel] >= divmult_time[channel]){
-		if (channel==0) {
-			CLKOUT1_ON;
-			LED_OVLD1_ON;
-		} else {
-			CLKOUT2_ON;
-			LED_OVLD2_ON;
-		}
-
 		reset_pingled_tmr(channel);
-
 	}
+
 	else if (pingled_tmr[channel] >= (divmult_time[channel]>>1))
 	{
 		if (channel==0) {
@@ -505,6 +446,17 @@ void update_channel_leds(uint8_t channel)
 			LED_OVLD2_OFF;
 		}
 	}
+
+	else if (mode[channel][LOOP_CLOCK_JACK] == TRIG_MODE && pingled_tmr[channel] >= TRIG_TIME)
+	{
+		if (channel==0) {
+			CLKOUT1_OFF;
+		} else {
+			CLKOUT2_OFF;
+		}
+
+	}
+
 }
 
 void update_inf_ledbut(uint8_t channel){

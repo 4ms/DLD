@@ -15,6 +15,7 @@
 #include "equalpowpan_lut.h"
 #include "exp_1voct.h"
 #include "si5153a.h"
+#include "timekeeper.h"
 #include "looping_delay.h"
 
 extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
@@ -33,12 +34,16 @@ extern uint8_t flag_ping_was_changed;
 extern uint8_t flag_inf_change[2];
 extern uint8_t flag_rev_change[2];
 
+extern volatile uint32_t divmult_time[NUM_CHAN];
+extern volatile uint32_t pingled_tmr[2];
 
 float param[NUM_CHAN][NUM_PARAMS];
-uint8_t mode[NUM_CHAN][NUM_MODES];
+uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 const int32_t MIN_POT_ADC_CHANGE[NUM_POT_ADCS] = {60, 60, 20, 20, 20, 20, 20, 20};
 const int32_t MIN_CV_ADC_CHANGE[NUM_CV_ADCS] = {60, 60, 20, 20, 20, 20};
+
+int32_t CV_CALIBRATION_OFFSET[NUM_CV_ADCS];
 
 
 float POT_LPF_COEF[NUM_POT_ADCS];
@@ -56,6 +61,19 @@ void init_params(void)
 		param[chan][MIX_DRY] = 1.0;
 		param[chan][MIX_WET] = 0.0;
 	}
+
+	//ToDo: Read TIME_CV_ZERO from FLASH parameters
+	//Time
+	CV_CALIBRATION_OFFSET[0]=-10;
+	CV_CALIBRATION_OFFSET[1]=0;
+
+	//5=
+	CV_CALIBRATION_OFFSET[2]=-5;
+	CV_CALIBRATION_OFFSET[3]=-16;
+
+	//
+	CV_CALIBRATION_OFFSET[4]=-5;
+	CV_CALIBRATION_OFFSET[5]=-5;
 }
 
 void init_modes(void)
@@ -67,12 +85,10 @@ void init_modes(void)
 		mode[chan][REV] = 0;
 		mode[chan][TIMEMODE_POT] = MOD_READWRITE_TIME;
 		mode[chan][TIMEMODE_JACK] = MOD_READWRITE_TIME;
+		mode[chan][LOOP_CLOCK_JACK] = TRIG_MODE;
 	}
-	//debug:
-	//mode[0][TIMEMODE_POT] = MOD_READWRITE_TIME;
-	//mode[0][TIMEMODE_CV] = MOD_READWRITE_TIME;
-	//mode[1][TIMEMODE_POT] = MOD_READWRITE_TIME;
-	//mode[1][TIMEMODE_CV] = MOD_READWRITE_TIME;
+
+	mode[0][MAIN_CLOCK_JACK] = TRIG_MODE;
 
 }
 
@@ -84,6 +100,8 @@ inline float LowPassSmoothingFilter(float current_value, float new_value, float 
 
 void init_LowPassCoefs(void)
 {
+	float t;
+
 	CV_LPF_COEF[TIME*2] = 0.99;
 	CV_LPF_COEF[TIME*2+1] = 0.99;
 
@@ -93,9 +111,10 @@ void init_LowPassCoefs(void)
 	CV_LPF_COEF[REGEN*2] = 0.99;
 	CV_LPF_COEF[REGEN*2+1] = 0.99;
 
+	t=100.0;
 
-	POT_LPF_COEF[TIME*2] = 0.99;
-	POT_LPF_COEF[TIME*2+1] = 0.99;
+	POT_LPF_COEF[TIME*2] = 1.0-(1.0/t);
+	POT_LPF_COEF[TIME*2+1] = 1.0-(1.0/t);
 
 	POT_LPF_COEF[LEVEL*2] = 0.9;
 	POT_LPF_COEF[LEVEL*2+1] = 0.9;
@@ -109,7 +128,8 @@ void init_LowPassCoefs(void)
 }
 
 float time_mult[2]={1.0,1.0};
-uint32_t sample_rate_div[2]={30,30};
+//uint32_t sample_rate_div[2]={30,30};
+uint32_t sample_rate_div[2]={36,40};
 uint32_t sample_rate_num[2]={265,265};
 uint32_t sample_rate_denom[2]={512,512};
 uint32_t old_sample_rate_div[2]={0,0};
@@ -125,11 +145,11 @@ void update_adc_params(void)
 	static float smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
 
 
-	static int16_t old_smoothed_cvadc[2]={0,0};
-	static int16_t old_smoothed_potadc[2]={0,0};
+//	static int16_t old_smoothed_cvadc[2]={0,0};
+//	static int16_t old_smoothed_potadc[2]={0,0};
 
 	uint8_t i, channel;
-	int32_t t,t2;
+//	int32_t t,t2;
 	//float t_f;
 	int32_t t_combined;
 
@@ -143,7 +163,7 @@ void update_adc_params(void)
 
 	for (i=0;i<NUM_CV_ADCS;i++)
 	{
-		smoothed_cvadc[i] = LowPassSmoothingFilter(smoothed_cvadc[i], (float)cvadc_buffer[i], CV_LPF_COEF[i]);
+		smoothed_cvadc[i] = LowPassSmoothingFilter(smoothed_cvadc[i], (float)(cvadc_buffer[i]+CV_CALIBRATION_OFFSET[i]), CV_LPF_COEF[i]);
 		i_smoothed_cvadc[i] = (int16_t)smoothed_cvadc[i];
 	}
 
@@ -151,7 +171,7 @@ void update_adc_params(void)
 	for (channel=0;channel<2;channel++)
 	{
 
-		if (mode[channel][TIMEMODE_POT]==MOD_SAMPLE_RATE_Q)
+		/*if (mode[channel][TIMEMODE_POT]==MOD_SAMPLE_RATE_Q)
 		{
 			sample_rate_div[channel] = 11 * (get_clk_div_nominal(4095-i_smoothed_potadc[TIME*2+channel]) + get_clk_div_nominal(4095-i_smoothed_cvadc[TIME*2+channel]));
 
@@ -183,14 +203,22 @@ void update_adc_params(void)
 		}
 
 		else if (mode[channel][TIMEMODE_POT]==MOD_READWRITE_TIME)
-		{
+		{*/
+
 			//Quantize sum of pot and jack (hard clipped at 4095)
+
 			t_combined = i_smoothed_potadc[TIME*2+channel] + (i_smoothed_cvadc[TIME*2+channel]-2048);
 			if (t_combined>4095) t_combined = 4095;
 			else if (t_combined<0) t_combined = 0;
 
-			time_mult[channel] = get_clk_div_nominal(t_combined);
-		}
+
+			if ((REVSW_CH1 && channel==0) || (REVSW_CH2 && channel==1))
+				time_mult[channel] = get_clk_div_exact(t_combined);
+			else
+				time_mult[channel] = get_clk_div_nominal(t_combined);
+
+
+		//}
 
 #ifdef USE_VCXO
 		if ( ((old_sample_rate_div[channel]>sample_rate_div[channel]) && ((old_sample_rate_div[channel]-sample_rate_div[channel])>4))
@@ -203,31 +231,7 @@ void update_adc_params(void)
 		}
 #endif
 
-		/*else {
 
-			t=i_smoothed_cvadc[TIME*2+channel] - old_smoothed_cvadc[channel];
-			t2=i_smoothed_potadc[TIME*2+channel] - old_smoothed_potadc[channel];
-
-			if ( t>50 || t<-50 || t2<-50 || t2>50 )
-			{
-				old_smoothed_cvadc[channel] = i_smoothed_cvadc[TIME*2+channel];
-				old_smoothed_potadc[channel] = i_smoothed_potadc[TIME*2+channel];
-			}
-
-			time_mult[channel] = get_clk_div_nominal(old_smoothed_potadc[channel]);
-
-			if (old_smoothed_cvadc[channel]>2100) {
-				t_f = exp_1voct[(old_smoothed_cvadc[channel]-2048)>>1];
-			} else
-			if (old_smoothed_cvadc[channel]<2000) {
-				t_f = 1.0 / exp_1voct[old_smoothed_cvadc[channel]>>1];
-			} else
-				t_f = 1.0;
-
-			if (t_f < 1.1) t_f=1.0;
-			time_mult[channel] = time_mult[channel] * t_f;
-
-		}*/
 
 		// Adjust TIME by the time switch position
 
@@ -239,10 +243,11 @@ void update_adc_params(void)
 
 		if (switch1_val==0b10) time_mult[channel] = time_mult[channel] + 16.0; //switch up: 17-32
 		//else if (switch1_val==0b11) time_mult[channel] = time_mult[channel]; //switch in middle: 1-16
-		else if (switch1_val==0b01) time_mult[channel] = time_mult[channel] / 8.0; //switch down: eighth notes
+		else if (switch1_val==0b01) time_mult[channel] = time_mult[channel] * 0.125; //switch down: eighth notes
 
 
 		if (time_mult[channel]!=param[channel][TIME]){
+
 			flag_time_param_changed[channel] = 1;
 
 			param[channel][TIME] = time_mult[channel];
@@ -290,30 +295,39 @@ void update_adc_params(void)
 }
 
 inline void update_instant_params(uint8_t channel){
+uint32_t t;
 
 	if (flag_inf_change[channel])
 	{
 		flag_inf_change[channel]=0;
-		//mode[channel][INF] = 1 - mode[channel][INF];
 
 		if (mode[channel][INF])
 		{
 			mode[channel][INF] = 0;
 
-			//read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+			//need to reset the read_addr to a good place
+			write_addr[channel]=loop_end[channel];
 			set_divmult_time(channel);
+
+			//set the write pointer ahead of the read addr
+			//this way is weird, when we exit INF, it plays the rest of the loop and then silence for the duration of the period
+			//write_addr[channel]=calculate_write_addr(channel, divmult_time[channel], mode[channel][REV]);
+
 
 			loop_start[channel] = LOOP_RAM_BASE[channel];
 			loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
 
 		} else {
 			mode[channel][INF] = 1;
+			reset_pingled_tmr(channel);
 
 			loop_start[channel]=read_addr[channel];
 			loop_end[channel]=write_addr[channel];
 		}
 
 	}
+
+
 
 
 	if (flag_rev_change[channel])
@@ -331,59 +345,103 @@ inline void update_instant_params(uint8_t channel){
 			else LED_REV2_OFF;
 		}
 
-		swap_read_write(channel);
+		if (mode[channel][INF])
+		{
+			t=loop_start[channel];
+			loop_start[channel]=loop_end[channel];
+			loop_end[channel]=t;
+		}
+		else
+			swap_read_write(channel);
 	}
 
 
 	if (flag_time_param_changed[channel] || flag_ping_was_changed)
 	{
 		flag_time_param_changed[channel]=0;
-
 		set_divmult_time(channel);
 	}
 }
 
-
 float get_clk_div_nominal(uint16_t adc_val)
 {
-	if (adc_val<=100) //was 150
+	if (adc_val<=40) //was 150
 		return(P_1);
-	else if (adc_val<=310) //was 310
+	else if (adc_val<=176) //was 310
 		return(P_2);
-	else if (adc_val<=565)
+	else if (adc_val<=471)
 		return(P_3);
-	else if (adc_val<=816)
+	else if (adc_val<=780)
 		return(P_4);
-	else if (adc_val<=1062)
+	else if (adc_val<=1076)
 		return(P_5);
-	else if (adc_val<=1304)
+	else if (adc_val<=1368)
 		return(P_6);
-	else if (adc_val<=1529)
+	else if (adc_val<=1664)
 		return(P_7);
-	else if (adc_val<=1742)
+	else if (adc_val<=1925)
 		return(P_8);
-	else if (adc_val<=1950)
+	else if (adc_val<=2179) // Center
 		return(P_9);
-	else if (adc_val<=2157) // Center
+	else if (adc_val<=2448)
 		return(P_10);
-	else if (adc_val<=2365)
+	else if (adc_val<=2714)
 		return(P_11);
-	else if (adc_val<=2580)
+	else if (adc_val<=2991)
 		return(P_12);
-	else if (adc_val<=2806)
+	else if (adc_val<=3276)
 		return(P_13);
-	else if (adc_val<=3044)
+	else if (adc_val<=3586)
 		return(P_14);
-	else if (adc_val<=3289)
+	else if (adc_val<=3879)
 		return(P_15);
-	else if (adc_val<=3537)
+	else if (adc_val<=4046)
 		return(P_16);
-	else if (adc_val<=3790)
-		return(P_17);
-	else if (adc_val<=4003)
-		return(P_18);
 	else
-		return(P_19);
+		return(P_17);
 }
+
+float get_clk_div_exact(uint16_t adc_val)
+{
+	float t, b, tval, bval;
+
+	if (adc_val<=40) //was 150
+		return(P_1);
+	else if (adc_val<=176)
+	{t=176;b=30;tval=P_2;bval=P_1;}
+	else if (adc_val<=471)
+	{t=471;b=176;tval=P_3;bval=P_2;}
+	else if (adc_val<=780)
+	{t=780;b=471;tval=P_4;bval=P_3;}
+	else if (adc_val<=1076)
+	{t=1076;b=780;tval=P_5;bval=P_4;}
+	else if (adc_val<=1368)
+	{t=1368;b=1076;tval=P_6;bval=P_5;}
+	else if (adc_val<=1664)
+	{t=1664;b=1368;tval=P_7;bval=P_6;}
+	else if (adc_val<=1925)
+	{t=1925;b=1664;tval=P_8;bval=P_7;}
+	else if (adc_val<=2179) // Center
+	{t=2179;b=1925;tval=P_9;bval=P_8;}
+	else if (adc_val<=2448)
+	{t=2448;b=2179;tval=P_10;bval=P_9;}
+	else if (adc_val<=2714)
+	{t=2714;b=2448;tval=P_11;bval=P_10;}
+	else if (adc_val<=2991)
+	{t=2991;b=2714;tval=P_12;bval=P_11;}
+	else if (adc_val<=3276)
+	{t=3276;b=2991;tval=P_13;bval=P_12;}
+	else if (adc_val<=3586)
+	{t=3586;b=3276;tval=P_14;bval=P_13;}
+	else if (adc_val<=3879)
+	{t=3879;b=3586;tval=P_15;bval=P_14;}
+	else if (adc_val<=4046)
+	{t=4046;b=3879;tval=P_16;bval=P_15;}
+	else
+		return(P_17);
+
+	return( ((t-adc_val)/(t-b))*bval + ((adc_val-b)/(t-b))*tval );
+}
+
 
 
