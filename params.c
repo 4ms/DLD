@@ -144,7 +144,6 @@ void update_adc_params(void)
 	static float smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
 	static float smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
 
-
 //	static int16_t old_smoothed_cvadc[2]={0,0};
 //	static int16_t old_smoothed_potadc[2]={0,0};
 
@@ -259,12 +258,15 @@ void update_adc_params(void)
 
 		if (mode[channel][INF] == 0){
 
-			t_combined = i_smoothed_potadc[LEVEL*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
+			t_combined = i_smoothed_potadc[LEVEL*2+channel] + i_smoothed_cvadc[LEVEL*2+channel]; //2 and 3
 			if (t_combined>4095) t_combined = 4095;
 
-			param[channel][LEVEL]=t_combined/4095.0;
+			param[channel][LEVEL]=t_combined/4096.0;
 
-			t_combined = i_smoothed_potadc[REGEN*2+channel] + i_smoothed_cvadc[REGEN*2+channel];
+			if (param[channel][LEVEL]<(22.0/4096.0))
+				param[channel][LEVEL]=0.0;
+
+			t_combined = i_smoothed_potadc[REGEN*2+channel] + i_smoothed_cvadc[REGEN*2+channel]; //4 and 5
 			if (t_combined>4095) t_combined = 4095;
 
 			// From 0 to 80% of rotation, Regen goes from 0% to 100%

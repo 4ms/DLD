@@ -164,18 +164,20 @@ const uint16_t w8731_init_data_slave[] =
 	(MUTEMIC 			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
 	| INSEL_line
 	| DACSEL
-	| SIDEATT_neg6dB),
+	| SIDEATT_neg15dB),
 
-	(DEEMP_48k
+	(DEEMP_Disable
 	| ADCHPFEnable),	// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
 
-	(MICPD | OSCPD),	// Reg 06: Power Down Control (Osc, Mic Off)
+	(MICPD
+	| OSCPD
+	| CLKOUTPD),		// Reg 06: Power Down Control (Osc, Mic Off)
 
 	(format_16b
 	| format_MSB_Left
 	| Slave_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, slave)
 
-	0x000,				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
+	(0),				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
 	0x001				// Reg 09: Active Control
 };
 

@@ -161,12 +161,21 @@ void Init_CV_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 	GPIO_Init(GPIOF, &GPIO_InitStructure);
 
 	/* ADC3 regular channel configuration -----------------------------------*/
+//#ifdef PCB_PROTO_VERSION_6
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_5, TIME1_CV+1, ADC_SampleTime_144Cycles); //PF7
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_6, TIME2_CV+1, ADC_SampleTime_144Cycles); //PF8
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, LVL1_CV+1, ADC_SampleTime_144Cycles); //PA3
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_4, LVL2_CV+1, ADC_SampleTime_144Cycles); //PF6
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_7, REGEN1_CV+1, ADC_SampleTime_144Cycles); //PF9
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_8, REGEN2_CV+1, ADC_SampleTime_144Cycles); //PF10
+//#else
+//	ADC_RegularChannelConfig(ADC3, ADC_Channel_5, TIME1_CV+1, ADC_SampleTime_144Cycles); //PF7
+//	ADC_RegularChannelConfig(ADC3, ADC_Channel_6, TIME2_CV+1, ADC_SampleTime_144Cycles); //PF8
+//	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, LVL1_CV+1, ADC_SampleTime_144Cycles); //PA3
+//	ADC_RegularChannelConfig(ADC3, ADC_Channel_4, LVL2_CV+1, ADC_SampleTime_144Cycles); //PF6
+//	ADC_RegularChannelConfig(ADC3, ADC_Channel_7, REGEN1_CV+1, ADC_SampleTime_144Cycles); //PF9
+//	ADC_RegularChannelConfig(ADC3, ADC_Channel_8, REGEN2_CV+1, ADC_SampleTime_144Cycles); //PF10
+//#endif
 
 
 	//DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
