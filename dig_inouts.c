@@ -24,6 +24,10 @@ extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 uint8_t flag_inf_change[2]={0,0};
 uint8_t flag_rev_change[2]={0,0};
+
+uint8_t flag_timepot_changed_revdown[2]={0,0};
+uint8_t flag_timepot_changed_infdown[2]={0,0};
+
 uint8_t inf_jack_high[2]={0,0};
 
 uint8_t ping_button_state=0;
@@ -97,10 +101,10 @@ void init_dig_inouts(void){
 	gpio.GPIO_Pin = TIMESW_CH2_T2_pin;	GPIO_Init(TIMESW_CH2_T2_GPIO, &gpio);
 
 	//Reverse buttons
-	RCC_AHB1PeriphClockCmd(REVSW_RCC, ENABLE);
+	RCC_AHB1PeriphClockCmd(REVBUT_RCC, ENABLE);
 
-	gpio.GPIO_Pin = REV2SW_pin;	GPIO_Init(REV2SW_GPIO, &gpio);
-	gpio.GPIO_Pin = REV1SW_pin;	GPIO_Init(REV1SW_GPIO, &gpio);
+	gpio.GPIO_Pin = REV2BUT_pin;	GPIO_Init(REV2BUT_GPIO, &gpio);
+	gpio.GPIO_Pin = REV1BUT_pin;	GPIO_Init(REV1BUT_GPIO, &gpio);
 
 
 	//Ping button and jack
@@ -351,18 +355,25 @@ void TIM4_IRQHandler(void)
 		}
 	}
 
-	if (INF1BUT) t=0xe000; else t=0xe001;
+	//Todo: Create a global infbut_pressed[2] and revbut_pressed[2] reflecting the de-bounced state
+	if (!INF1BUT) t=0xe000; else t=0xe001;
 	State[1]=(State[1]<<1) | t;
-	if (State[1]==0xf000){
-		flag_inf_change[0]=1;
-		//mode[0][INF]=1-mode[0][INF];
+	if (State[1]==0xf000)
+	{
+		if (flag_timepot_changed_infdown[0])
+			flag_timepot_changed_infdown[0]=0;
+		else
+			flag_inf_change[0]=1;
 	}
 
-	if (INF2BUT) t=0xe000; else t=0xe001;
+	if (!INF2BUT) t=0xe000; else t=0xe001;
 	State[2]=(State[2]<<1) | t;
-	if (State[2]==0xf000){
-		flag_inf_change[1]=1;
-		//mode[1][INF]=1-mode[1][INF];
+	if (State[2]==0xf000)
+	{
+		if (flag_timepot_changed_infdown[1])
+			flag_timepot_changed_infdown[1]=0;
+		else
+			flag_inf_change[1]=1;
 	}
 
 
@@ -381,22 +392,24 @@ void TIM4_IRQHandler(void)
 	}
 
 
-	if (REVSW_CH1)
-		t=0xe000;
-	else
-		t=0xe001;
+	if (!REV1BUT) t=0xe000; else t=0xe001;
 	State[5]=(State[5]<<1) | t;
-	if (State[5]==0xff00){
-		flag_rev_change[0]=1;
+	if (State[5]==0xf000)
+	{
+		if (flag_timepot_changed_revdown[0])
+			flag_timepot_changed_revdown[0]=0;
+		else
+			flag_rev_change[0]=1;
 	}
 
-	if (REVSW_CH2)
-		t=0xe000;
-	else
-		t=0xe001;
+	if (!REV2BUT) t=0xe000; else t=0xe001;
 	State[6]=(State[6]<<1) | t;
-	if (State[6]==0xff00){
-		flag_rev_change[1]=1;
+	if (State[6]==0xf000)
+	{
+		if (flag_timepot_changed_revdown[1])
+			flag_timepot_changed_revdown[1]=0;
+		else
+			flag_rev_change[1]=1;
 	}
 
 	if (REV1JACK) t=0xe000; else t=0xe001;
@@ -449,11 +462,10 @@ void update_channel_leds(uint8_t channel)
 
 	else if (mode[channel][LOOP_CLOCK_JACK] == TRIG_MODE && pingled_tmr[channel] >= TRIG_TIME)
 	{
-		if (channel==0) {
+		if (channel==0)
 			CLKOUT1_OFF;
-		} else {
+		 else
 			CLKOUT2_OFF;
-		}
 
 	}
 

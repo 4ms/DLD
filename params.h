@@ -89,6 +89,8 @@ enum GateTrig_Modes{
 void update_adc_params(void);
 float get_clk_div_nominal(uint16_t adc_val);
 float get_clk_div_exact(uint16_t adc_val);
+uint8_t get_switch_val(uint8_t channel);
+float adjust_time_by_switch(float val, uint8_t channel);
 void init_LowPassCoefs(void);
 void init_params(void);
 void init_modes(void);

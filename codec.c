@@ -2,8 +2,8 @@
  * codec.c
  */
 
-#include "codec.h"
 #include "globals.h"
+#include "codec.h"
 #include "dig_inouts.h"
 
 #define CODEC_IS_SLAVE 0

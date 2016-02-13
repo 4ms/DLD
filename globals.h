@@ -16,7 +16,6 @@
 //8 is 24kHz but seems glitchy...
 
 
-//not working:???
 //#define PCB_PROTO_VERSION_4
 //#define PCB_PROTO_VERSION_5
 #define PCB_PROTO_VERSION_6

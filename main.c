@@ -17,12 +17,12 @@
 
 #include <stm32f4xx.h>
 
+#include "globals.h"
 #include "codec.h"
 #include "i2s.h"
 #include "adc.h"
 #include "looping_delay.h"
 #include "dig_inouts.h"
-#include "globals.h"
 #include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"

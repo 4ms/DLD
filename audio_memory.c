@@ -5,9 +5,9 @@
  *      Author: design
  */
 
+#include "globals.h"
 #include "audio_memory.h"
 #include "looping_delay.h"
-#include "globals.h"
 #include "dig_inouts.h"
 #include "params.h"
 

@@ -19,6 +19,8 @@ extern uint8_t g_error;
 volatile uint32_t ping_time;
 volatile uint32_t divmult_time[NUM_CHAN];
 
+extern uint8_t flag_timepot_changed_revdown[2];
+
 uint32_t write_addr[NUM_CHAN];
 uint32_t read_addr[NUM_CHAN];
 
@@ -252,15 +254,19 @@ inline void set_divmult_time(uint8_t channel){
 			old_divmult_time[channel] = t_divmult_time;
 			divmult_time[channel] = t_divmult_time;
 
-			if (mode[channel][REV])
-			{
-				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, 1);
-			}
+			/*
+			t=flag_timepot_changed_revdown[channel];
+			if (mode[REVTIME_POLARITY]==NORMAL_LOOPEND) t=1-t;
+			if (t)
+				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
 			else
-			{
-				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, 0);
-				//loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1);
-			}
+				loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
+			 */
+			if (flag_timepot_changed_revdown[channel])
+				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+			else
+				loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
+
 
 			// If the read addr is not in between the loop start and end, then fade to the loop start
 			if (!in_between(read_addr[channel], loop_start[channel], loop_end[channel],mode[channel][REV]))
@@ -362,6 +368,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float mainin_atten;
 	int32_t auxin;
 
+	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
+
 	uint16_t i;
 
 	int16_t rd_buff[codec_BUFF_LEN/4];
@@ -371,6 +379,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	uint32_t passed_end_of_loop;
 	uint32_t start_fade_addr;
+
 
 
 	//if (channel==0)
@@ -388,14 +397,14 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		DEBUG1_ON;
 
 
-	//Sanity check to made sure the read_addr is inside the loop.
-	//We shouldn't have to do this. The likely reason the read_addr escapes the loop
-	//is that it passes the start_fade_addr and triggers the passed_end_of_loop block,
-	//while at the same time already in the middle of a cross fade due to change in divmult_time or reverse
-	//What to do? If we queue to passed_end_of_loop fade then we risk overflowing out of the loop
-	//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
-	//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
-	//one crossfade period, maybe 3ms or so. Acceptable??
+									//Sanity check to made sure the read_addr is inside the loop.
+									//We shouldn't have to do this. The likely reason the read_addr escapes the loop
+									//is that it passes the start_fade_addr and triggers the passed_end_of_loop block,
+									//while at the same time already in the middle of a cross fade due to change in divmult_time or reverse
+									//What to do? If we queue to passed_end_of_loop fade then we risk overflowing out of the loop
+									//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
+									//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
+									//one crossfade period, maybe 3ms or so. Acceptable??
 
 	if (mode[channel][INF] && (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
 	{
@@ -438,6 +447,15 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		mainin = *src++;
 		auxin = *src++;
 
+		//0.0001 is 10k samples or about 1/4 second
+		mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
+		if (mainin_lpf[channel]<10)
+			mainin=0;
+
+		auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
+		if (auxin_lpf[channel]<10)
+			auxin=0;
+
 		// The Dry signal is just the clean signal, without any attenuation from LEVEL
 		dry = mainin;
 
@@ -471,12 +489,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
 		// Combine stereo: Left<=Mix, Right<=Wet
-//DEBUG: write zeros
-if (INF1BUT && INF2BUT && REVSW_CH1 && REVSW_CH2){
-mix=0;
-rd=0;
-wr=0;
-}
 		*dst++ = mix; //left
 		*dst++ = rd; //right
 		wr_buff[i]=wr;
