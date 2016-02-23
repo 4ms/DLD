@@ -39,11 +39,18 @@
 
 //#define USE_VCXO
 
-//About 50ms delay
+//About 45ms delay
 #define delay()						\
 do {							\
   register unsigned int i;				\
   for (i = 0; i < 1000000; ++i)				\
+    __asm__ __volatile__ ("nop\n\t":::"memory");	\
+} while (0)
+
+#define delay_ms(x)						\
+do {							\
+  register unsigned int i;				\
+  for (i = 0; i < (25000*x); ++i)				\
     __asm__ __volatile__ ("nop\n\t":::"memory");	\
 } while (0)
 

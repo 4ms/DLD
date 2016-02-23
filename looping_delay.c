@@ -382,6 +382,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 
 
+	sz=sz/2;
 	//if (channel==0)
 		//DEBUG0_ON;
 
@@ -442,11 +443,18 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	for (i=0;i<(sz/2);i++){
 
+		//*dst++ = *src++;
+		//*dst++ = *src++;
+		//*dst++ = *src++;
+		//*dst++ = *src++;
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 		mainin = *src++;
+		*src++;
 		auxin = *src++;
+		*src++;
 
+#ifdef ENABLE_AUTOMUTE
 		//0.0001 is 10k samples or about 1/4 second
 		mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
 		if (mainin_lpf[channel]<10)
@@ -455,6 +463,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
 		if (auxin_lpf[channel]<10)
 			auxin=0;
+#endif
 
 		// The Dry signal is just the clean signal, without any attenuation from LEVEL
 		dry = mainin;
@@ -490,7 +499,16 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Combine stereo: Left<=Mix, Right<=Wet
 		*dst++ = mix; //left
+		*dst++ = 0;
+
 		*dst++ = rd; //right
+		*dst++ = 0;
+
+		//*dst++ = mainin;
+		//*dst++ = 0;
+		//*dst++ = auxin;
+		//*dst++ = 0;
+
 		wr_buff[i]=wr;
 
 	}

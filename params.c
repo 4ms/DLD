@@ -58,10 +58,10 @@ void init_params(void)
 
 	for (chan=0;chan<NUM_CHAN;chan++){
 		param[chan][TIME] = 1.0;
-		param[chan][LEVEL] = 0.0;
-		param[chan][REGEN] = 0.0;
-		param[chan][MIX_DRY] = 1.0;
-		param[chan][MIX_WET] = 0.0;
+		param[chan][LEVEL] = 0.7;
+		param[chan][REGEN] = 0.5;
+		param[chan][MIX_DRY] = 0.7;
+		param[chan][MIX_WET] = 0.7;
 	}
 
 	//ToDo: Read TIME_CV_ZERO from FLASH parameters
@@ -157,8 +157,6 @@ void update_adc_params(void)
 	int32_t t;
 	//float t_f;
 	int32_t t_combined;
-
-	uint8_t switch1_val;
 
 	//
 	// Run a LPF on the pots and CV jacks
@@ -398,6 +396,7 @@ float adjust_time_by_switch(float val, uint8_t channel){
 
 	if (switch_val==0b10) return(val + 16.0); //switch up: 17-32
 	if (switch_val==0b01) return(val * 0.125); //switch down: eighth notes
+	else return val;
 }
 
 float get_clk_div_nominal(uint16_t adc_val)
