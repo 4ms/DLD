@@ -18,7 +18,8 @@
 
 //#define PCB_PROTO_VERSION_4
 //#define PCB_PROTO_VERSION_5
-#define PCB_PROTO_VERSION_6
+//#define PCB_PROTO_VERSION_6
+#define PCB_PROTO_VERSION_7
 
 //Error codes for g_error
 #define OUT_OF_MEM 1
