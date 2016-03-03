@@ -33,11 +33,8 @@ extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 extern uint8_t flag_ping_was_changed;
 extern uint8_t flag_inf_change[2];
 extern uint8_t flag_rev_change[2];
-extern uint8_t flag_timepot_changed_revdown[2];
-extern uint8_t flag_timepot_changed_infdown[2];
-
-extern volatile uint32_t divmult_time[NUM_CHAN];
-extern volatile uint32_t pingled_tmr[2];
+extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
+extern uint8_t flag_pot_changed_infdown[NUM_POT_ADCS];
 
 float param[NUM_CHAN][NUM_PARAMS];
 uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
@@ -148,7 +145,11 @@ void update_adc_params(void)
 
 	static int16_t old_i_smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
 	static int16_t old_i_smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
-	uint8_t flag_timepot_changed[2]={0,0};
+
+	int32_t pot_delta[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+
+	uint8_t flag_pot_changed[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+
 	uint8_t flag_timecv_changed[2]={0,0};
 	uint8_t flag_multswitch_changed[2]={0,0};
 	uint8_t old_switch_val[2]={0,0};
@@ -158,6 +159,10 @@ void update_adc_params(void)
 	//float t_f;
 	int32_t t_combined;
 
+	uint8_t switch1_val;
+
+	float abs_amt;
+	uint8_t subtract;
 	//
 	// Run a LPF on the pots and CV jacks
 	//
@@ -172,31 +177,38 @@ void update_adc_params(void)
 		i_smoothed_cvadc[i] = (int16_t)smoothed_cvadc[i];
 	}
 
+	//
+	// Check if each pot was wiggled (with or without Reverse or Inf button down)
+	//
+	for (i=0;i<NUM_POT_ADCS;i++)
+	{
+		t=i_smoothed_potadc[i] - old_i_smoothed_potadc[i];
+		if ((t>30) || (t<-30))
+		{
+			flag_pot_changed[i]=1;
+
+			if (!(i&1) && REV1BUT) flag_pot_changed_revdown[i]=1;
+			else if ((i&1) && REV2BUT) flag_pot_changed_revdown[i]=1;
+
+			if (!(i&1) && INF1BUT) flag_pot_changed_infdown[i]=1;
+			else if ((i&1) && INF2BUT) flag_pot_changed_infdown[i]=1;
+
+			pot_delta[i] = t;
+
+			old_i_smoothed_potadc[i] = i_smoothed_potadc[i];
+		}
+	}
+
+
 
 	//
 	// Cycle through channels, assigning params
 	//
 	for (channel=0;channel<2;channel++)
 	{
-
 		//
-		// Check if TIME pot was wiggled (with or without Reverse or Inf button down)
+		// ******* TIME **********
 		//
-		t=old_i_smoothed_potadc[TIME*2+channel] - i_smoothed_potadc[TIME*2+channel];
-		if ((t>30) || (t<-30))
-		{
-			if (channel==0 && REV1BUT) flag_timepot_changed_revdown[0]=1;
-			else if (channel==1 && REV2BUT) flag_timepot_changed_revdown[1]=1;
-			flag_timepot_changed[channel]=1;
-
-			if (channel==0 && INF1BUT) flag_timepot_changed_infdown[0]=1;
-			else if (channel==1 && INF2BUT) flag_timepot_changed_infdown[1]=1;
-
-			flag_timepot_changed[channel]=1;
-
-
-			old_i_smoothed_potadc[TIME*2+channel] = i_smoothed_potadc[TIME*2+channel];
-		}
 
 		//
 		// Check if TIME CV jack had activity
@@ -207,7 +219,6 @@ void update_adc_params(void)
 			flag_timecv_changed[channel]=1;
 			old_i_smoothed_cvadc[TIME*2+channel] = i_smoothed_cvadc[TIME*2+channel];
 		}
-
 
 		//
 		// Check if time mult switch changed
@@ -229,14 +240,14 @@ void update_adc_params(void)
 		if (t_combined>4095) t_combined = 4095;
 		else if (t_combined<0) t_combined = 0;
 
-		if (flag_timepot_changed_infdown[channel])
+		if (flag_pot_changed_infdown[TIME*2+channel])
 		{
 			time_mult[channel] = get_clk_div_exact(t_combined);
 			time_mult[channel] = adjust_time_by_switch(time_mult[channel], channel);
 		}
 		else
 		{
-			if (flag_timecv_changed[channel] || flag_timepot_changed[channel] || flag_multswitch_changed[channel])
+			if (flag_timecv_changed[channel] || flag_pot_changed[TIME*2+channel] || flag_multswitch_changed[channel])
 			{
 				time_mult[channel] = get_clk_div_nominal(t_combined);
 				time_mult[channel] = adjust_time_by_switch(time_mult[channel], channel);
@@ -256,25 +267,29 @@ void update_adc_params(void)
 #endif
 
 
-
-
-
 		if (time_mult[channel] != param[channel][TIME])
 		{
 			flag_time_param_changed[channel] = 1;
 
 			flag_timecv_changed[channel]=0;
-			flag_timepot_changed[channel]=0;
+			flag_pot_changed[TIME*2+channel]=0;
 			flag_multswitch_changed[channel]=0;
 
 			param[channel][TIME] = time_mult[channel];
 		}
 
+		//
+		// ******* LEVEL **********
+		// ******* REGEN **********
+		// *******  INF  **********
+		//
+
 
 		// Set LEVEL and REGEN to 0 and 1 if we're in infinite repeat mode
 		// Otherwise combine Pot and CV, and hard-clip at 4096
 
-		if (mode[channel][INF] == 0){
+		if (mode[channel][INF] == 0)
+		{
 
 			t_combined = i_smoothed_potadc[LEVEL*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
 			if (t_combined>4095) t_combined = 4095;
@@ -299,9 +314,29 @@ void update_adc_params(void)
 			else
 				param[channel][REGEN]=t_combined/3723.0; // 4096/3723 = 110% regeneration
 
-		} else {
+		}
+		else
+		{
 			param[channel][LEVEL]=0.0;
 			param[channel][REGEN]=1.0;
+
+			//
+			// If REGEN was wiggled while INF is held down
+			//
+			if (flag_pot_changed_infdown[REGEN*2+channel])
+			{
+
+				abs_amt = pot_delta[REGEN*2+channel] / 4096.0;
+				subtract = 0;
+
+				if (abs_amt < 0){
+					abs_amt = -1.0 * abs_amt;
+					subtract=1;
+				}
+
+				scroll_loop(channel, abs_amt, subtract);
+			}
+
 		}
 
 		// MIX uses an equal power panning lookup table
@@ -396,7 +431,7 @@ float adjust_time_by_switch(float val, uint8_t channel){
 
 	if (switch_val==0b10) return(val + 16.0); //switch up: 17-32
 	if (switch_val==0b01) return(val * 0.125); //switch down: eighth notes
-	else return val;
+	return val;
 }
 
 float get_clk_div_nominal(uint16_t adc_val)
