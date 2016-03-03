@@ -34,7 +34,6 @@ __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 
-
 void check_errors(void){
 
 }
@@ -50,8 +49,19 @@ inline uint32_t diff_circular(uint32_t leader, uint32_t follower){
 
 int main(void)
 {
+	GPIO_InitTypeDef gpio;
+
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
-	init_dig_inouts();
+
+	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC, ENABLE);
+	gpio.GPIO_Mode = GPIO_Mode_OUT;
+	gpio.GPIO_Speed = GPIO_Speed_25MHz;
+	gpio.GPIO_OType = GPIO_OType_PP;
+	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
+	CODECA_RESET_LOW;
+
+    init_dig_inouts();
 
 	DeInit_I2SDMA_Channel1();
 	DeInit_I2SDMA_Channel2();
@@ -62,7 +72,7 @@ int main(void)
 	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
 	//SR = 48kHz to 915Hz
 
-	//init_VCXO();
+	init_VCXO();
 
 #ifdef USE_VCXO
 	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
@@ -76,7 +86,7 @@ int main(void)
 
 	Si5351a_enableOutputs(1);
 #else
-	//Si5351a_enableOutputs(0);
+	Si5351a_enableOutputs(0);
 #endif
 
 	delay();
@@ -99,20 +109,20 @@ int main(void)
 
 
 	delay();
-	Codec_Init(I2S_AudioFreq_48k);
+	Codec_AudioInterface_Init(I2S_AudioFreq_48k);
 
-	//SWAP 4: norm: 2 1, swapped: 1 2
-	//delay();
 	Init_I2SDMA_Channel2(); //Codec B
-	//delay();
 	Init_I2SDMA_Channel1(); //Codec A
+
+	Codec_Init(I2S_AudioFreq_48k);
 
 	init_adc_param_update_timer();
 
+	NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
+	NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
+
 	while(1){//-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
 		check_errors();
-
-		//update_adc_params();
 		
 		update_ping_ledbut();
 

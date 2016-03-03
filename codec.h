@@ -11,7 +11,7 @@
 #include <stm32f4xx.h>
 
 /* I2C clock speed configuration (in Hz)  */
-#define I2C_SPEED                       10000
+#define I2C_SPEED                       50000
 
 // Uncomment defines below to select standard for audio communication between Codec and I2S peripheral
 //#define I2S_STANDARD_PHILLIPS
@@ -19,6 +19,19 @@
 //#define I2S_STANDARD_LSB
 
 //#define USE_DEFAULT_TIMEOUT_CALLBACK
+
+// For CS4272
+#define CODECA_RESET_RCC RCC_AHB1Periph_GPIOB
+#define CODECA_RESET_pin GPIO_Pin_4
+#define CODECA_RESET_GPIO GPIOB
+#define CODECA_RESET_HIGH CODECA_RESET_GPIO->BSRRL = CODECA_RESET_pin
+#define CODECA_RESET_LOW CODECA_RESET_GPIO->BSRRH = CODECA_RESET_pin
+
+#define CODECB_RESET_RCC RCC_AHB1Periph_GPIOD
+#define CODECB_RESET_pin GPIO_Pin_12
+#define CODECB_RESET_GPIO GPIOD
+#define CODECB_RESET_HIGH CODECB_RESET_GPIO->BSRRL = CODECB_RESET_pin
+#define CODECB_RESET_LOW CODECB_RESET_GPIO->BSRRH = CODECB_RESET_pin
 
 /*-----------------------------------
 Hardware Configuration defines parameters
@@ -199,7 +212,7 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq);
 
 uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave);
 
-uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint16_t RegisterValue, I2C_TypeDef *CODEC);
+uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_TypeDef *CODEC);
 
 void Codec_GPIO_Init(void);
 void init_i2s_clkin(void);

@@ -368,7 +368,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float mainin_atten;
 	int32_t auxin;
 
+#ifdef ENABLE_AUTOMUTE
 	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
+#endif
 
 	uint16_t i;
 
@@ -382,9 +384,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 
 
+	sz=sz/2;
 	//if (channel==0)
 		//DEBUG0_ON;
 
+	/*
 	if (fade_pos[0]<FADE_INCREMENT)
 		DEBUG0_OFF;
 	else
@@ -395,7 +399,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		DEBUG1_OFF;
 	else
 		DEBUG1_ON;
-
+*/
 
 									//Sanity check to made sure the read_addr is inside the loop.
 									//We shouldn't have to do this. The likely reason the read_addr escapes the loop
@@ -444,9 +448,14 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
-		mainin = *src++;
-		auxin = *src++;
 
+		mainin = *src++;
+		*src++;
+
+		auxin = *src++;
+		*src++;
+
+#ifdef ENABLE_AUTOMUTE
 		//0.0001 is 10k samples or about 1/4 second
 		mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
 		if (mainin_lpf[channel]<10)
@@ -455,6 +464,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
 		if (auxin_lpf[channel]<10)
 			auxin=0;
+#endif
 
 		// The Dry signal is just the clean signal, without any attenuation from LEVEL
 		dry = mainin;
@@ -489,8 +499,17 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
 		// Combine stereo: Left<=Mix, Right<=Wet
+//		*dst++ = 0;
 		*dst++ = mix; //left
+		*dst++ = 0;
 		*dst++ = rd; //right
+		*dst++ = 0;
+
+		//*dst++ = mainin;
+		//*dst++ = 0;
+		//*dst++ = auxin;
+		//*dst++ = 0;
+
 		wr_buff[i]=wr;
 
 	}

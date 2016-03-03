@@ -1,9 +1,10 @@
 /*
- * codec.c
+ * codec.c: CS4272
  */
 
 #include "globals.h"
 #include "codec.h"
+#include "i2s.h"
 #include "dig_inouts.h"
 
 #define CODEC_IS_SLAVE 0
@@ -52,163 +53,107 @@
  #error "Error: No audio communication standard selected !"
 #endif /* I2S_STANDARD */
 
-#define W8731_ADDR_0 0x1A
-#define W8731_ADDR_1 0x1B
-#define W8731_NUM_REGS 10
-
-#define WM8731_REG_LLINEIN	0
-#define WM8731_REG_RLINEIN	1
-#define WM8731_REG_LHEADOUT	2
-#define WM8731_REG_RHEADOUT	3
-#define WM8731_REG_ANALOG	4
-#define WM8731_REG_DIGITAL	5
-#define WM8731_REG_POWERDOWN	6
-#define WM8731_REG_INTERFACE	7
-#define WM8731_REG_SAMPLING	8
-#define WM8731_REG_ACTIVE	9
-#define WM8731_REG_RESET	15
 
 
-//Reg 0 and 1:
-#define VOL_p12dB	0b11111 /*+12dB*/
-#define VOL_0dB		0b10111 /*0dB*/
-#define VOL_n1dB	0b10110 /*-1.5dB*/
-#define VOL_n3dB	0b10101 /*-3dB*/
-#define VOL_n6dB	0b10011 /*-6dB*/
-#define VOL_n12dB	15 		/*-12dB*/
-#define VOL_n15dB	13 		/*-15dB*/
-/*1.5dB steps down to..*/
-#define VOL_n34dB	0b00000 /*-34.5dB*/
-#define INMUTE		(1<<7)
-#define INBOTH		(1<<8)
+#define CS4272_ADDR_0 0b0010000
+//#define CS4272_ADDR_0 0x10
+#define CS4272_ADDR_1 0b0010001
+
+/*
+ * The 7 bits Codec address (sent through I2C interface)
+ * The 8th bit (LSB) is Read /Write
+ */
+#define CODEC_ADDRESS           (CS4272_ADDR_0<<1)
+
+#define CS4272_NUM_REGS 6	/* we only initialize the first 6 registers, the 7th is for pre/post-init and the 8th is read-only */
+
+#define CS4272_REG_MODECTRL1	1
+#define CS4272_REG_DACCTRL		2
+#define CS4272_REG_DACMIX		3
+#define CS4272_REG_DACAVOL		4
+#define CS4272_REG_DACBVOL		5
+#define CS4272_REG_ADCCTRL		6
+#define CS4272_REG_MODELCTRL2	7
+#define CS4272_REG_CHIPID		8	/*Read-only*/
+
+//Reg 1 (MODECTRL1):
+#define SINGLE_SPEED		(0b00<<6)		/* 4-50kHz */
+#define DOUBLE_SPEED		(0b10<<6)		/* 50-100kHz */
+#define QUAD_SPEED			(0b11<<6)		/* 100-200kHz */
+#define	RATIO0				(0b00<<4)		/* See table page 28 and 29 of datasheet */
+#define	RATIO1				(0b01<<4)
+#define	RATIO2				(0b10<<4)
+#define	RATIO3				(0b11<<4)
+#define	MASTER				(1<<3)
+#define	SLAVE				(0<<3)
+#define	DIF_LEFTJUST_24b	(0b000)
+#define	DIF_I2S_24b			(0b001)
+#define	DIF_RIGHTJUST_16b	(0b010)
+#define	DIF_RIGHTJUST_24b	(0b011)
+#define	DIF_RIGHTJUST_20b	(0b100)
+#define	DIF_RIGHTJUST_18b	(0b101)
+
+//Reg 2 (DACCTRL)
+#define AUTOMUTE 		(1<<7)
+#define SLOW_FILT_SEL	(1<<6)
+#define FAST_FILT_SEL	(0<<6)
+#define DEEMPH_OFF		(0<<4)
+#define DEEMPH_44		(1<<4)
+#define DEEMPH_48		(2<<4)
+#define DEEMPH_32		(3<<4)
+#define	SOFT_RAMPUP		(1<<3) /*An un-mute will be performed after executing a filter mode change, after a MCLK/LRCK ratio change or error, and after changing the Functional Mode.*/
+#define	SOFT_RAMPDOWN	(1<<2) /*A mute will be performed prior to executing a filter mode change.*/
+#define INVERT_SIGA_POL	(1<<1) /*When set, this bit activates an inversion of the signal polarity for the appropriate channel*/
+#define INVERT_SIGB_POL	(1<<0)
 
 
-//Register 4: Analogue Audio Path Control
-#define MICBOOST 		(1 << 0)	/* Boost Mic level */
-#define MUTEMIC			(1 << 1)	/* Mute Mic to ADC */
-#define INSEL_mic		(1 << 2)	/* Mic Select*/
-#define INSEL_line		(0 << 2)	/* LineIn Select*/
-#define BYPASS			(1 << 3)	/* Bypass Enable */
-#define DACSEL			(1 << 4)	/* Select DAC */
-#define SIDETONE		(1 << 5)	/* Enable Sidetone */
-#define SIDEATT_neg15dB	(0b11 << 6)
-#define SIDEATT_neg12dB	(0b10 << 6)
-#define SIDEATT_neg9dB	(0b01 << 6)
-#define SIDEATT_neg6dB	(0b00 << 6)
+//Reg 6 (ADCCTRL)
+#define DITHER16		(1<<5) /*activates the Dither for 16-Bit Data feature*/
+#define ADC_DIF_I2S		(1<<4) /*I2S, up to 24-bit data*/
+#define ADC_DIF_LJUST	(0<<4) /*Left Justified, up to 24-bit data (default)*/
+#define MUTEA			(1<<3)
+#define MUTEB			(1<<2)
+#define HPFDisableA		(1<<1)
+#define HPFDisableB		(1<<0)
 
 
-//Reg 5: Digital Audio Path
-#define ADCHPFDisable (1<<0)
-#define ADCHPFEnable (0<<0)
-#define DEEMP_48k (3<<1)
-#define DEEMP_44k (2<<1)
-#define DEEMP_32k (1<<1)
-#define DEEMP_Disable (0<<1)
-#define DACMUTE (1<<3)
-#define HPOFFSETSTORE (1<<4)
+//Reg 7 (MODECTRL2)
+#define PDN		(1<<0)		/* Power Down Enable */
+#define CPEN	(1<<1)		/* Control Port Enable */
+#define FREEZE	(1<<2)		/* Freezes effects of register changes */
+#define MUTECAB	(1<<3)		/* Internal AND gate on AMUTEC and BMUTEC */
+#define LOOP	(1<<4)		/* Digital loopback (ADC->DAC) */
 
-//Reg 6: Power Down module when bit is set
-#define LINEINPD (1<<0)	/*Line Input*/
-#define MICPD (1<<1)	/*Mic Input*/
-#define ADCPD (1<<2)	/*ADC*/
-#define DACPD (1<<3) 	/*DAC*/
-#define OUTPD (1<<4) 	/*Outputs*/
-#define OSCPD (1<<5) 	/*Internal Oscillator*/
-#define CLKOUTPD (1<<6)	/*Clock Out*/
-#define POWEROFF (1<<7)	/*Power off*/
-
-//Reg 7: Digital Audio Interface Format
-#define format_MSB_Right (0<<0)
-#define format_MSB_Left	(1<<0)
-#define format_I2S (2<<0)
-#define format_DSP (3<<0)
-#define format_16b (0<<2)
-#define format_20b (1<<2)
-#define format_24b (2<<2)
-#define format_32b (3<<2)
-#define LRPhase (1<<4) /*DACLRC Phase Control*/
-#define LRSWAP (1<<5) /*DAC Left Right Clock Swap*/
-#define Master_Mode (1<<6)
-#define Slave_Mode (0<<6)
-#define BCLKINV (1<<7) /*Bit Clock Invert*/
-
-//Reg 8: Sampling Control
-#define USB_MODE (1<<0)
-#define NO_USB_MODE (0<<0)
-#define BOSR (1<<1) /*Base Oversample Rate, see datasheet*/
-#define SR0 (1<<2) /*Sample Rate Selectors*/
-#define SR1 (1<<3)
-#define SR2 (1<<4)
-#define SR3 (1<<5)
-#define CLKIDIV2 (1<<6) /*Core Clock is MCLK input divided by 2*/
-#define CLKODIV2 (1<<7) /*Clock output is core clock divided by 2*/
-
-//Reg 9: Active Control
-#define I_ACTIVE 1
-#define I_INACTIVE 0
-
-// Oddness:
-// format_I2S does not work with I2S2 on the STM32F427Z (works on the 427V) in Master TX mode (I2S2ext is RX)
-// The RX data is shifted left 2 bits (x4) as it comes in, causing digital wrap-around clipping.
-// Using format_MSB_Left works (I2S periph has to be set up I2S_Standard = I2S_Standard_LSB or I2S_Standard_MSB).
-// Also, format_MSB_Right does not seem to work at all (with the I2S set to LSB or MSB)
+//Reg 8 (CHIPID) (Read-only)
+#define PART_mask	(0b11110000)
+#define REV_mask	(0b00001111)
 
 
-const uint16_t w8731_init_data_slave[] =
+const uint8_t codec_init_data_slave[] =
 {
-	VOL_0dB,			// Reg 00: Left Line In (0dB, mute off)
-	VOL_0dB,			// Reg 01: Right Line In (0dB, mute off)
-	0b0101111,			// Reg 02: Left Headphone out (Mute)
-	0b0101111,			// Reg 03: Right Headphone out (Mute)
 
-	(MUTEMIC 			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
-	| INSEL_line
-	| DACSEL
-	| SIDEATT_neg15dB),
+		SINGLE_SPEED
+		| RATIO0
+		| SLAVE
+		| DIF_LEFTJUST_24b,//MODECTRL1
 
-	(DEEMP_Disable
-	| ADCHPFEnable),	// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
+		FAST_FILT_SEL
+		| DEEMPH_OFF
+		| SOFT_RAMPUP
+		| SOFT_RAMPDOWN,	//DACCTRL
 
-	(MICPD
-	| OSCPD
-	| CLKOUTPD),		// Reg 06: Power Down Control (Osc, Mic Off)
+		0b00001001,			//DACMIX
 
-	(format_16b
-	| format_MSB_Left
-	| Slave_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, slave)
+		0b00000000,			//DACAVOL
+		0b00000000,			//DACBVOL
 
-	(0),				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
-	0x001				// Reg 09: Active Control
-};
+		ADC_DIF_LJUST
+		| HPFDisableA
+		| HPFDisableB //ADCCTRL
 
-const uint16_t w8731_init_data_master[] =
-{
-	VOL_0dB,			// Reg 00: Left Line In (0dB, mute off)
-	VOL_0dB,			// Reg 01: Right Line In (0dB, mute off)
-	0b0101111,			// Reg 02: Left Headphone out (Mute)
-	0b0101111,			// Reg 03: Right Headphone out (Mute)
-
-	(MUTEMIC 			// Reg 04: Analog Audio Path Control (maximum attenuation on sidetone, sidetone disabled, DAC selected, Mute Mic, no bypass)
-	| INSEL_line
-	| DACSEL
-	| SIDEATT_neg6dB),
-
-	(DEEMP_48k
-	| ADCHPFEnable),	// Reg 05: Digital Audio Path Control: HPF, De-emp at 48kHz on DAC, do not soft mute dac
-
-	(MICPD | OSCPD),	// Reg 06: Power Down Control (Osc, Mic Off)
-
-	(format_16b
-	| format_MSB_Left
-	| Master_Mode),		// Reg 07: Digital Audio Interface Format (16-bit, master)
-
-	0x000,				// Reg 08: Sampling Control (Normal, 256x, 48k ADC/DAC)
-	0x001				// Reg 09: Active Control
 };
 
 
-/* The 7 bits Codec address (sent through I2C interface) */
-#define CODEC_ADDRESS           (W8731_ADDR_0<<1)
 
 /* local vars */
 __IO uint32_t  CODECTimeout = CODEC_LONG_TIMEOUT;   
@@ -242,15 +187,16 @@ uint32_t Codec_Init(uint32_t AudioFreq)
 
 	//init_i2s_clkin();
 
-	//SWAP 1: Norm 1 2, Swapped 2 1
+	CODECA_RESET_HIGH;
+	delay_ms(2);
 	err=Codec_Reset(CODEC_I2C1, CODECA_MODE);
-	err=Codec_Reset(CODEC_I2C2, CODECB_MODE);
 
-	Codec_AudioInterface_Init(AudioFreq);
+	CODECB_RESET_HIGH;
+	delay_ms(2);
+	err=Codec_Reset(CODEC_I2C2, CODECB_MODE);
 
 	return err;
 }
-
 
 
 uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
@@ -258,41 +204,16 @@ uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
 	uint8_t i;
 	uint32_t err=0;
 	
-	err=Codec_WriteRegister(0b1111, 0, CODEC); //Reset Device by writing 0 to register 0b1111
+	err=Codec_WriteRegister(CS4272_REG_MODELCTRL2, CPEN | PDN, CODEC); //Control Port Enable and Power Down Enable
 	
-	err+=Codec_WriteRegister(0b1001, 0, CODEC); //inactivate device
 
 	if (master_slave==CODEC_IS_MASTER)
 	{
 			//for(i=0;i<W8731_NUM_REGS;i++)
 			//err+=Codec_WriteRegister(i, w8731_init_data_master[i], CODEC);
-		/*
-			WM8731_REG_INTERFACE, 0x42); // I2S, 16 bit, MCLK master
-			write(WM8731_REG_SAMPLING, 0x20);  // 256*Fs, 44.1 kHz, MCLK/1
-
-			// In order to prevent pops, the DAC should first be soft-muted (DACMU),
-			// the output should then be de-selected from the line and headphone output
-			// (DACSEL), then the DAC powered down (DACPD).
-
-			write(WM8731_REG_DIGITAL, 0x08);   // DAC soft mute
-			write(WM8731_REG_ANALOG, 0x00);    // disable all
-
-			write(WM8731_REG_POWERDOWN, 0x00); // codec powerdown
-
-			write(WM8731_REG_LHEADOUT, 0x80);      // volume off
-			write(WM8731_REG_RHEADOUT, 0x80);
-
-			delay(100); // how long to power up?
-
-			write(WM8731_REG_ACTIVE, 1);
-			delay(5);
-			write(WM8731_REG_DIGITAL, 0x00);   // DAC unmuted
-			write(WM8731_REG_ANALOG, 0x10);    // DAC selected
-*/
-
-
-		err+=Codec_WriteRegister(WM8731_REG_INTERFACE, w8731_init_data_master[WM8731_REG_INTERFACE], CODEC);
-		err+=Codec_WriteRegister(WM8731_REG_SAMPLING, w8731_init_data_master[WM8731_REG_SAMPLING], CODEC);
+/*
+		err+=Codec_WriteRegister(WM8731_REG_INTERFACE, codec_init_data_master[WM8731_REG_INTERFACE], CODEC);
+		err+=Codec_WriteRegister(WM8731_REG_SAMPLING, codec_init_data_master[WM8731_REG_SAMPLING], CODEC);
 
 		err+=Codec_WriteRegister(WM8731_REG_DIGITAL, DACMUTE, CODEC); // DAC soft mute
 		err+=Codec_WriteRegister(WM8731_REG_ANALOG, 0x00, CODEC); // disable all
@@ -309,21 +230,21 @@ uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
 
 		delay();
 
-		err+=Codec_WriteRegister(WM8731_REG_DIGITAL, w8731_init_data_master[WM8731_REG_DIGITAL], CODEC);
-		err+=Codec_WriteRegister(WM8731_REG_ANALOG, w8731_init_data_master[WM8731_REG_ANALOG], CODEC);
+		err+=Codec_WriteRegister(WM8731_REG_DIGITAL, codec_init_data_master[WM8731_REG_DIGITAL], CODEC);
+		err+=Codec_WriteRegister(WM8731_REG_ANALOG, [WM8731_REG_ANALOG], CODEC);
 
 		err+=Codec_WriteRegister(WM8731_REG_LLINEIN, VOL_0dB, CODEC); //unmute line in
 		err+=Codec_WriteRegister(WM8731_REG_RLINEIN, VOL_0dB, CODEC);
-
+*/
 
 	}
 	else
 	{
 
-		for(i=0;i<W8731_NUM_REGS;i++)
-			err+=Codec_WriteRegister(i, w8731_init_data_slave[i], CODEC);
+		for(i=0;i<CS4272_NUM_REGS;i++)
+			err+=Codec_WriteRegister(i+1, codec_init_data_slave[i], CODEC);
 
-		err+=Codec_WriteRegister(0b1001, 1, CODEC); //set active interface bit to activate device
+		err=Codec_WriteRegister(CS4272_REG_MODELCTRL2, CPEN, CODEC); //Power Down disable
 
 	}
 
@@ -332,13 +253,12 @@ uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
 }
 
 
-uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint16_t RegisterValue, I2C_TypeDef *CODEC)
+uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_TypeDef *CODEC)
 {
 	uint32_t result = 0;
 	
-	/* Assemble 2-byte data in WM8731 format */
-	uint8_t Byte1 = ((RegisterAddr<<1)&0xFE) | ((RegisterValue>>8)&0x01);
-	uint8_t Byte2 = RegisterValue&0xFF;
+	uint8_t Byte1 = RegisterAddr;
+	uint8_t Byte2 = RegisterValue;
 	
 	/*!< While the bus is busy */
 	CODECTimeout = CODEC_LONG_TIMEOUT;
@@ -435,8 +355,6 @@ void Codec_CtrlInterface_Init(void)
 	I2C_DeInit(CODEC_I2C1);
 	I2C_Init(CODEC_I2C1, &I2C_InitStructure);
 	I2C_Cmd(CODEC_I2C1, ENABLE);
-
-
 }
 
 /*
@@ -448,6 +366,7 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 
 
 	//CODEC B: Right channel of DLD (I2S2, I2C2)
+
 	/* Enable the CODEC_I2S peripheral clock */
 	RCC_APB1PeriphClockCmd(CODEC_I2S2_CLK, ENABLE);
 
@@ -455,8 +374,8 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	SPI_I2S_DeInit(CODEC_I2S2);
 	I2S_InitStructure.I2S_AudioFreq = AudioFreq;
 	I2S_InitStructure.I2S_Standard = I2S_STANDARD;
-	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_16bextended;//extended;
-	I2S_InitStructure.I2S_CPOL = I2S_CPOL_High;
+	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_24b;
+	I2S_InitStructure.I2S_CPOL = I2S_CPOL_Low;
 
 
 	if (CODECB_MODE==CODEC_IS_MASTER)
@@ -490,7 +409,7 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	SPI_I2S_DeInit(CODEC_I2S3);
 	I2S_InitStructure.I2S_AudioFreq = AudioFreq;
 	I2S_InitStructure.I2S_Standard = I2S_STANDARD;
-	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_16bextended;//extended;
+	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_24b;
 	I2S_InitStructure.I2S_CPOL = I2S_CPOL_High;
 
 	if (CODECA_MODE==CODEC_IS_MASTER)
@@ -524,6 +443,20 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 void Codec_GPIO_Init(void)
 {
 	GPIO_InitTypeDef gpio;
+
+
+	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC | CODECB_RESET_RCC, ENABLE);
+
+	gpio.GPIO_Mode = GPIO_Mode_OUT;
+	gpio.GPIO_Speed = GPIO_Speed_25MHz;
+	gpio.GPIO_OType = GPIO_OType_PP;
+	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
+	CODECA_RESET_LOW;
+
+	gpio.GPIO_Pin = CODECB_RESET_pin; GPIO_Init(CODECB_RESET_GPIO, &gpio);
+	CODECB_RESET_LOW;
 
 	/* Enable I2S and I2C GPIO clocks */
 	RCC_AHB1PeriphClockCmd(CODEC_I2C2_GPIO_CLOCK | CODEC_I2S2_GPIO_CLOCK, ENABLE);
@@ -573,7 +506,6 @@ void Codec_GPIO_Init(void)
 	GPIO_PinAFConfig(CODEC_I2S3_GPIO_SDO, CODEC_I2S3_SDO_PINSRC, CODEC_I2S3_GPIO_AF);
 	GPIO_PinAFConfig(CODEC_I2S3_GPIO_SDI, CODEC_I2S3_SDI_PINSRC, CODEC_I2S3ext_GPIO_AF);
 
-	//SWAP 2: norm A/3 2/B, swapped: 2/B A/3
 	if (CODECA_MCLK_SRC==MCLK_SRC_STM){
 
 		gpio.GPIO_Mode = GPIO_Mode_AF;
@@ -610,6 +542,7 @@ void Codec_GPIO_Init(void)
 		gpio.GPIO_Pin = CODEC_I2S2_MCK_PIN; GPIO_Init(CODEC_I2S2_MCK_GPIO, &gpio);
 
 	}
+
 
 }
 
