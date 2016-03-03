@@ -135,7 +135,7 @@ const uint8_t codec_init_data_slave[] =
 		SINGLE_SPEED
 		| RATIO0
 		| SLAVE
-		| DIF_I2S_24b,//MODECTRL1
+		| DIF_LEFTJUST_24b,//MODECTRL1
 
 		FAST_FILT_SEL
 		| DEEMPH_OFF
@@ -147,7 +147,7 @@ const uint8_t codec_init_data_slave[] =
 		0b00000000,			//DACAVOL
 		0b00000000,			//DACBVOL
 
-		ADC_DIF_I2S
+		ADC_DIF_LJUST
 		| HPFDisableA
 		| HPFDisableB //ADCCTRL
 
@@ -187,11 +187,13 @@ uint32_t Codec_Init(uint32_t AudioFreq)
 
 	//init_i2s_clkin();
 
-	CODEC_RESET_HIGH;
+	CODECA_RESET_HIGH;
 	delay_ms(2);
-
 	err=Codec_Reset(CODEC_I2C1, CODECA_MODE);
-//	err=Codec_Reset(CODEC_I2C2, CODECB_MODE);
+
+	CODECB_RESET_HIGH;
+	delay_ms(2);
+	err=Codec_Reset(CODEC_I2C2, CODECB_MODE);
 
 	return err;
 }
@@ -443,13 +445,18 @@ void Codec_GPIO_Init(void)
 	GPIO_InitTypeDef gpio;
 
 
-	RCC_AHB1PeriphClockCmd(CODEC_RESET_RCC, ENABLE);
+	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC | CODECB_RESET_RCC, ENABLE);
+
 	gpio.GPIO_Mode = GPIO_Mode_OUT;
 	gpio.GPIO_Speed = GPIO_Speed_25MHz;
 	gpio.GPIO_OType = GPIO_OType_PP;
 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	gpio.GPIO_Pin = CODEC_RESET_pin; GPIO_Init(CODEC_RESET_GPIO, &gpio);
-	CODEC_RESET_LOW;
+
+	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
+	CODECA_RESET_LOW;
+
+	gpio.GPIO_Pin = CODECB_RESET_pin; GPIO_Init(CODECB_RESET_GPIO, &gpio);
+	CODECB_RESET_LOW;
 
 	/* Enable I2S and I2C GPIO clocks */
 	RCC_AHB1PeriphClockCmd(CODEC_I2C2_GPIO_CLOCK | CODEC_I2S2_GPIO_CLOCK, ENABLE);

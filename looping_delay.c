@@ -368,7 +368,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float mainin_atten;
 	int32_t auxin;
 
+#ifdef ENABLE_AUTOMUTE
 	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
+#endif
 
 	uint16_t i;
 
@@ -386,6 +388,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//if (channel==0)
 		//DEBUG0_ON;
 
+	/*
 	if (fade_pos[0]<FADE_INCREMENT)
 		DEBUG0_OFF;
 	else
@@ -396,7 +399,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		DEBUG1_OFF;
 	else
 		DEBUG1_ON;
-
+*/
 
 									//Sanity check to made sure the read_addr is inside the loop.
 									//We shouldn't have to do this. The likely reason the read_addr escapes the loop
@@ -443,14 +446,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	for (i=0;i<(sz/2);i++){
 
-		//*dst++ = *src++;
-		//*dst++ = *src++;
-		//*dst++ = *src++;
-		//*dst++ = *src++;
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
+
 		mainin = *src++;
 		*src++;
+
 		auxin = *src++;
 		*src++;
 
@@ -498,9 +499,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
 		// Combine stereo: Left<=Mix, Right<=Wet
+//		*dst++ = 0;
 		*dst++ = mix; //left
 		*dst++ = 0;
-
 		*dst++ = rd; //right
 		*dst++ = 0;
 

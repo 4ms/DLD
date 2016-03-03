@@ -52,19 +52,19 @@ int main(void)
 	GPIO_InitTypeDef gpio;
 
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
-/*
-	RCC_AHB1PeriphClockCmd(CODEC_RESET_RCC, ENABLE);
+
+	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC, ENABLE);
 	gpio.GPIO_Mode = GPIO_Mode_OUT;
 	gpio.GPIO_Speed = GPIO_Speed_25MHz;
 	gpio.GPIO_OType = GPIO_OType_PP;
 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	gpio.GPIO_Pin = CODEC_RESET_pin; GPIO_Init(CODEC_RESET_GPIO, &gpio);
-	CODEC_RESET_LOW;
-*/
+	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
+	CODECA_RESET_LOW;
+
     init_dig_inouts();
 
 	DeInit_I2SDMA_Channel1();
-//	DeInit_I2SDMA_Channel2();
+	DeInit_I2SDMA_Channel2();
 
 	//375MHz PLL
 	//XO divider range 15+1/4 to 800
@@ -72,7 +72,7 @@ int main(void)
 	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
 	//SR = 48kHz to 915Hz
 
-	//init_VCXO();
+	init_VCXO();
 
 #ifdef USE_VCXO
 	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
@@ -86,7 +86,7 @@ int main(void)
 
 	Si5351a_enableOutputs(1);
 #else
-	//Si5351a_enableOutputs(0);
+	Si5351a_enableOutputs(0);
 #endif
 
 	delay();
@@ -111,14 +111,14 @@ int main(void)
 	delay();
 	Codec_AudioInterface_Init(I2S_AudioFreq_48k);
 
-//	Init_I2SDMA_Channel2(); //Codec B
+	Init_I2SDMA_Channel2(); //Codec B
 	Init_I2SDMA_Channel1(); //Codec A
 
 	Codec_Init(I2S_AudioFreq_48k);
 
 	init_adc_param_update_timer();
 
-//	NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
+	NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
 	NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
 
 	while(1){//-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us

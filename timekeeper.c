@@ -176,7 +176,7 @@ void TIM1_BRK_TIM9_IRQHandler(void)
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
-		//update_adc_params();
+		update_adc_params();
 	}
 }
 
