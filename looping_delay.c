@@ -14,12 +14,10 @@
 extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
-extern uint8_t g_error;
+extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
 
 volatile uint32_t ping_time;
 volatile uint32_t divmult_time[NUM_CHAN];
-
-extern uint8_t flag_timepot_changed_revdown[2];
 
 uint32_t write_addr[NUM_CHAN];
 uint32_t read_addr[NUM_CHAN];
@@ -113,25 +111,7 @@ inline uint32_t calculate_addr_offset(uint8_t channel, uint32_t base_addr, uint3
 //
 inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	uint32_t t_read_addr;
-/*
-	if (mode[channel][REV] == 0){
 
-		t_read_addr=write_addr[channel] - ((int32_t)new_divmult_time*2);
-
-		while (t_read_addr < LOOP_RAM_BASE[channel])
-			t_read_addr = t_read_addr + LOOP_SIZE;
-
-	} else {
-
-		t_read_addr=write_addr[channel] + ((int32_t)new_divmult_time*2);
-
-		while (t_read_addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
-			t_read_addr = t_read_addr - LOOP_SIZE;
-
-	}
-
-	t_read_addr = t_read_addr & 0xFFFFFFFE; //addresses must be even!
-*/
 	t_read_addr = calculate_addr_offset(channel, write_addr[channel], new_divmult_time*2, 1-mode[channel][REV]);
 	return (t_read_addr);
 }
@@ -163,7 +143,6 @@ void swap_read_write(uint8_t channel){
 }
 
 
-
 inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 {
 
@@ -192,13 +171,13 @@ uint8_t in_between(uint32_t mid, uint32_t beg, uint32_t end, uint8_t reverse)
 {
 	uint32_t t;
 
-	if (beg==end) //zero length, trivial case?
+	if (beg==end) //zero length, trivial case
 	{
 		if (mid!=beg) return(0);
 		else return(1);
 	}
 
-	if (reverse) {
+	if (reverse) { //swap beg and end if we're reversed
 		t=end;
 		end=beg;
 		beg=t;
@@ -262,7 +241,7 @@ inline void set_divmult_time(uint8_t channel){
 			else
 				loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
 			 */
-			if (flag_timepot_changed_revdown[channel])
+			if (flag_pot_changed_revdown[TIME*2+channel])
 				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
 			else
 				loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
@@ -308,6 +287,43 @@ inline void set_divmult_time(uint8_t channel){
 
 	}
 }
+
+//
+// Move loop_start and loop_end the same amount
+// scroll_amount specifies the amount to move it, as expressed as a fraction of the loop legnth
+// scroll_subtract flag means to subtract from loop_start and loop_end, otherwise add
+			// Thus, if loop_start is 500 and loop_end is 750, and scroll_amount is 0.4
+			// then add 0.4 * (750 - 500) = 100 to loop_start and loop_end
+//
+void scroll_loop(uint8_t channel, float scroll_amount, uint8_t scroll_subtract)
+{
+	uint32_t loop_length;
+	uint32_t loop_shift;
+
+	// Get loop length
+	if (!mode[channel][REV]){
+		if (loop_end[channel] > loop_start[channel])
+			loop_length = loop_end[channel] - loop_start[channel];
+		else
+			loop_length = loop_end[channel] + LOOP_SIZE - loop_start[channel];
+	}
+	else
+	{
+		if (loop_start[channel] > loop_end[channel])
+			loop_length = loop_start[channel] - loop_end[channel];
+		else
+			loop_length = loop_start[channel] + LOOP_SIZE - loop_end[channel];
+	}
+
+	//Calculate amount to shift
+	loop_shift = (uint32_t)(scroll_amount * (float)loop_length);
+
+	//Add (or subtract) to the loop points
+	loop_start[channel] = calculate_addr_offset(channel, loop_start[channel], loop_shift, scroll_subtract);
+	loop_end[channel] = calculate_addr_offset(channel, loop_end[channel], loop_shift, scroll_subtract);
+}
+
+
 
 inline void process_read_addr_fade(uint8_t channel){
 

@@ -3,6 +3,7 @@
  */
 
 #include "globals.h"
+#include "adc.h"
 #include "dig_inouts.h"
 #include "params.h"
 #include "looping_delay.h"
@@ -19,14 +20,13 @@ extern volatile uint32_t ping_time;
 
 uint8_t flag_ping_was_changed;
 
-extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 uint8_t flag_inf_change[2]={0,0};
 uint8_t flag_rev_change[2]={0,0};
 
-uint8_t flag_timepot_changed_revdown[2]={0,0};
-uint8_t flag_timepot_changed_infdown[2]={0,0};
+uint8_t flag_pot_changed_revdown[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+uint8_t flag_pot_changed_infdown[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
 
 uint8_t inf_jack_high[2]={0,0};
 
@@ -360,8 +360,20 @@ void TIM4_IRQHandler(void)
 	State[1]=(State[1]<<1) | t;
 	if (State[1]==0xf000)
 	{
-		if (flag_timepot_changed_infdown[0])
-			flag_timepot_changed_infdown[0]=0;
+		// If we wiggled any pots while the inf button was held down, clear the flag
+		if (flag_pot_changed_infdown[TIME*2])
+			flag_pot_changed_infdown[TIME*2]=0;
+
+		else if (flag_pot_changed_infdown[REGEN*2])
+			flag_pot_changed_infdown[REGEN*2]=0;
+
+		else if (flag_pot_changed_infdown[LEVEL*2])
+			flag_pot_changed_infdown[LEVEL*2]=0;
+
+		else if (flag_pot_changed_infdown[MIXPOT*2])
+			flag_pot_changed_infdown[MIXPOT*2]=0;
+
+		// Only flag a toggle of INF mode if we did not wiggle any of the pots
 		else
 			flag_inf_change[0]=1;
 	}
@@ -370,8 +382,18 @@ void TIM4_IRQHandler(void)
 	State[2]=(State[2]<<1) | t;
 	if (State[2]==0xf000)
 	{
-		if (flag_timepot_changed_infdown[1])
-			flag_timepot_changed_infdown[1]=0;
+		if (flag_pot_changed_infdown[TIME*2+1])
+			flag_pot_changed_infdown[TIME*2+1]=0;
+
+		else if (flag_pot_changed_infdown[REGEN*2+1])
+			flag_pot_changed_infdown[REGEN*2+1]=0;
+
+		else if (flag_pot_changed_infdown[LEVEL*2+1])
+			flag_pot_changed_infdown[LEVEL*2+1]=0;
+
+		else if (flag_pot_changed_infdown[MIXPOT*2+1])
+			flag_pot_changed_infdown[MIXPOT*2+1]=0;
+
 		else
 			flag_inf_change[1]=1;
 	}
@@ -396,8 +418,18 @@ void TIM4_IRQHandler(void)
 	State[5]=(State[5]<<1) | t;
 	if (State[5]==0xf000)
 	{
-		if (flag_timepot_changed_revdown[0])
-			flag_timepot_changed_revdown[0]=0;
+		if (flag_pot_changed_revdown[TIME*2])
+			flag_pot_changed_revdown[TIME*2]=0;
+
+		else if (flag_pot_changed_revdown[REGEN*2])
+			flag_pot_changed_revdown[REGEN*2]=0;
+
+		else if (flag_pot_changed_revdown[LEVEL*2])
+			flag_pot_changed_revdown[LEVEL*2]=0;
+
+		else if (flag_pot_changed_revdown[MIXPOT*2])
+			flag_pot_changed_revdown[MIXPOT*2]=0;
+
 		else
 			flag_rev_change[0]=1;
 	}
@@ -406,8 +438,18 @@ void TIM4_IRQHandler(void)
 	State[6]=(State[6]<<1) | t;
 	if (State[6]==0xf000)
 	{
-		if (flag_timepot_changed_revdown[1])
-			flag_timepot_changed_revdown[1]=0;
+		if (flag_pot_changed_revdown[TIME*2+1])
+			flag_pot_changed_revdown[TIME*2+1]=0;
+
+		else if (flag_pot_changed_revdown[REGEN*2+1])
+			flag_pot_changed_revdown[REGEN*2+1]=0;
+
+		else if (flag_pot_changed_revdown[LEVEL*2+1])
+			flag_pot_changed_revdown[LEVEL*2+1]=0;
+
+		else if (flag_pot_changed_revdown[MIXPOT*2+1])
+			flag_pot_changed_revdown[MIXPOT*2+1]=0;
+
 		else
 			flag_rev_change[1]=1;
 	}
@@ -424,7 +466,6 @@ void TIM4_IRQHandler(void)
 		flag_rev_change[1]=1;
 	}
 
-
 }
 
 
@@ -432,10 +473,10 @@ void TIM4_IRQHandler(void)
 
 void update_ping_ledbut(void)
 {
-	if (ping_ledbut_tmr>=ping_time){
+	if (ping_ledbut_tmr>=ping_time)
+	{
 		LED_PINGBUT_ON;
 		reset_ping_ledbut_tmr();
-
 	}
 	else if (ping_ledbut_tmr >= (ping_time>>1))
 	{
