@@ -12,4 +12,7 @@
 uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr);
 uint32_t sdram_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples);
 
+uint32_t test_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr);
+uint32_t test_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples);
+
 #endif /* AUDIO_MEMORY_H_ */

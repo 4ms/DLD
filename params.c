@@ -38,11 +38,12 @@ extern uint8_t flag_pot_changed_infdown[NUM_POT_ADCS];
 
 float param[NUM_CHAN][NUM_PARAMS];
 uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
+uint8_t global_mode[NUM_GLOBAL_MODES];
 
 const int32_t MIN_POT_ADC_CHANGE[NUM_POT_ADCS] = {60, 60, 20, 20, 20, 20, 20, 20};
 const int32_t MIN_CV_ADC_CHANGE[NUM_CV_ADCS] = {60, 60, 20, 20, 20, 20};
 
-int32_t CV_CALIBRATION_OFFSET[NUM_CV_ADCS];
+extern int16_t CV_CALIBRATION_OFFSET[NUM_CV_ADCS];
 
 
 float POT_LPF_COEF[NUM_POT_ADCS];
@@ -61,18 +62,6 @@ void init_params(void)
 		param[chan][MIX_WET] = 0.7;
 	}
 
-	//ToDo: Read TIME_CV_ZERO from FLASH parameters
-	//Time
-	CV_CALIBRATION_OFFSET[0]=-10;
-	CV_CALIBRATION_OFFSET[1]=0;
-
-	//5=
-	CV_CALIBRATION_OFFSET[2]=-5;
-	CV_CALIBRATION_OFFSET[3]=-16;
-
-	//
-	CV_CALIBRATION_OFFSET[4]=-5;
-	CV_CALIBRATION_OFFSET[5]=-5;
 }
 
 void init_modes(void)
@@ -82,6 +71,7 @@ void init_modes(void)
 	for (chan=0;chan<NUM_CHAN;chan++){
 		mode[chan][INF] = 0;
 		mode[chan][REV] = 0;
+	//	mode[chan][TIMEMODE_POT] = MOD_SAMPLE_RATE_Q;
 		mode[chan][TIMEMODE_POT] = MOD_READWRITE_TIME;
 		mode[chan][TIMEMODE_JACK] = MOD_READWRITE_TIME;
 		mode[chan][LOOP_CLOCK_JACK] = TRIG_MODE;
@@ -89,6 +79,7 @@ void init_modes(void)
 
 	mode[0][MAIN_CLOCK_JACK] = TRIG_MODE;
 
+	global_mode[AUTO_MUTE]=1;
 }
 
 
@@ -126,43 +117,29 @@ void init_LowPassCoefs(void)
 
 }
 
-float time_mult[2]={1.0,1.0};
-//uint32_t sample_rate_div[2]={30,30};
-uint32_t sample_rate_div[2]={36,40};
-uint32_t sample_rate_num[2]={265,265};
-uint32_t sample_rate_denom[2]={512,512};
-uint32_t old_sample_rate_div[2]={0,0};
-uint32_t old_sample_rate_num[2]={0,0};
-uint32_t old_sample_rate_denom[2]={0,0};
+//Low Pass filtered adc values:
+float smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+float smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
 
-void update_adc_params(void)
+//Integer-ized low pass filtered adc values:
+int16_t i_smoothed_potadc[NUM_POT_ADCS]={0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF};
+int16_t i_smoothed_cvadc[NUM_CV_ADCS]={0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF};
+
+int16_t old_i_smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
+int16_t old_i_smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+
+float smoothed_rawcvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
+int16_t i_smoothed_rawcvadc[NUM_CV_ADCS]={0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF};
+
+//Change in pot since last process_adc
+int32_t pot_delta[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+uint8_t flag_pot_changed[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+
+void process_adc(void)
 {
-	int16_t i_smoothed_potadc[NUM_POT_ADCS]={0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF};
-	int16_t i_smoothed_cvadc[NUM_CV_ADCS]={0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF};
-
-	static float smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
-	static float smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
-
-	static int16_t old_i_smoothed_cvadc[NUM_CV_ADCS]={0,0,0,0,0,0};
-	static int16_t old_i_smoothed_potadc[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
-
-	int32_t pot_delta[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
-
-	uint8_t flag_pot_changed[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
-
-	uint8_t flag_timecv_changed[2]={0,0};
-	uint8_t flag_multswitch_changed[2]={0,0};
-	uint8_t old_switch_val[2]={0,0};
-
-	uint8_t i, channel;
+	uint8_t i;
 	int32_t t;
-	//float t_f;
-	int32_t t_combined;
 
-	uint8_t switch1_val;
-
-	float abs_amt;
-	uint8_t subtract;
 	//
 	// Run a LPF on the pots and CV jacks
 	//
@@ -175,6 +152,15 @@ void update_adc_params(void)
 	{
 		smoothed_cvadc[i] = LowPassSmoothingFilter(smoothed_cvadc[i], (float)(cvadc_buffer[i]+CV_CALIBRATION_OFFSET[i]), CV_LPF_COEF[i]);
 		i_smoothed_cvadc[i] = (int16_t)smoothed_cvadc[i];
+	}
+
+	if (CALIBRATE_JUMPER)
+	{
+		for (i=0;i<NUM_CV_ADCS;i++)
+		{
+			smoothed_rawcvadc[i] = LowPassSmoothingFilter(smoothed_rawcvadc[i], (float)(cvadc_buffer[i]), CV_LPF_COEF[i]);
+			i_smoothed_rawcvadc[i] = (int16_t)smoothed_rawcvadc[i];
+		}
 	}
 
 	//
@@ -199,6 +185,35 @@ void update_adc_params(void)
 		}
 	}
 
+
+
+
+}
+
+
+float time_mult[2]={1.0,1.0};
+//uint32_t sample_rate_div[2]={30,30};
+uint32_t sample_rate_div[2]={36,36};
+uint32_t sample_rate_num[2]={265,265};
+uint32_t sample_rate_denom[2]={512,512};
+uint32_t old_sample_rate_div[2]={0,0};
+uint32_t old_sample_rate_num[2]={0,0};
+uint32_t old_sample_rate_denom[2]={0,0};
+
+void update_params(void)
+{
+
+	uint8_t flag_timecv_changed[2]={0,0};
+	uint8_t flag_multswitch_changed[2]={0,0};
+	uint8_t old_switch_val[2]={0,0};
+
+	uint8_t channel;
+	int32_t t;
+
+	int32_t t_combined;
+
+	float abs_amt;
+	uint8_t subtract;
 
 
 	//
@@ -236,26 +251,42 @@ void update_adc_params(void)
 		// --> Otherwise update time_mult only if the pot or cv jack changed
 		//
 
-		t_combined = i_smoothed_potadc[TIME*2+channel] + (i_smoothed_cvadc[TIME*2+channel]-2048);
-		if (t_combined>4095) t_combined = 4095;
-		else if (t_combined<0) t_combined = 0;
+		if (mode[channel][TIMEMODE_POT]==MOD_READWRITE_TIME)
+		{
 
-		if (flag_pot_changed_infdown[TIME*2+channel])
-		{
-			time_mult[channel] = get_clk_div_exact(t_combined);
-			time_mult[channel] = adjust_time_by_switch(time_mult[channel], channel);
-		}
-		else
-		{
-			if (flag_timecv_changed[channel] || flag_pot_changed[TIME*2+channel] || flag_multswitch_changed[channel])
+			t_combined = i_smoothed_potadc[TIME*2+channel] + (i_smoothed_cvadc[TIME*2+channel]-2048);
+			if (t_combined>4095) t_combined = 4095;
+			else if (t_combined<0) t_combined = 0;
+
+			if (flag_pot_changed_infdown[TIME*2+channel])
 			{
-				time_mult[channel] = get_clk_div_nominal(t_combined);
+				time_mult[channel] = get_clk_div_exact(t_combined);
 				time_mult[channel] = adjust_time_by_switch(time_mult[channel], channel);
 			}
+			else
+			{
+				if (flag_timecv_changed[channel] || flag_pot_changed[TIME*2+channel] || flag_multswitch_changed[channel])
+				{
+					time_mult[channel] = get_clk_div_nominal(t_combined);
+					time_mult[channel] = adjust_time_by_switch(time_mult[channel], channel);
+				}
+			}
+
 		}
 
-
 #ifdef USE_VCXO
+
+		if (mode[channel][TIMEMODE_POT]==MOD_SAMPLE_RATE_Q)
+		{
+			sample_rate_div[channel] = 11 * (get_clk_div_nominal(4095-i_smoothed_potadc[TIME*2+channel]) + get_clk_div_nominal(4095-i_smoothed_cvadc[TIME*2+channel]));
+
+			//if (sample_rate_div[channel]>182) sample_rate_div[channel]=182; //limit at 8kHz SR = 2.048MHz MCLK
+			if (sample_rate_div[channel]>360) sample_rate_div[channel]=360; //limit at 8kHz SR = 2.048MHz MCLK
+
+			sample_rate_num[channel] = 265;
+			sample_rate_denom[channel] = 512;
+		}
+
 		if ( ((old_sample_rate_div[channel]>sample_rate_div[channel]) && ((old_sample_rate_div[channel]-sample_rate_div[channel])>4))
 				|| ((old_sample_rate_div[channel]<sample_rate_div[channel]) && ((sample_rate_div[channel]-old_sample_rate_div[channel])>4)))
 		{

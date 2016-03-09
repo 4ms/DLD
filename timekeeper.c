@@ -9,6 +9,7 @@
 #include "timekeeper.h"
 #include "dig_inouts.h"
 #include "params.h"
+#include "calibration.h"
 
 
 volatile uint32_t ping_tmr;
@@ -176,7 +177,13 @@ void TIM1_BRK_TIM9_IRQHandler(void)
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
-		update_adc_params();
+
+		process_adc();
+
+		if (CALIBRATE_JUMPER)
+			update_calibration();
+		else
+			update_params();
 	}
 }
 

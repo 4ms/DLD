@@ -3,30 +3,50 @@
 #include "sdram.h"
 #include "dig_inouts.h"
 
-uint8_t RAM_test(void){
+uint32_t RAM_test(void){
 
 	uint32_t addr;
 	uint32_t i;
+	uint16_t rd0;
+	uint16_t rd1;
+	uint32_t fail=0;
+	uint32_t fail_3_2=0;
+	uint32_t fail_0_1=0;
 
 	addr=SDRAM_BASE;
-	for (i=0;i<5000;i++){
+	for (i=0;i<(SDRAM_SIZE/2);i++){
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		*((int16_t *)addr) = (int16_t)(i);
+		*((uint16_t *)addr) = (uint16_t)(i & 0x0000FFFF);
 
 		addr+=2;
 	}
 
 	addr=SDRAM_BASE;
-	for (i=0;i<5000;i++){
+	for (i=0;i<(SDRAM_SIZE/2);i++){
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		//t = *((int16_t *)addr);
+		rd1 = *((uint16_t *)addr);
+
+		rd0=(uint16_t)(i & 0x0000FFFF);
+		if (rd1 != rd0)
+		{
+			DEBUG0_ON;
+			fail++;
+
+			if (rd1==2 && rd0==3)
+				fail_3_2++;
+
+			if (rd1==1 && rd0==0)
+				fail_0_1++;
+		}
+
+		//rd0 = rd1;
 
 		addr+=2;
 	}
 
-	return(0);
+	return(fail);
 }
 
 
@@ -117,6 +137,8 @@ void SDRAM_Init(void)
 	// Timing characteristics, expressed in number of clock cycles (@180MHz, SDCLK is HCLK/2 means a value of 1 = 11.1ns, 2 = 22.2ns etc..)
 	FMC_Bank5_6->SDTR[0] = TRC(6)  | TRP(2);
 	FMC_Bank5_6->SDTR[1] = TMRD(2) | TXSR(6) | TRAS(4) | TWR(2) | TRCD(2);
+//	FMC_Bank5_6->SDTR[0] = TRC(7)  | TRP(4);
+//	FMC_Bank5_6->SDTR[1] = TMRD(3) | TXSR(7) | TRAS(6) | TWR(3) | TRCD(4);
 
 	// Initialization step 3
 	while(FMC_Bank5_6->SDSR & FMC_SDSR_BUSY);

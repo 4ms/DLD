@@ -13,8 +13,11 @@
 
 extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
+extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
 extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
+
+extern int16_t ADC_CALIBRATION_DCOFFSET[4];
 
 volatile uint32_t ping_time;
 volatile uint32_t divmult_time[NUM_CHAN];
@@ -63,7 +66,8 @@ void Audio_Init(void)
 			*((uint32_t *)i) = 0x00000000;
 
 	if (!ping_time)
-		ping_time=0x00004000;
+		ping_time=0x00000400;
+	//ping_time=0x00004000;
 
 
 	for(i=0;i<NUM_CHAN;i++){
@@ -384,9 +388,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float mainin_atten;
 	int32_t auxin;
 
-#ifdef ENABLE_AUTOMUTE
 	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
-#endif
 
 	uint16_t i;
 
@@ -397,12 +399,21 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	uint32_t passed_end_of_loop;
 	uint32_t start_fade_addr;
+	volatile int32_t dummy;
 
+	float t_f;
+	int32_t diff;
+	float oldmainin_atten=0.0;
+	float oldauxin=0.0;
+	float f_auxin;
+	float oldregen=0.0;
+
+	//static uint8_t ramp_ctr=0;
 
 
 	sz=sz/2;
-	//if (channel==0)
-		//DEBUG0_ON;
+//	if (channel==0)
+//		DEBUG0_ON;
 
 	/*
 	if (fade_pos[0]<FADE_INCREMENT)
@@ -462,31 +473,40 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	for (i=0;i<(sz/2);i++){
 
-
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 
 		mainin = *src++;
-		*src++;
+		dummy=*src++;
 
 		auxin = *src++;
-		*src++;
+		dummy=*src++;
 
-#ifdef ENABLE_AUTOMUTE
-		//0.0001 is 10k samples or about 1/4 second
-		mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
-		if (mainin_lpf[channel]<10)
-			mainin=0;
 
-		auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
-		if (auxin_lpf[channel]<10)
-			auxin=0;
-#endif
+		DEBUG0_OFF;
+	//	if (mainin > 500)
+	//	{
+	//		DEBUG0_ON;
+	//	}
+
+/*
+		if (global_mode[AUTO_MUTE]){
+				//0.0001 is 10k samples or about 1/4 second
+			mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
+			if (mainin_lpf[channel]<100)
+				mainin=0;
+
+			auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
+			if (auxin_lpf[channel]<100)
+				auxin=0;
+		}
+*/
 
 		// The Dry signal is just the clean signal, without any attenuation from LEVEL
 		dry = mainin;
 
 		// Read from the loop and save this value so we can output it to the Delay Out jack
 		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
+		//rd=rd_buff[i];
 
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
@@ -495,9 +515,42 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		if (mode[channel][INF] == 0){
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];
+			//regen = rd*0.5;
 
 			// Attenuate the clean signal by the LEVEL parameter
+			//t_f = param[channel][LEVEL];
 			mainin_atten = ((float)mainin) * param[channel][LEVEL];
+
+			if (mainin_atten > oldmainin_atten)
+				diff = mainin_atten - oldmainin_atten;
+			else
+				diff = oldmainin_atten - mainin_atten;
+			if (diff > 200)
+			{
+				DEBUG0_ON;
+			}
+			oldmainin_atten = mainin_atten;
+
+			f_auxin =(float)auxin;
+			if (f_auxin > oldauxin)
+				diff = f_auxin - oldauxin;
+			else
+				diff = oldauxin - f_auxin;
+			if (diff > 200)
+			{
+				DEBUG0_ON;
+			}
+			oldauxin = f_auxin;
+
+			if (regen > oldregen)
+				diff = regen - oldregen;
+			else
+				diff = oldregen - regen;
+			if (diff > 200)
+			{
+				DEBUG0_ON;
+			}
+			oldregen = regen;
 
 			// Add the loop contents to the input signal, as well as the auxin signal
 			wr = (int32_t)(regen + mainin_atten + (float)auxin);
@@ -509,22 +562,32 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		}
 
 
-
 		// Wet/dry mix, as determined by the MIX parameter
 		mix = ( (float)dry * param[channel][MIX_DRY] + (float)rd * param[channel][MIX_WET] );
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
-		// Combine stereo: Left<=Mix, Right<=Wet
-//		*dst++ = 0;
-		*dst++ = mix; //left
-		*dst++ = 0;
-		*dst++ = rd; //right
-		*dst++ = 0;
+		//DC offset compensation:
 
-		//*dst++ = mainin;
-		//*dst++ = 0;
-		//*dst++ = auxin;
-		//*dst++ = 0;
+
+		// Combine stereo: Left<=Mix, Right<=Wet
+
+		if (CALIBRATE_JUMPER){
+			*dst++ = ADC_CALIBRATION_DCOFFSET[0+channel];
+			*dst++ = 0;
+
+			*dst++ = ADC_CALIBRATION_DCOFFSET[2+channel];
+			*dst++ = 0;
+		}
+		else
+		{
+			//Main out
+			*dst++ = mix + ADC_CALIBRATION_DCOFFSET[0+channel];
+			*dst++ = 0;
+
+			//Send out
+			*dst++ = rd + ADC_CALIBRATION_DCOFFSET[2+channel];
+			*dst++ = 0;
+		}
 
 		wr_buff[i]=wr;
 
@@ -537,6 +600,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
 
-	//if (channel==0)
-		//DEBUG0_OFF;
+//	if (channel==0)
+//		DEBUG0_OFF;
 }

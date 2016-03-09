@@ -3,15 +3,12 @@
  *
  * Software:
  *
- *  Weird bug that disappears and re-appears: right channel codec runs at +17dB (or so). Could we be running I2C too fast?
+ * Auto calibrate CV jacks on first boot, store in EEPROM
+ * --add key combo to re-do calibration
+ *
+ * Change update_adc_params to update_adc and update_params
  *
  * Hardware:
- *
- *  - Isolated analog and digital power/ground, separate regulators, electrolytic caps
- *
- *  - Add switch/es for resampling?
- *
- *  - Pot and CV adc values jump up to 20mV, increase capacitance? R/C filter the pots? Or handle it in software...
  *
  */
 
@@ -27,6 +24,9 @@
 #include "timekeeper.h"
 #include "sdram.h"
 #include "si5153a.h"
+#include "calibration.h"
+#include "flash_user.h"
+
 
 uint32_t g_error=0;
 
@@ -38,30 +38,15 @@ void check_errors(void){
 
 }
 
-/*
-
-inline uint32_t diff_circular(uint32_t leader, uint32_t follower){
-	if (leader==follower) return(0);
-	else if (leader > follower) return(leader-follower);
-	else return ((leader+BUFFER_SIZE)-(follower+1));
-}
-*/
 
 int main(void)
 {
-	GPIO_InitTypeDef gpio;
-
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
-	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC, ENABLE);
-	gpio.GPIO_Mode = GPIO_Mode_OUT;
-	gpio.GPIO_Speed = GPIO_Speed_25MHz;
-	gpio.GPIO_OType = GPIO_OType_PP;
-	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
-	CODECA_RESET_LOW;
+    Codec_Init_Resets();
 
     init_dig_inouts();
+
 
 	DeInit_I2SDMA_Channel1();
 	DeInit_I2SDMA_Channel2();
@@ -71,20 +56,16 @@ int main(void)
 	//XO output: 24.59MHz to 0.46875MHz
 	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
 	//SR = 48kHz to 915Hz
-
 	init_VCXO();
 
 #ifdef USE_VCXO
 	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
 	setupPLLInt(SI5351_PLL_B, 15);
-	//setupMultisynth(0, SI5351_PLL_A, 30, 265, 512);
-	//setupMultisynth(1, SI5351_PLL_A, 30, 265, 512);
 	setupMultisynth(0, SI5351_PLL_A, 36, 265, 512);
-	setupMultisynth(1, SI5351_PLL_A, 40, 265, 512);
+	setupMultisynth(1, SI5351_PLL_A, 36, 265, 512);
 
 	delay();
 
-	Si5351a_enableOutputs(1);
 #else
 	Si5351a_enableOutputs(0);
 #endif
@@ -92,7 +73,6 @@ int main(void)
 	delay();
 
 	init_timekeeper();
-//	init_EXTI_inputs();
 	init_inputread_timer();
 
 	Init_Pot_ADC((uint16_t *)potadc_buffer, NUM_POT_ADCS);
@@ -105,11 +85,16 @@ int main(void)
 	init_modes();
 
 	SDRAM_Init();
+	RAM_test();
 	Audio_Init();
 
-
 	delay();
+
 	Codec_AudioInterface_Init(I2S_AudioFreq_48k);
+
+#ifdef USE_VCXO
+	Si5351a_enableOutputs(1);
+#endif
 
 	Init_I2SDMA_Channel2(); //Codec B
 	Init_I2SDMA_Channel1(); //Codec A
@@ -118,8 +103,15 @@ int main(void)
 
 	init_adc_param_update_timer();
 
-	NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
-	NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
+
+    if (!load_calibration()){
+    	auto_calibrate();
+    	factory_reset();
+	}
+
+
+	Start_I2SDMA_Channel2();
+//	Start_I2SDMA_Channel1();
 
 	while(1){//-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
 		check_errors();

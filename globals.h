@@ -10,7 +10,7 @@
 //codec_BUFF_LEN = Size (in samples) of the DMA rx/tx buffers:
 //Each channel = codec_BUFF_LEN/2 samples
 //We process the rx buffer when it's half-full and 100% full, so codec_BUFF_LEN/4 samples are processed at one time
-#define codec_BUFF_LEN 16
+#define codec_BUFF_LEN 32
 //32 is 6kHz (48kHz / 32/4)
 //16 is 12kHz
 //8 is 24kHz but seems glitchy...
@@ -18,8 +18,11 @@
 
 //#define PCB_PROTO_VERSION_4
 //#define PCB_PROTO_VERSION_5
-#define PCB_PROTO_VERSION_6
-#define PCB_PROTO_VERSION_7
+//#define PCB_PROTO_VERSION_6
+//#define PCB_PROTO_VERSION_7
+#define PCB_PROTO_VERSION 7
+
+#define FW_VERSION 1
 
 //Error codes for g_error
 #define OUT_OF_MEM 1
@@ -39,6 +42,7 @@
 #define TRIG_TIME 196
 
 //#define USE_VCXO
+
 
 //About 45ms delay
 #define delay()						\

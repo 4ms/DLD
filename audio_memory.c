@@ -13,6 +13,63 @@
 
 extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 
+#define MEM_SIZE 16000
+
+int16_t memory[MEM_SIZE];
+
+uint32_t test_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr)
+{
+	uint8_t i;
+	uint32_t j;
+
+	uint32_t heads_crossed=0;
+
+	for (i=0;i<num_samples;i++){
+
+		j=addr[channel] - LOOP_RAM_BASE[channel];
+		if (j<0)
+			j=0;
+
+		if (j>=MEM_SIZE)
+			j=MEM_SIZE;
+
+		rd_buff[i] = memory[j];
+
+		addr[channel]++;
+		if (addr[channel] >= (MEM_SIZE + LOOP_RAM_BASE[channel]))
+			addr[channel] = LOOP_RAM_BASE[channel];
+
+		if (addr[channel] == loop_addr)
+			heads_crossed=1;
+	}
+	return(heads_crossed);
+}
+
+uint32_t test_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples)
+{
+	uint8_t i;
+	uint32_t j;
+
+	for (i=0;i<num_samples;i++){
+		j=addr[channel] - LOOP_RAM_BASE[channel];
+
+		if (j<0)
+			j=0;
+
+		if (j>=MEM_SIZE)
+			j=MEM_SIZE;
+
+		memory[j] = wr_buff[i];
+
+		addr[channel]++;
+		if (addr[channel] >= (MEM_SIZE + LOOP_RAM_BASE[channel]))
+			addr[channel] = LOOP_RAM_BASE[channel];
+
+	}
+
+	return 0;
+}
+
 
 uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr){
 	uint8_t i;
@@ -30,7 +87,7 @@ uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t n
 		//even addresses only
 		addr[channel] = (addr[channel] & 0xFFFFFFFE);
 
-		rd_buff[i] = *((int16_t *)(addr[channel] & 0xFFFFFFFE));
+		rd_buff[i] = *((int16_t *)(addr[channel]));
 
 		addr[channel] = inc_addr(addr[channel], channel);
 

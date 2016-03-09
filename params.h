@@ -35,7 +35,6 @@
 // Modes
 // Modes are integer values (often) related to switches or settings
 
-
 #define NUM_CHAN_MODES 6
 
 //INF: 0 = disabled, 1 = infinite repeat enabled
@@ -67,6 +66,13 @@ enum GateTrig_Modes{
 };
 
 
+//Global Modes
+#define NUM_GLOBAL_MODES 1
+
+enum Global_Modes{
+	AUTO_MUTE
+};
+
 #define P_1 1.0
 #define P_2 1.5
 #define P_3 2.0
@@ -86,7 +92,9 @@ enum GateTrig_Modes{
 #define P_17 16.0
 
 
-void update_adc_params(void);
+void update_params(void);
+void process_adc(void);
+
 float get_clk_div_nominal(uint16_t adc_val);
 float get_clk_div_exact(uint16_t adc_val);
 uint8_t get_switch_val(uint8_t channel);

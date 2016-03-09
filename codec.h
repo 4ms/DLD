@@ -20,7 +20,7 @@
 
 //#define USE_DEFAULT_TIMEOUT_CALLBACK
 
-// For CS4272
+// For CS4271
 #define CODECA_RESET_RCC RCC_AHB1Periph_GPIOB
 #define CODECA_RESET_pin GPIO_Pin_4
 #define CODECA_RESET_GPIO GPIOB
@@ -119,9 +119,6 @@ Hardware Configuration defines parameters
 #define CODEC_I2S3_GPIO_SCK             GPIOC
 #define CODEC_I2S3_SCK_PIN              GPIO_Pin_10
 #define CODEC_I2S3_SCK_PINSRC           GPIO_PinSource10
-//#define CODEC_I2S3_GPIO_SCK             GPIOB
-//#define CODEC_I2S3_SCK_PIN              GPIO_Pin_3
-//#define CODEC_I2S3_SCK_PINSRC           GPIO_PinSource3
 
 #define CODEC_I2S3_GPIO_SDO             GPIOC
 #define CODEC_I2S3_SDO_PIN              GPIO_Pin_12
@@ -130,9 +127,6 @@ Hardware Configuration defines parameters
 #define CODEC_I2S3_GPIO_SDI             GPIOC
 #define CODEC_I2S3_SDI_PIN              GPIO_Pin_11
 #define CODEC_I2S3_SDI_PINSRC           GPIO_PinSource11
-//#define CODEC_I2S3_GPIO_SDI             GPIOB
-//#define CODEC_I2S3_SDI_PIN              GPIO_Pin_4
-//#define CODEC_I2S3_SDI_PINSRC           GPIO_PinSource4
 
 #define CODEC_I2S3_MCK_GPIO             GPIOC
 #define CODEC_I2S3_MCK_PIN              GPIO_Pin_7
@@ -214,7 +208,10 @@ uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave);
 
 uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_TypeDef *CODEC);
 
+void Codec_Init_Resets(void);
+
 void Codec_GPIO_Init(void);
+
 void init_i2s_clkin(void);
 
 #endif

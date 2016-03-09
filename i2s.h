@@ -11,6 +11,8 @@ void Init_I2SDMA_Channel1(void);
 void Init_I2SDMA_Channel2(void);
 void DeInit_I2SDMA_Channel1(void);
 void DeInit_I2SDMA_Channel2(void);
+void Start_I2SDMA_Channel1(void);
+void Start_I2SDMA_Channel2(void);
 
 #endif
 

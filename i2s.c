@@ -28,6 +28,16 @@ volatile int16_t ch2rx_buffer[codec_BUFF_LEN];
 uint32_t ch1tx_buffer_start, ch1rx_buffer_start;
 uint32_t ch2tx_buffer_start, ch2rx_buffer_start;
 
+void Start_I2SDMA_Channel1(void)
+{
+	NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
+}
+void Start_I2SDMA_Channel2(void)
+{
+	NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
+}
+
+
 void DeInit_I2SDMA_Channel1(void)
 {
 	RCC_AHB1PeriphClockCmd(AUDIO_I2S3_DMA_CLOCK, DISABLE);

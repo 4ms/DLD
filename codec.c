@@ -1,5 +1,5 @@
 /*
- * codec.c: CS4272
+ * codec.c: CS4271
  */
 
 #include "globals.h"
@@ -55,26 +55,25 @@
 
 
 
-#define CS4272_ADDR_0 0b0010000
-//#define CS4272_ADDR_0 0x10
-#define CS4272_ADDR_1 0b0010001
+#define CS4271_ADDR_0 0b0010000
+#define CS4271_ADDR_1 0b0010001
 
 /*
  * The 7 bits Codec address (sent through I2C interface)
  * The 8th bit (LSB) is Read /Write
  */
-#define CODEC_ADDRESS           (CS4272_ADDR_0<<1)
+#define CODEC_ADDRESS           (CS4271_ADDR_0<<1)
 
-#define CS4272_NUM_REGS 6	/* we only initialize the first 6 registers, the 7th is for pre/post-init and the 8th is read-only */
+#define CS4271_NUM_REGS 6	/* we only initialize the first 6 registers, the 7th is for pre/post-init and the 8th is read-only */
 
-#define CS4272_REG_MODECTRL1	1
-#define CS4272_REG_DACCTRL		2
-#define CS4272_REG_DACMIX		3
-#define CS4272_REG_DACAVOL		4
-#define CS4272_REG_DACBVOL		5
-#define CS4272_REG_ADCCTRL		6
-#define CS4272_REG_MODELCTRL2	7
-#define CS4272_REG_CHIPID		8	/*Read-only*/
+#define CS4271_REG_MODECTRL1	1
+#define CS4271_REG_DACCTRL		2
+#define CS4271_REG_DACMIX		3
+#define CS4271_REG_DACAVOL		4
+#define CS4271_REG_DACBVOL		5
+#define CS4271_REG_ADCCTRL		6
+#define CS4271_REG_MODELCTRL2	7
+#define CS4271_REG_CHIPID		8	/*Read-only*/
 
 //Reg 1 (MODECTRL1):
 #define SINGLE_SPEED		(0b00<<6)		/* 4-50kHz */
@@ -106,6 +105,14 @@
 #define INVERT_SIGA_POL	(1<<1) /*When set, this bit activates an inversion of the signal polarity for the appropriate channel*/
 #define INVERT_SIGB_POL	(1<<0)
 
+//Reg 3 (DACMIX)
+#define BEQA			(1<<6) /*If set, ignore AOUTB volume setting, and instead make channel B's volume equal channel A's volume as set by AOUTA */
+#define SOFTRAMP		(1<<5) /*Allows level changes, both muting and attenuation, to be implemented by incrementally ramping, in 1/8 dB steps, from the current level to the new level at a rate of 1 dB per 8 left/right clock periods */
+#define	ZEROCROSS		(1<<4) /*Dictates that signal level changes, either by attenuation changes or muting, will occur on a signal zero crossing to minimize audible artifacts*/
+#define ATAPI_aLbR		(0b1001) /*channel A==>Left, channel B==>Right*/
+
+//Reg 4: DACAVOL
+//Reg 5: DACBVOL
 
 //Reg 6 (ADCCTRL)
 #define DITHER16		(1<<5) /*activates the Dither for 16-Bit Data feature*/
@@ -128,7 +135,7 @@
 #define PART_mask	(0b11110000)
 #define REV_mask	(0b00001111)
 
-
+//was left just
 const uint8_t codec_init_data_slave[] =
 {
 
@@ -137,12 +144,10 @@ const uint8_t codec_init_data_slave[] =
 		| SLAVE
 		| DIF_LEFTJUST_24b,//MODECTRL1
 
-		FAST_FILT_SEL
-		| DEEMPH_OFF
-		| SOFT_RAMPUP
-		| SOFT_RAMPDOWN,	//DACCTRL
+		SLOW_FILT_SEL
+		| DEEMPH_OFF,		//DACCTRL
 
-		0b00001001,			//DACMIX
+		ATAPI_aLbR,			//DACMIX
 
 		0b00000000,			//DACAVOL
 		0b00000000,			//DACBVOL
@@ -152,10 +157,31 @@ const uint8_t codec_init_data_slave[] =
 		| HPFDisableB //ADCCTRL
 
 };
+const uint8_t codec_init_data_master[] =
+{
+
+		SINGLE_SPEED
+		| RATIO0
+		| MASTER
+		| DIF_I2S_24b,//MODECTRL1
+
+		FAST_FILT_SEL
+		| DEEMPH_OFF
+		| SOFT_RAMPUP
+		| SOFT_RAMPDOWN,	//DACCTRL
+
+		ATAPI_aLbR,			//DACMIX
+
+		0b00000000,			//DACAVOL
+		0b00000000,			//DACBVOL
+
+		ADC_DIF_I2S
+		| HPFDisableA
+		| HPFDisableB //ADCCTRL
+
+};
 
 
-
-/* local vars */
 __IO uint32_t  CODECTimeout = CODEC_LONG_TIMEOUT;   
 
 
@@ -164,7 +190,6 @@ __IO uint32_t  CODECTimeout = CODEC_LONG_TIMEOUT;
 
 uint32_t Codec_TIMEOUT_UserCallback(void)
 {
-	/* Block communication and all processes */
 	while (1)
 	{   
 	}
@@ -174,8 +199,28 @@ uint32_t Codec_TIMEOUT_UserCallback(void)
 {
 	return 1;
 }
-#endif /* USE_DEFAULT_TIMEOUT_CALLBACK */
+#endif
 
+
+void Codec_Init_Resets(void)
+{
+	GPIO_InitTypeDef gpio;
+
+	gpio.GPIO_Mode = GPIO_Mode_OUT;
+	gpio.GPIO_Speed = GPIO_Speed_25MHz;
+	gpio.GPIO_OType = GPIO_OType_PP;
+	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC, ENABLE);
+	RCC_AHB1PeriphClockCmd(CODECB_RESET_RCC, ENABLE);
+
+	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
+	gpio.GPIO_Pin = CODECB_RESET_pin; GPIO_Init(CODECB_RESET_GPIO, &gpio);
+
+	CODECA_RESET_LOW;
+	CODECB_RESET_LOW;
+
+}
 
 uint32_t Codec_Init(uint32_t AudioFreq)
 {
@@ -204,50 +249,22 @@ uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
 	uint8_t i;
 	uint32_t err=0;
 	
-	err=Codec_WriteRegister(CS4272_REG_MODELCTRL2, CPEN | PDN, CODEC); //Control Port Enable and Power Down Enable
+	err=Codec_WriteRegister(CS4271_REG_MODELCTRL2, CPEN | PDN, CODEC); //Control Port Enable and Power Down Enable
 	
 
 	if (master_slave==CODEC_IS_MASTER)
 	{
-			//for(i=0;i<W8731_NUM_REGS;i++)
-			//err+=Codec_WriteRegister(i, w8731_init_data_master[i], CODEC);
-/*
-		err+=Codec_WriteRegister(WM8731_REG_INTERFACE, codec_init_data_master[WM8731_REG_INTERFACE], CODEC);
-		err+=Codec_WriteRegister(WM8731_REG_SAMPLING, codec_init_data_master[WM8731_REG_SAMPLING], CODEC);
-
-		err+=Codec_WriteRegister(WM8731_REG_DIGITAL, DACMUTE, CODEC); // DAC soft mute
-		err+=Codec_WriteRegister(WM8731_REG_ANALOG, 0x00, CODEC); // disable all
-
-		err+=Codec_WriteRegister(WM8731_REG_POWERDOWN, 0x00, CODEC); //codec power down
-
-		err+=Codec_WriteRegister(WM8731_REG_LLINEIN, INMUTE, CODEC); //mute line in
-		err+=Codec_WriteRegister(WM8731_REG_RLINEIN, INMUTE, CODEC);
-
-		delay();
-		delay();
-
-		err+=Codec_WriteRegister(WM8731_REG_ACTIVE, I_ACTIVE, CODEC);
-
-		delay();
-
-		err+=Codec_WriteRegister(WM8731_REG_DIGITAL, codec_init_data_master[WM8731_REG_DIGITAL], CODEC);
-		err+=Codec_WriteRegister(WM8731_REG_ANALOG, [WM8731_REG_ANALOG], CODEC);
-
-		err+=Codec_WriteRegister(WM8731_REG_LLINEIN, VOL_0dB, CODEC); //unmute line in
-		err+=Codec_WriteRegister(WM8731_REG_RLINEIN, VOL_0dB, CODEC);
-*/
+		for(i=0;i<CS4271_NUM_REGS;i++)
+			err+=Codec_WriteRegister(i+1, codec_init_data_master[i], CODEC);
 
 	}
 	else
 	{
-
-		for(i=0;i<CS4272_NUM_REGS;i++)
+		for(i=0;i<CS4271_NUM_REGS;i++)
 			err+=Codec_WriteRegister(i+1, codec_init_data_slave[i], CODEC);
-
-		err=Codec_WriteRegister(CS4272_REG_MODELCTRL2, CPEN, CODEC); //Power Down disable
-
 	}
 
+	err=Codec_WriteRegister(CS4271_REG_MODELCTRL2, CPEN, CODEC); //Power Down disable
 
 	return err;
 }
@@ -444,19 +461,6 @@ void Codec_GPIO_Init(void)
 {
 	GPIO_InitTypeDef gpio;
 
-
-	RCC_AHB1PeriphClockCmd(CODECA_RESET_RCC | CODECB_RESET_RCC, ENABLE);
-
-	gpio.GPIO_Mode = GPIO_Mode_OUT;
-	gpio.GPIO_Speed = GPIO_Speed_25MHz;
-	gpio.GPIO_OType = GPIO_OType_PP;
-	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	gpio.GPIO_Pin = CODECA_RESET_pin; GPIO_Init(CODECA_RESET_GPIO, &gpio);
-	CODECA_RESET_LOW;
-
-	gpio.GPIO_Pin = CODECB_RESET_pin; GPIO_Init(CODECB_RESET_GPIO, &gpio);
-	CODECB_RESET_LOW;
 
 	/* Enable I2S and I2C GPIO clocks */
 	RCC_AHB1PeriphClockCmd(CODEC_I2C2_GPIO_CLOCK | CODEC_I2S2_GPIO_CLOCK, ENABLE);

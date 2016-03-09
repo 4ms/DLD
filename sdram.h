@@ -11,14 +11,9 @@
 
 #define SDRAM_BASE 0xD0000000
 
-//0x800000 = 8M = 8MBytes or 8M words = 16MBytes?
-
-//#define SDRAM_SIZE 0x00800000
-//#define SDRAM_SIZE 0x02000000
 
 //SDRAM Bank 2 is 4 x 64MB, from 0xD000 0000 to 0xDFFF FFFF
 //Thus, we can access 0x10000000 addresses, or 256M addresses
-//#define SDRAM_SIZE 0x10000000
 #define SDRAM_SIZE 0x02000000
 
 
@@ -49,7 +44,7 @@
 void FMC_Config(void);
 
 void SDRAM_Init(void);
-uint8_t RAM_test(void);
+uint32_t RAM_test(void);
 
 
 #endif /* SDRAM_H_ */

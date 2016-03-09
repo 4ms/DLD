@@ -155,8 +155,8 @@
 /************************* PLL Parameters *************************************/
 /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
 #define PLL_M      8
-//#define PLL_N      360
-#define PLL_N      336
+#define PLL_N      360
+//#define PLL_N      336
 
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
@@ -166,8 +166,9 @@
 
 /* PLLI2S_VCO = (HSE_VALUE Or HSI_VALUE / PLL_M) * PLLI2S_N
    I2SCLK = PLLI2S_VCO / PLLI2S_R */
-#define PLLI2S_N   144
-#define PLLI2S_R   3
+#define PLLI2S_N   295
+#define PLLI2S_R   6
+//144/3 = 48k
 
 /******************************************************************************/
 
@@ -187,8 +188,8 @@
   * @{
   */
 
-  uint32_t SystemCoreClock = 168000000;
-//  uint32_t SystemCoreClock = 180000000;
+ // uint32_t SystemCoreClock = 168000000;
+  uint32_t SystemCoreClock = 180000000;
 
   __I uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 
