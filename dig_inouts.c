@@ -41,7 +41,7 @@ void init_dig_inouts(void){
 
 	//Configure outputs
 	gpio.GPIO_Mode = GPIO_Mode_OUT;
-	gpio.GPIO_Speed = GPIO_Speed_25MHz;
+	gpio.GPIO_Speed = GPIO_Speed_2MHz;
 	gpio.GPIO_OType = GPIO_OType_PP;
 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
 
@@ -226,9 +226,8 @@ void init_inputread_timer(void){
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
-	//168MHZ / 2 / 32767 = 2.56kHz
 	//3000 --> 28kHz
-	tim.TIM_Period = 3000;
+	tim.TIM_Period = 2000;
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
@@ -248,10 +247,10 @@ uint16_t State[10] = {0,0,0,0,0,0,0,0,0,0}; // Current debounce status
 // and high for a certain number of cycles. We shift 0's and 1's down a 16-bit variable (State[]) to indicate high/low status.
 
 // takes 2-3us
-// runs every 35us
+// runs at 27kHz
 void TIM4_IRQHandler(void)
 {
-
+DEBUG2_ON;
 	uint16_t t;
 	uint32_t t32;
 	float t_f;
@@ -269,7 +268,8 @@ void TIM4_IRQHandler(void)
 	}
 
 	State[9]=(State[9]<<1) | t;
-	if (State[9]==0xfffe){ //jack low for 12 times (1ms), then detected high 1 time
+	//if (State[9]==0xfffe){ //jack low for 12 times (1ms), then detected high 1 time
+	if ((State[9] & 0xff)==0xfe){ //jack low for 7 times (250us), then detected high 1 time
 
 		ping_button_state = 0;
 
@@ -465,6 +465,7 @@ void TIM4_IRQHandler(void)
 		flag_rev_change[1]=1;
 	}
 
+	DEBUG2_OFF;
 }
 
 

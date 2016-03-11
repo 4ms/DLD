@@ -159,9 +159,11 @@ void init_adc_param_update_timer(void)
 	NVIC_Init(&nvic);
 
 	//168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
+	//30000 and 0x1 ==> 2.6kHz
+
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 30000;
-	tim.TIM_Prescaler = 0x3;
+	tim.TIM_Period = 20000;
+	tim.TIM_Prescaler = 0x1;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
 
@@ -174,16 +176,20 @@ void init_adc_param_update_timer(void)
 
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
+	//Takes 7-8us
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
-		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
-
+		DEBUG3_ON;
 		process_adc();
 
 		if (CALIBRATE_JUMPER)
 			update_calibration();
 		else
 			update_params();
+		DEBUG3_OFF;
+
+		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
+
 	}
 }
 

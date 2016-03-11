@@ -17,7 +17,8 @@ uint32_t RAM_test(void){
 	for (i=0;i<(SDRAM_SIZE/2);i++){
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		*((uint16_t *)addr) = (uint16_t)(i & 0x0000FFFF);
+		rd1 = (uint16_t)((i) & 0x0000FFFF);
+		*((uint16_t *)addr) = rd1;
 
 		addr+=2;
 	}
@@ -28,10 +29,9 @@ uint32_t RAM_test(void){
 
 		rd1 = *((uint16_t *)addr);
 
-		rd0=(uint16_t)(i & 0x0000FFFF);
+		rd0=(uint16_t)((i) & 0x0000FFFF);
 		if (rd1 != rd0)
 		{
-			DEBUG0_ON;
 			fail++;
 
 			if (rd1==2 && rd0==3)

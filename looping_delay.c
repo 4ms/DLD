@@ -15,9 +15,12 @@ extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
+extern int16_t i_smoothed_cvadc[NUM_CV_ADCS];
+
 extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
 
-extern int16_t ADC_CALIBRATION_DCOFFSET[4];
+extern int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];
+extern int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
 
 volatile uint32_t ping_time;
 volatile uint32_t divmult_time[NUM_CHAN];
@@ -66,8 +69,7 @@ void Audio_Init(void)
 			*((uint32_t *)i) = 0x00000000;
 
 	if (!ping_time)
-		ping_time=0x00000400;
-	//ping_time=0x00004000;
+		ping_time=0x00004000;
 
 
 	for(i=0;i<NUM_CHAN;i++){
@@ -413,7 +415,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	sz=sz/2;
 //	if (channel==0)
-//		DEBUG0_ON;
+		DEBUG0_ON;
 
 	/*
 	if (fade_pos[0]<FADE_INCREMENT)
@@ -475,18 +477,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 
-		mainin = *src++;
+		mainin = (*src++) + CODEC_ADC_CALIBRATION_DCOFFSET[channel+0];
 		dummy=*src++;
 
-		auxin = *src++;
+		auxin = (*src++) + CODEC_ADC_CALIBRATION_DCOFFSET[channel+2];
 		dummy=*src++;
-
-
-		DEBUG0_OFF;
-	//	if (mainin > 500)
-	//	{
-	//		DEBUG0_ON;
-	//	}
 
 /*
 		if (global_mode[AUTO_MUTE]){
@@ -515,42 +510,10 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		if (mode[channel][INF] == 0){
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];
-			//regen = rd*0.5;
 
 			// Attenuate the clean signal by the LEVEL parameter
 			//t_f = param[channel][LEVEL];
 			mainin_atten = ((float)mainin) * param[channel][LEVEL];
-
-			if (mainin_atten > oldmainin_atten)
-				diff = mainin_atten - oldmainin_atten;
-			else
-				diff = oldmainin_atten - mainin_atten;
-			if (diff > 200)
-			{
-				DEBUG0_ON;
-			}
-			oldmainin_atten = mainin_atten;
-
-			f_auxin =(float)auxin;
-			if (f_auxin > oldauxin)
-				diff = f_auxin - oldauxin;
-			else
-				diff = oldauxin - f_auxin;
-			if (diff > 200)
-			{
-				DEBUG0_ON;
-			}
-			oldauxin = f_auxin;
-
-			if (regen > oldregen)
-				diff = regen - oldregen;
-			else
-				diff = oldregen - regen;
-			if (diff > 200)
-			{
-				DEBUG0_ON;
-			}
-			oldregen = regen;
 
 			// Add the loop contents to the input signal, as well as the auxin signal
 			wr = (int32_t)(regen + mainin_atten + (float)auxin);
@@ -572,20 +535,21 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		// Combine stereo: Left<=Mix, Right<=Wet
 
 		if (CALIBRATE_JUMPER){
-			*dst++ = ADC_CALIBRATION_DCOFFSET[0+channel];
+			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 			*dst++ = 0;
 
-			*dst++ = ADC_CALIBRATION_DCOFFSET[2+channel];
+			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
 			*dst++ = 0;
 		}
 		else
 		{
 			//Main out
-			*dst++ = mix + ADC_CALIBRATION_DCOFFSET[0+channel];
+			*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 			*dst++ = 0;
 
 			//Send out
-			*dst++ = rd + ADC_CALIBRATION_DCOFFSET[2+channel];
+			//*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+			*dst++ = i_smoothed_cvadc[TIME*2+channel];
 			*dst++ = 0;
 		}
 
@@ -601,5 +565,5 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	process_read_addr_fade(channel);
 
 //	if (channel==0)
-//		DEBUG0_OFF;
+		DEBUG0_OFF;
 }

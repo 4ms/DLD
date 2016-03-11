@@ -92,19 +92,24 @@ void init_LowPassCoefs(void)
 {
 	float t;
 
-	CV_LPF_COEF[TIME*2] = 0.99;
-	CV_LPF_COEF[TIME*2+1] = 0.99;
+	t=50.0;
 
-	CV_LPF_COEF[LEVEL*2] = 0.99;
-	CV_LPF_COEF[LEVEL*2+1] = 0.99;
+	CV_LPF_COEF[TIME*2] = 1.0-(1.0/t);
+	CV_LPF_COEF[TIME*2+1] = 1.0-(1.0/t);
 
-	CV_LPF_COEF[REGEN*2] = 0.99;
-	CV_LPF_COEF[REGEN*2+1] = 0.99;
+	CV_LPF_COEF[LEVEL*2] = 1.0-(1.0/t);
+	CV_LPF_COEF[LEVEL*2+1] = 1.0-(1.0/t);
+
+	CV_LPF_COEF[REGEN*2] = 1.0-(1.0/t);
+	CV_LPF_COEF[REGEN*2+1] = 1.0-(1.0/t);
+
 
 	t=50.0;
 
 	POT_LPF_COEF[TIME*2] = 1.0-(1.0/t);
 	POT_LPF_COEF[TIME*2+1] = 1.0-(1.0/t);
+
+	t=10.0;
 
 	POT_LPF_COEF[LEVEL*2] = 0.9;
 	POT_LPF_COEF[LEVEL*2+1] = 0.9;
@@ -135,10 +140,12 @@ int16_t i_smoothed_rawcvadc[NUM_CV_ADCS]={0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7FFF,0x7
 int32_t pot_delta[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
 uint8_t flag_pot_changed[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
 
+
 void process_adc(void)
 {
 	uint8_t i;
 	int32_t t;
+
 
 	//
 	// Run a LPF on the pots and CV jacks

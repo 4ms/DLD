@@ -155,8 +155,8 @@
 /************************* PLL Parameters *************************************/
 /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
 #define PLL_M      8
-#define PLL_N      360
-//#define PLL_N      336
+//#define PLL_N      360
+#define PLL_N      336
 
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
@@ -166,9 +166,10 @@
 
 /* PLLI2S_VCO = (HSE_VALUE Or HSI_VALUE / PLL_M) * PLLI2S_N
    I2SCLK = PLLI2S_VCO / PLLI2S_R */
-#define PLLI2S_N   295
-#define PLLI2S_R   6
+#define PLLI2S_N   144
+#define PLLI2S_R   3
 //144/3 = 48k
+//295/6 actually runs at about 48k (48.01k)
 
 /******************************************************************************/
 

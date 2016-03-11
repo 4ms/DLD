@@ -6,9 +6,13 @@
  * Auto calibrate CV jacks on first boot, store in EEPROM
  * --add key combo to re-do calibration
  *
- * Change update_adc_params to update_adc and update_params
+ * How fast can we CV the jacks?
+ * Can we reduce noise w/hardware, w/software
+ *
+ * How fast can we ping?
  *
  * Hardware:
+ * Get the output stage resistor values right for unity gain and near 0 DC
  *
  */
 
@@ -47,6 +51,9 @@ int main(void)
 
     init_dig_inouts();
 
+//	SDRAM_Init();
+//	RAM_test();
+
 
 	DeInit_I2SDMA_Channel1();
 	DeInit_I2SDMA_Channel2();
@@ -56,7 +63,8 @@ int main(void)
 	//XO output: 24.59MHz to 0.46875MHz
 	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
 	//SR = 48kHz to 915Hz
-	init_VCXO();
+
+	//init_VCXO();
 
 #ifdef USE_VCXO
 	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
@@ -67,7 +75,7 @@ int main(void)
 	delay();
 
 #else
-	Si5351a_enableOutputs(0);
+	//Si5351a_enableOutputs(0);
 #endif
 
 	delay();
@@ -85,7 +93,6 @@ int main(void)
 	init_modes();
 
 	SDRAM_Init();
-	RAM_test();
 	Audio_Init();
 
 	delay();
@@ -111,10 +118,11 @@ int main(void)
 
 
 	Start_I2SDMA_Channel2();
-//	Start_I2SDMA_Channel1();
+	Start_I2SDMA_Channel1();
 
-	while(1){//-O0 roughly 100kHz, -O3 roughly 325kHz or 2-3us
+	while(1){//-O1 roughly 400kHz and takes 1us
 		check_errors();
+		DEBUG1_ON;
 		
 		update_ping_ledbut();
 
@@ -124,6 +132,8 @@ int main(void)
 
 		update_inf_ledbut(0);
 		update_inf_ledbut(1);
+
+		DEBUG1_OFF;
 
 		update_instant_params(0);
 		update_instant_params(1);
