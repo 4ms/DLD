@@ -59,10 +59,10 @@ inline void reset_pingled_tmr(uint8_t channel){
 
 	if (channel==0) {
 		CLKOUT1_ON;
-		LED_OVLD1_ON;
+		LED_LOOP1_ON;
 	} else {
 		CLKOUT2_ON;
-		LED_OVLD2_ON;
+		LED_LOOP2_ON;
 	}
 
 }
@@ -159,11 +159,11 @@ void init_adc_param_update_timer(void)
 	NVIC_Init(&nvic);
 
 	//168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
-	//30000 and 0x1 ==> 2.6kHz
+	//20000 and 0x1 ==> works well
 
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 20000;
-	tim.TIM_Prescaler = 0x1;
+	tim.TIM_Period = 30000;
+	tim.TIM_Prescaler = 0x3;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
 
@@ -179,14 +179,14 @@ void TIM1_BRK_TIM9_IRQHandler(void)
 	//Takes 7-8us
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
-		DEBUG3_ON;
+		//DEBUG3_ON;
 		process_adc();
 
 		if (CALIBRATE_JUMPER)
 			update_calibration();
 		else
 			update_params();
-		DEBUG3_OFF;
+		//DEBUG3_OFF;
 
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
 

@@ -13,7 +13,7 @@
 #define LOOP_SIZE (SDRAM_SIZE/2)
 
 
-void Audio_Init(void);
+void audio_buffer_init(void);
 void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel);
 inline void update_write_time(uint8_t channel);
 inline void set_divmult_time(uint8_t channel);

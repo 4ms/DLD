@@ -39,7 +39,8 @@
 //Number of channels
 #define NUM_CHAN 2
 
-#define TRIG_TIME 196
+//#define TRIG_TIME 196
+#define TRIG_TIME 1000
 
 //#define USE_VCXO
 

@@ -45,6 +45,6 @@ void FMC_Config(void);
 
 void SDRAM_Init(void);
 uint32_t RAM_test(void);
-
+void RAM_startup_test(void);
 
 #endif /* SDRAM_H_ */

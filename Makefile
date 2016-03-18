@@ -38,8 +38,8 @@ OBJDMP = $(ARCH)-objdump
 GDB = $(ARCH)-gdb
 
  	
-#CFLAGS  = -O0 -g -Wall
-CFLAGS = -g2 -O1 \
+CFLAGS  = -O0 -g -Wall
+#CFLAGS = -g2 -O1 \
           -fthread-jumps \
           -falign-functions  -falign-jumps \
           -falign-loops  -falign-labels \

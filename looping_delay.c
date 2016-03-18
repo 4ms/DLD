@@ -60,7 +60,7 @@ float fade_pos[NUM_CHAN];
 //0.1  ===> 1.5ms fade time
 
 
-void Audio_Init(void)
+void audio_buffer_init(void)
 {
 	uint32_t i;
 
@@ -294,13 +294,20 @@ inline void set_divmult_time(uint8_t channel){
 	}
 }
 
-//
-// Move loop_start and loop_end the same amount
-// scroll_amount specifies the amount to move it, as expressed as a fraction of the loop legnth
-// scroll_subtract flag means to subtract from loop_start and loop_end, otherwise add
-			// Thus, if loop_start is 500 and loop_end is 750, and scroll_amount is 0.4
-			// then add 0.4 * (750 - 500) = 100 to loop_start and loop_end
-//
+
+/* ******************
+ *  set_divmult_time
+ * ******************
+ *
+ * Move loop_start and loop_end the same amount.
+ *
+ * scroll_amount specifies the amount to move it, as expressed as a fraction of the loop legnth
+ * scroll_subtract flag means to subtract from loop_start and loop_end, otherwise add
+ *    Thus, if loop_start is 500 and loop_end is 750, and scroll_amount is 0.4
+ *    then add 0.4 * (750 - 500) = 100 to loop_start and loop_end
+ *
+ */
+
 void scroll_loop(uint8_t channel, float scroll_amount, uint8_t scroll_subtract)
 {
 	uint32_t loop_length;
@@ -401,21 +408,14 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	uint32_t passed_end_of_loop;
 	uint32_t start_fade_addr;
-	volatile int32_t dummy;
 
-	float t_f;
-	int32_t diff;
-	float oldmainin_atten=0.0;
-	float oldauxin=0.0;
-	float f_auxin;
-	float oldregen=0.0;
+	int32_t dummy;
 
-	//static uint8_t ramp_ctr=0;
 
 
 	sz=sz/2;
 //	if (channel==0)
-		DEBUG0_ON;
+	//	DEBUG0_ON;
 
 	/*
 	if (fade_pos[0]<FADE_INCREMENT)
@@ -483,26 +483,24 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		auxin = (*src++) + CODEC_ADC_CALIBRATION_DCOFFSET[channel+2];
 		dummy=*src++;
 
-/*
+
 		if (global_mode[AUTO_MUTE]){
 				//0.0001 is 10k samples or about 1/4 second
 			mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
-			if (mainin_lpf[channel]<100)
+			if (mainin_lpf[channel]<20)
 				mainin=0;
 
 			auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
-			if (auxin_lpf[channel]<100)
+			if (auxin_lpf[channel]<20)
 				auxin=0;
 		}
-*/
+
 
 		// The Dry signal is just the clean signal, without any attenuation from LEVEL
 		dry = mainin;
 
 		// Read from the loop and save this value so we can output it to the Delay Out jack
 		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
-		//rd=rd_buff[i];
-
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
@@ -548,10 +546,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			*dst++ = 0;
 
 			//Send out
-			//*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-			*dst++ = i_smoothed_cvadc[TIME*2+channel];
+			*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+			//*dst++ = i_smoothed_cvadc[TIME*2+channel];
 			*dst++ = 0;
 		}
+
+
 
 		wr_buff[i]=wr;
 
@@ -565,5 +565,5 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	process_read_addr_fade(channel);
 
 //	if (channel==0)
-		DEBUG0_OFF;
+//	DEBUG0_OFF;
 }

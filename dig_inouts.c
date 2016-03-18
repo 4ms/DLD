@@ -47,7 +47,7 @@ void init_dig_inouts(void){
 
 	//LEDs
 	RCC_AHB1PeriphClockCmd(LED_RCC, ENABLE);
-	gpio.GPIO_Pin = LED_OVLD1 | LED_OVLD2;	GPIO_Init(LED_GPIO, &gpio);
+	gpio.GPIO_Pin = LED_LOOP1 | LED_LOOP2;	GPIO_Init(LED_GPIO, &gpio);
 
 	RCC_AHB1PeriphClockCmd(PINGBUTLED_RCC, ENABLE);
 	gpio.GPIO_Pin = LED_PINGBUT_pin;	GPIO_Init(LED_PINGBUT_GPIO, &gpio);
@@ -250,7 +250,7 @@ uint16_t State[10] = {0,0,0,0,0,0,0,0,0,0}; // Current debounce status
 // runs at 27kHz
 void TIM4_IRQHandler(void)
 {
-DEBUG2_ON;
+//DEBUG2_ON;
 	uint16_t t;
 	uint32_t t32;
 	float t_f;
@@ -465,7 +465,7 @@ DEBUG2_ON;
 		flag_rev_change[1]=1;
 	}
 
-	DEBUG2_OFF;
+//	DEBUG2_OFF;
 }
 
 
@@ -494,10 +494,10 @@ void update_channel_leds(uint8_t channel)
 	{
 		if (channel==0) {
 			CLKOUT1_OFF;
-			LED_OVLD1_OFF;
+			LED_LOOP1_OFF;
 		} else {
 			CLKOUT2_OFF;
-			LED_OVLD2_OFF;
+			LED_LOOP2_OFF;
 		}
 	}
 

@@ -92,7 +92,7 @@ void init_LowPassCoefs(void)
 {
 	float t;
 
-	t=50.0;
+	t=10.0;
 
 	CV_LPF_COEF[TIME*2] = 1.0-(1.0/t);
 	CV_LPF_COEF[TIME*2+1] = 1.0-(1.0/t);
@@ -355,24 +355,30 @@ void update_params(void)
 		}
 		else
 		{
+
 			param[channel][LEVEL]=0.0;
 			param[channel][REGEN]=1.0;
 
 			//
 			// If REGEN was wiggled while INF is held down
 			//
-			if (flag_pot_changed_infdown[REGEN*2+channel])
+			if (flag_pot_changed_infdown[REGEN*2+channel] && (pot_delta[REGEN*2+channel] != 0))
 			{
 
-				abs_amt = pot_delta[REGEN*2+channel] / 4096.0;
-				subtract = 0;
-
-				if (abs_amt < 0){
-					abs_amt = -1.0 * abs_amt;
-					subtract=1;
+				if (pot_delta[REGEN*2+channel] < 0)
+				{
+					abs_amt = pot_delta[REGEN*2+channel] / -4096.0;
+					subtract = 1;
+				} else
+				{
+					abs_amt = pot_delta[REGEN*2+channel] / 4096.0;
+					subtract = 0;
 				}
 
 				scroll_loop(channel, abs_amt, subtract);
+
+				//flag_pot_changed_infdown[REGEN*2+channel]=0;
+				pot_delta[REGEN*2+channel]=0;
 			}
 
 		}

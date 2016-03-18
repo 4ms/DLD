@@ -45,26 +45,19 @@ void check_errors(void){
 
 int main(void)
 {
+
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
-    Codec_Init_Resets();
+    Codecs_Deinit();
 
     init_dig_inouts();
 
-//	SDRAM_Init();
-//	RAM_test();
-
-
-	DeInit_I2SDMA_Channel1();
+    DeInit_I2S_Clock();
 	DeInit_I2SDMA_Channel2();
+	DeInit_I2SDMA_Channel1();
 
-	//375MHz PLL
-	//XO divider range 15+1/4 to 800
-	//XO output: 24.59MHz to 0.46875MHz
-	//CLKIDIV2 on, MCLK = 12.3MHz to 24kHz
-	//SR = 48kHz to 915Hz
-
-	//init_VCXO();
+#ifdef HAS_VCXO
+	init_VCXO();
 
 #ifdef USE_VCXO
 	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
@@ -75,7 +68,8 @@ int main(void)
 	delay();
 
 #else
-	//Si5351a_enableOutputs(0);
+	Si5351a_enableOutputs(0);
+#endif
 #endif
 
 	delay();
@@ -93,36 +87,37 @@ int main(void)
 	init_modes();
 
 	SDRAM_Init();
-	Audio_Init();
+
+	if (RAMTEST_JUMPER) RAM_startup_test();
+
+	audio_buffer_init();
 
 	delay();
 
+	Codec_GPIO_Init();
 	Codec_AudioInterface_Init(I2S_AudioFreq_48k);
-
+#ifdef HAS_VCXO
 #ifdef USE_VCXO
 	Si5351a_enableOutputs(1);
 #endif
+#endif
 
-	Init_I2SDMA_Channel2(); //Codec B
-	Init_I2SDMA_Channel1(); //Codec A
+	init_audio_dma();
 
-	Codec_Init(I2S_AudioFreq_48k);
+	Codec_Register_Setup();
 
 	init_adc_param_update_timer();
-
 
     if (!load_calibration()){
     	auto_calibrate();
     	factory_reset();
 	}
 
-
-	Start_I2SDMA_Channel2();
 	Start_I2SDMA_Channel1();
+	Start_I2SDMA_Channel2();
 
 	while(1){//-O1 roughly 400kHz and takes 1us
 		check_errors();
-		DEBUG1_ON;
 		
 		update_ping_ledbut();
 
@@ -133,12 +128,9 @@ int main(void)
 		update_inf_ledbut(0);
 		update_inf_ledbut(1);
 
-		DEBUG1_OFF;
 
 		update_instant_params(0);
 		update_instant_params(1);
-
-//		update_clkout_jack();
 	}
 
 	return(1);

@@ -41,6 +41,9 @@ int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
 extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
 extern int16_t i_smoothed_cvadc[NUM_CV_ADCS];
 
+extern volatile int16_t ch1rx_buffer[codec_BUFF_LEN];
+extern volatile int16_t ch2rx_buffer[codec_BUFF_LEN];
+
 uint32_t sysmode[NUM_SYS_MODES];
 
 
@@ -52,10 +55,6 @@ void set_default_calibration_values(void)
 	CODEC_DAC_CALIBRATION_DCOFFSET[2]=-770;
 	CODEC_DAC_CALIBRATION_DCOFFSET[3]=-770;
 
-	CODEC_ADC_CALIBRATION_DCOFFSET[0]=-29;
-	CODEC_ADC_CALIBRATION_DCOFFSET[1]=-29;
-	CODEC_ADC_CALIBRATION_DCOFFSET[2]=-29;
-	CODEC_ADC_CALIBRATION_DCOFFSET[3]=-29;
 
 }
 
@@ -75,6 +74,13 @@ void auto_calibrate(void)
 	CV_CALIBRATION_OFFSET[3] = -1*i_smoothed_cvadc[3];
 	CV_CALIBRATION_OFFSET[4] = -1*i_smoothed_cvadc[4];
 	CV_CALIBRATION_OFFSET[5] = -1*i_smoothed_cvadc[5];
+
+	CODEC_ADC_CALIBRATION_DCOFFSET[0]=-29;
+	CODEC_ADC_CALIBRATION_DCOFFSET[1]=-29;
+	CODEC_ADC_CALIBRATION_DCOFFSET[2]=-29;
+	CODEC_ADC_CALIBRATION_DCOFFSET[3]=-29;
+
+
 
 	set_default_calibration_values();
 
@@ -104,7 +110,15 @@ void update_calibration(void)
 		CODEC_DAC_CALIBRATION_DCOFFSET[3]=(i_smoothed_potadc[MIXPOT*2+1]-2048); //SEND B
 	}
 
-	if ((switch1==0b01) && (switch2==0b01) && REV1BUT && INF1BUT && REV2BUT && INF2BUT)//switches both down, four buttons held
+	if ((switch1==0b01) && (switch2==0b01))//both down
+	{
+		CODEC_ADC_CALIBRATION_DCOFFSET[0]= -1*ch1rx_buffer[0];
+		CODEC_ADC_CALIBRATION_DCOFFSET[1]= -1*ch2rx_buffer[0];
+		CODEC_ADC_CALIBRATION_DCOFFSET[2]= -1*ch1rx_buffer[2];
+		CODEC_ADC_CALIBRATION_DCOFFSET[3]= -1*ch2rx_buffer[2];
+	}
+
+	if ((switch1==0b11) && (switch2==0b11) && REV1BUT && INF1BUT && REV2BUT && INF2BUT)//switches both down, four buttons held
 	{
 		buttons_down++;
 		if (buttons_down==3000)
@@ -113,6 +127,7 @@ void update_calibration(void)
 		}
 	} else
 		buttons_down=0;
+
 
 }
 
@@ -128,8 +143,8 @@ void save_calibration(void)
 
 	LED_REV1_ON;
 	LED_REV2_ON;
-	LED_OVLD1_ON;
-	LED_OVLD2_ON;
+	LED_LOOP1_ON;
+	LED_LOOP2_ON;
 	LED_INF1_ON;
 	LED_INF2_ON;
 

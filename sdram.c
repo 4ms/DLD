@@ -50,7 +50,70 @@ uint32_t RAM_test(void){
 }
 
 
+void RAM_startup_test(void)
+{
+	uint32_t ram_errors=0;
 
+	LED_LOOP1_OFF;
+	LED_LOOP2_OFF;
+	LED_PINGBUT_OFF;
+	LED_REV1_OFF;
+	LED_REV2_OFF;
+	LED_INF1_OFF;
+	LED_INF2_OFF;
+
+	ram_errors = RAM_test();
+
+	if (ram_errors & 1)
+		LED_LOOP1_ON;
+	if (ram_errors & 2)
+		LED_PINGBUT_ON;
+	if (ram_errors & 4)
+		LED_LOOP2_ON;
+	if (ram_errors & 8)
+		LED_REV1_ON;
+	if (ram_errors & 16)
+		LED_INF1_ON;
+	if (ram_errors & 32)
+		LED_INF2_ON;
+	if (ram_errors & 64)
+		LED_REV2_ON;
+
+	while (RAMTEST_JUMPER)
+	{
+		if (ram_errors >= 128)
+		{
+			LED_LOOP1_ON;
+			LED_LOOP2_ON;
+			LED_PINGBUT_ON;
+			LED_REV1_ON;
+			LED_REV2_ON;
+			LED_INF1_ON;
+			LED_INF2_ON;
+
+			delay();
+
+			LED_LOOP1_OFF;
+			LED_LOOP2_OFF;
+			LED_PINGBUT_OFF;
+			LED_REV1_OFF;
+			LED_REV2_OFF;
+			LED_INF1_OFF;
+			LED_INF2_OFF;
+
+			delay();
+		}
+	}
+	LED_LOOP1_OFF;
+	LED_LOOP2_OFF;
+	LED_PINGBUT_OFF;
+	LED_REV1_OFF;
+	LED_REV2_OFF;
+	LED_INF1_OFF;
+	LED_INF2_OFF;
+
+
+}
 
 
 //=================================================================================================
