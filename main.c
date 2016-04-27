@@ -3,16 +3,20 @@
  *
  * Software:
  *
- * Auto calibrate CV jacks on first boot, store in EEPROM
- * --add key combo to re-do calibration
+ * Would it be more efficient to have a routine to change INF/REV/Time modes, instead of setting a flag and polling a process_() routine to check the flag:
+ * i.e.:
+ * if (trigger detected on inf jack)
+ * 		set_inf_mode(!mode[channel][INF]);
  *
- * How fast can we CV the jacks?
- * Can we reduce noise w/hardware, w/software
+ * 	if (inf button detected falling edge w/o pot wiggle)
+ * 		set_inf_mode(!mode[channel][INF]);
  *
- * How fast can we ping?
  *
- * Hardware:
- * Get the output stage resistor values right for unity gain and near 0 DC
+ *
+ * Make a nvic_control.c file, which has a table of all nvics we use.
+ * Then enable each nvic in the current place.
+ * ...Some central place to compare all priorities.
+ * ...This makes us a bit less portable? Unless we implement the nvic_control.c file on all projects
  *
  */
 
@@ -30,6 +34,7 @@
 #include "si5153a.h"
 #include "calibration.h"
 #include "flash_user.h"
+#include "leds.h"
 
 
 uint32_t g_error=0;
@@ -37,6 +42,8 @@ uint32_t g_error=0;
 __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
+extern uint8_t global_mode[NUM_GLOBAL_MODES];
+extern uint8_t flag_time_param_changed[2];
 
 void check_errors(void){
 
@@ -88,7 +95,7 @@ int main(void)
 
 	SDRAM_Init();
 
-	if (RAMTEST_JUMPER) RAM_startup_test();
+	if (RAMTEST_BUTTONS) RAM_startup_test();
 
 	audio_buffer_init();
 
@@ -104,19 +111,23 @@ int main(void)
 
 	init_audio_dma();
 
-	Codec_Register_Setup();
+	global_mode[DCINPUT] = DCINPUT_JUMPER;
+	Codec_Register_Setup(global_mode[DCINPUT]);
+
+	check_calibration_mode();
 
 	init_adc_param_update_timer();
-
-    if (!load_calibration()){
-    	auto_calibrate();
-    	factory_reset();
-	}
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
 
+//	flag_time_param_changed[0]=1;
+//	flag_time_param_changed[1]=1;
+//	flag_ping_was_changed=1;
+
 	while(1){//-O1 roughly 400kHz and takes 1us
+		process_mode_flags();
+
 		check_errors();
 		
 		update_ping_ledbut();
@@ -129,8 +140,6 @@ int main(void)
 		update_inf_ledbut(1);
 
 
-		update_instant_params(0);
-		update_instant_params(1);
 	}
 
 	return(1);

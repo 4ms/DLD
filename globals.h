@@ -16,11 +16,7 @@
 //8 is 24kHz but seems glitchy...
 
 
-//#define PCB_PROTO_VERSION_4
-//#define PCB_PROTO_VERSION_5
-//#define PCB_PROTO_VERSION_6
-//#define PCB_PROTO_VERSION_7
-#define PCB_PROTO_VERSION 7
+#define PCB_PROTO_VERSION 8
 
 #define FW_VERSION 1
 
@@ -44,7 +40,6 @@
 
 //#define USE_VCXO
 
-
 //About 45ms delay
 #define delay()						\
 do {							\
@@ -52,6 +47,7 @@ do {							\
   for (i = 0; i < 1000000; ++i)				\
     __asm__ __volatile__ ("nop\n\t":::"memory");	\
 } while (0)
+
 
 #define delay_ms(x)						\
 do {							\

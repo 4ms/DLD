@@ -27,16 +27,19 @@
  */
 
 /* 1V/octave:
- * 0V to 10V applied on the jack, through a 200k-+-100k->GND voltage divider,
- * results in 0V to 3.3V on the ADC input pin.
+ * Voltage applied on the Time jack is run through an inverting opamp stage
+ * with a gain of 0.333 and a DC offset of -1.65V.
+ * So, -5V to +5V results in 0V to 3.3V on the ADC input pin.
  *
- * This translates to 0 to 4095 as the ADC values,
+ * This translates to 0 to 4095 as the ADC values, (409.6 elements per octave)
  * which are looked up in this table.
  *
- * Thus the array represents steps of 2.44141 mV on the input jack
+ * Thus, the array represents steps of 2.44141 mV on the input jack
+ * And applying 0V should give an ADC value of 2048,
+ * and element [2048] is a value of 1.0
  */
 
-float exp_1voct[4096]={
+const float exp_1voct[4096]={
 1,
 1.0016768025,
 1.0033564168,

@@ -16,10 +16,13 @@ volatile uint32_t ping_tmr;
 volatile uint32_t ping_ledbut_tmr;
 volatile uint32_t clkout_trigger_tmr;
 volatile uint32_t pingled_tmr[2];
-volatile uint32_t sys_time=0;
+//volatile uint32_t sys_time=0;
 extern volatile uint32_t ping_time;
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
+extern uint8_t loop_led_state[NUM_CHAN];
 
+extern uint16_t loop_led_brightness;
+extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
 inline void inc_tmrs(void){
 	ping_tmr++;
@@ -27,6 +30,7 @@ inline void inc_tmrs(void){
 	clkout_trigger_tmr++;
 	pingled_tmr[0]++;
 	pingled_tmr[1]++;
+
 
 	if (clkout_trigger_tmr>=ping_time)
 	{
@@ -37,7 +41,7 @@ inline void inc_tmrs(void){
 	{
 		CLKOUT_OFF;
 	}
-	else if (mode[0][MAIN_CLOCK_JACK]==TRIG_MODE && clkout_trigger_tmr >= TRIG_TIME){
+	else if (mode[0][MAIN_CLOCK_GATETRIG]==TRIG_MODE && clkout_trigger_tmr >= TRIG_TIME){
 		CLKOUT_OFF;
 	}
 }
@@ -57,12 +61,14 @@ inline void reset_clkout_trigger_tmr(void){
 inline void reset_pingled_tmr(uint8_t channel){
 	pingled_tmr[channel]=0;
 
+	loop_led_state[channel]=1;
+
 	if (channel==0) {
 		CLKOUT1_ON;
-		LED_LOOP1_ON;
+		//LED_LOOP1_ON;
 	} else {
 		CLKOUT2_ON;
-		LED_LOOP2_ON;
+		//LED_LOOP2_ON;
 	}
 
 }
@@ -106,14 +112,15 @@ void init_timekeeper(void){
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
 	nvic.NVIC_IRQChannel = TIM2_IRQn;
-	nvic.NVIC_IRQChannelPreemptionPriority = 0;
-	nvic.NVIC_IRQChannelSubPriority = 0;
-	nvic.NVIC_IRQChannelCmd = DISABLE;
+	nvic.NVIC_IRQChannelPreemptionPriority = 3;
+	nvic.NVIC_IRQChannelSubPriority = 1;
+	nvic.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
 	//tim.TIM_Period = 1875; //180MHz / 2 / 1875 = 48kHz
-	tim.TIM_Period = 1750; //168MHz / 2 / 1750 = 48kHz
+	//tim.TIM_Period = 1750; //168MHz / 2 / 1750 = 48kHz
+	tim.TIM_Period = 17500; //168MHz / 2 / 17500 = 4.8kHz ... / 32 =
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
@@ -124,23 +131,43 @@ void init_timekeeper(void){
 
 }
 
+uint32_t loop_led_PWM_ctr=0;
+
+
 // Sample Clock EXTI line (I2S2 LRCLK)
 void EXTI_Handler(void)
 {
 	if(EXTI_GetITStatus(EXTI_CLOCK_line) != RESET) {
 		inc_tmrs();
 		EXTI_ClearITPendingBit(EXTI_CLOCK_line);
+
+
+
 	}
 }
 
 
 void TIM2_IRQHandler(void)
 {
+
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
 
+
+		if (loop_led_state[0] && (loop_led_PWM_ctr<loop_led_brightness))
+			LED_LOOP1_ON;
+		else
+			LED_LOOP1_OFF;
+
+		if (loop_led_state[1] && (loop_led_PWM_ctr<loop_led_brightness))
+			LED_LOOP2_ON;
+		else
+			LED_LOOP2_OFF;
+
+		if (loop_led_PWM_ctr++>32)
+			loop_led_PWM_ctr=0;
+
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-		sys_time++;
-		//inc_tmrs();
+		//sys_time++;
 
 	}
 }
@@ -176,17 +203,19 @@ void init_adc_param_update_timer(void)
 
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
+
 	//Takes 7-8us
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
 		//DEBUG3_ON;
 		process_adc();
 
-		if (CALIBRATE_JUMPER)
+		if (global_mode[CALIBRATE])
 			update_calibration();
 		else
 			update_params();
 		//DEBUG3_OFF;
+
 
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
 

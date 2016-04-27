@@ -33,9 +33,17 @@ int32_t flash_CV_CALIBRATION_OFFSET[6];
 int32_t flash_CODEC_DAC_CALIBRATION_DCOFFSET[4];
 int32_t flash_CODEC_ADC_CALIBRATION_DCOFFSET[4];
 
-void factory_reset(void)
+void set_firmware_version(void)
 {
 	flash_firmware_version = FW_VERSION;
+
+}
+
+
+void factory_reset(void)
+{
+
+	set_firmware_version();
 
 	//copy global variables to flash_* variables (SRAM staging area)
 	store_params_into_sram();
@@ -90,3 +98,23 @@ void write_all_params_to_FLASH(void)
 
 	flash_end_open_program();
 }
+
+void read_all_params_from_FLASH(void){
+
+	uint8_t i;
+
+	flash_firmware_version = flash_read_word(FLASH_ADDR_firmware_version) - FLASH_SYMBOL_firmwareoffset;
+
+	for (i=0;i<6;i++)
+	{
+		flash_CV_CALIBRATION_OFFSET[i] = flash_read_word(FLASH_ADDR_cv_calibration_offset+(i*4));
+	}
+	for (i=0;i<4;i++)
+	{
+		flash_CODEC_DAC_CALIBRATION_DCOFFSET[i] = flash_read_word(FLASH_ADDR_dac_calibration_dcoffset+(i*4));
+		flash_CODEC_ADC_CALIBRATION_DCOFFSET[i] = flash_read_word(FLASH_ADDR_adc_calibration_dcoffset+(i*4));
+	}
+
+}
+
+

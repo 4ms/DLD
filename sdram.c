@@ -9,9 +9,7 @@ uint32_t RAM_test(void){
 	uint32_t i;
 	uint16_t rd0;
 	uint16_t rd1;
-	uint32_t fail=0;
-	uint32_t fail_3_2=0;
-	uint32_t fail_0_1=0;
+	volatile register uint32_t fail=0;
 
 	addr=SDRAM_BASE;
 	for (i=0;i<(SDRAM_SIZE/2);i++){
@@ -33,15 +31,7 @@ uint32_t RAM_test(void){
 		if (rd1 != rd0)
 		{
 			fail++;
-
-			if (rd1==2 && rd0==3)
-				fail_3_2++;
-
-			if (rd1==1 && rd0==0)
-				fail_0_1++;
 		}
-
-		//rd0 = rd1;
 
 		addr+=2;
 	}
@@ -52,7 +42,7 @@ uint32_t RAM_test(void){
 
 void RAM_startup_test(void)
 {
-	uint32_t ram_errors=0;
+	volatile register uint32_t ram_errors=0;
 
 	LED_LOOP1_OFF;
 	LED_LOOP2_OFF;
@@ -64,22 +54,33 @@ void RAM_startup_test(void)
 
 	ram_errors = RAM_test();
 
-	if (ram_errors & 1)
-		LED_LOOP1_ON;
-	if (ram_errors & 2)
-		LED_PINGBUT_ON;
-	if (ram_errors & 4)
-		LED_LOOP2_ON;
-	if (ram_errors & 8)
-		LED_REV1_ON;
-	if (ram_errors & 16)
-		LED_INF1_ON;
-	if (ram_errors & 32)
-		LED_INF2_ON;
-	if (ram_errors & 64)
-		LED_REV2_ON;
+	LED_LOOP1_ON;
+	LED_LOOP2_ON;
+	LED_PINGBUT_ON;
+	LED_REV1_ON;
+	LED_REV2_ON;
+	LED_INF1_ON;
+	LED_INF2_ON;
 
-	while (RAMTEST_JUMPER)
+
+	//Display the number of bad memory addresses using the seven lights (up to 127 can be shown)
+	//If there's 128 or more bad memory addresses, then flash all the lights
+	if (ram_errors & 1)
+		LED_LOOP1_OFF;
+	if (ram_errors & 2)
+		LED_LOOP2_OFF;
+	if (ram_errors & 4)
+		LED_PINGBUT_OFF;
+	if (ram_errors & 8)
+		LED_REV1_OFF;
+	if (ram_errors & 16)
+		LED_INF1_OFF;
+	if (ram_errors & 32)
+		LED_INF2_OFF;
+	if (ram_errors & 64)
+		LED_REV2_OFF;
+
+	while (RAMTEST_BUTTONS)
 	{
 		if (ram_errors >= 128)
 		{

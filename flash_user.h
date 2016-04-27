@@ -11,6 +11,7 @@
 
 void store_params_into_sram(void);
 void write_all_params_to_FLASH(void);
+void set_firmware_version(void);
 
 void factory_reset(void);
 

@@ -196,13 +196,13 @@ Hardware Configuration defines parameters
 #define CODEC_LONG_TIMEOUT             ((uint32_t)(300 * CODEC_FLAG_TIMEOUT))
 
 
-uint32_t Codec_Register_Setup(void);
+uint32_t Codec_Register_Setup(uint8_t enable_DCinput);
 
 void Codec_CtrlInterface_Init(void);
 
 void Codec_AudioInterface_Init(uint32_t AudioFreq);
 
-uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave);
+uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave, uint8_t enable_DCinput);
 
 uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_TypeDef *CODEC);
 

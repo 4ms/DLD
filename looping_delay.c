@@ -39,6 +39,9 @@ uint32_t fade_queued_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
 
+uint8_t flag_reset_pingled_tmr_on_queueadvance[NUM_CHAN]={0,0};
+
+
 #define FADE_INCREMENT 0.01
 //#define FADE_INCREMENT 0.1
 //#define FADE_INCREMENT 0.05
@@ -55,9 +58,9 @@ float fade_pos[NUM_CHAN];
 //#define FADE_ADDRESSES 288
 //#define FADE_ADDRESSES 620
 
-//0.01 ===> 16.5 ms fade time
-//0.05 ===> 3.0 ms fade time
-//0.1  ===> 1.5ms fade time
+//0.01 ===> 8.25 ms fade time
+//0.05 ===> 1.5 ms fade time
+//0.1  ===> 0.75ms fade time
 
 
 void audio_buffer_init(void)
@@ -225,6 +228,8 @@ inline void set_divmult_time(uint8_t channel){
 	uint32_t t_divmult_time;
 	static uint32_t old_divmult_time[2]={0,0};
 
+	//DEBUG0_ON;
+
 	t_divmult_time = ping_time * param[channel][TIME];
 
 	t_divmult_time = t_divmult_time & 0xFFFFFFFC; //force it to be a multiple of 4
@@ -262,10 +267,13 @@ inline void set_divmult_time(uint8_t channel){
 					fade_queued_dest_divmult_time[channel] = 0;
 
 					fade_dest_read_addr[channel] = loop_start[channel];
+					reset_pingled_tmr(channel);
 				}
 				else
+				{
 					fade_queued_dest_read_addr[channel]=loop_start[channel];
-
+					flag_reset_pingled_tmr_on_queueadvance[channel]=1;
+				}
 			}
 		}
 	}
@@ -292,11 +300,14 @@ inline void set_divmult_time(uint8_t channel){
 			fade_queued_dest_divmult_time[channel]=t_divmult_time;
 
 	}
+
+	//DEBUG0_OFF;
+
 }
 
 
 /* ******************
- *  set_divmult_time
+ *  scroll_loop()
  * ******************
  *
  * Move loop_start and loop_end the same amount.
@@ -340,6 +351,7 @@ void scroll_loop(uint8_t channel, float scroll_amount, uint8_t scroll_subtract)
 
 inline void process_read_addr_fade(uint8_t channel){
 
+
 	//If we're fading, increment the fade position
 	//Otherwise, do nothing
 
@@ -368,6 +380,11 @@ inline void process_read_addr_fade(uint8_t channel){
 				fade_dest_read_addr[channel] = fade_queued_dest_read_addr[channel];
 				fade_queued_dest_read_addr[channel]=0;
 				fade_pos[channel] = FADE_INCREMENT;
+
+				if(flag_reset_pingled_tmr_on_queueadvance[channel])
+					reset_pingled_tmr(channel);
+
+				flag_reset_pingled_tmr_on_queueadvance[channel]=0;
 			}
 		}
 	}
@@ -397,6 +414,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float mainin_atten;
 	int32_t auxin;
 
+	float f_wr;
+	float f_mix;
+
 	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
 
 	uint16_t i;
@@ -412,19 +432,19 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	int32_t dummy;
 
 
-
 	sz=sz/2;
-//	if (channel==0)
-	//	DEBUG0_ON;
 
-	/*
+	//if (channel==0)
+		//DEBUG0_ON;
+
+
+//	if (fade_pos[0]<FADE_INCREMENT)
+//		DEBUG0_OFF;
+//	else
+//		DEBUG0_ON;
+
+/*
 	if (fade_pos[0]<FADE_INCREMENT)
-		DEBUG0_OFF;
-	else
-		DEBUG0_ON;
-
-
-	if (fade_pos[1]<FADE_INCREMENT)
 		DEBUG1_OFF;
 	else
 		DEBUG1_ON;
@@ -447,9 +467,13 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			fade_queued_dest_divmult_time[channel] = 0;
 
 			fade_dest_read_addr[channel] = loop_start[channel];
+			reset_pingled_tmr(channel);
 		}
 		else
+		{
 			fade_queued_dest_read_addr[channel]=loop_start[channel];
+			flag_reset_pingled_tmr_on_queueadvance[channel]=1;
+		}
 	}
 
 
@@ -469,6 +493,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		else
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)+8, 1);
 
+		reset_pingled_tmr(channel);
+
 	}
 
 	sdram_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0);
@@ -477,15 +503,14 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 
-		mainin = (*src++) + CODEC_ADC_CALIBRATION_DCOFFSET[channel+0];
+		mainin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+0]*/;
 		dummy=*src++;
 
-		auxin = (*src++) + CODEC_ADC_CALIBRATION_DCOFFSET[channel+2];
+		auxin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+2]*/;
 		dummy=*src++;
 
 
 		if (global_mode[AUTO_MUTE]){
-				//0.0001 is 10k samples or about 1/4 second
 			mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
 			if (mainin_lpf[channel]<20)
 				mainin=0;
@@ -515,7 +540,32 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 			// Add the loop contents to the input signal, as well as the auxin signal
 			wr = (int32_t)(regen + mainin_atten + (float)auxin);
+
+			// T = 0.8
+			// -T + T^2 = -0.16
+
+			//This could be optimized!
+			if (global_mode[SOFTCLIP]){
+				f_wr=(float)wr / 32768.0;
+				if(f_wr > 0.75)
+				{
+					f_wr = 0.75 / f_wr;
+					f_wr = (1.0f - f_wr) * (1.0f - 0.75) + 0.75;
+					f_wr = f_wr * 32768.0;
+					wr = (int32_t)f_wr;
+				}
+				else if(f_wr < -0.75)
+				{
+					f_wr = -0.75 / f_wr;
+					f_wr = -((1.0f - f_wr) * (1.0f - 0.75) + 0.75);
+					f_wr = f_wr * 32768.0;
+
+					wr = (int32_t)f_wr;
+				}
+			}
+
 			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
+
 
 		} else {
 			//In INF mode, just write what we read (copy data from read_addr to write_addr, ignore mainin/auxin/regen)
@@ -525,14 +575,35 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Wet/dry mix, as determined by the MIX parameter
 		mix = ( (float)dry * param[channel][MIX_DRY] + (float)rd * param[channel][MIX_WET] );
+
+		//This could be optimized!
+		if (global_mode[SOFTCLIP]){
+			f_mix=(float)mix / 32768.0;
+			if(f_mix > 0.75)
+			{
+				f_mix = 0.75 / f_mix;
+				f_mix = (1.0f - f_mix) * (1.0f - 0.75) + 0.75;
+				f_mix = f_mix * 32768.0;
+				mix = (int32_t)f_mix;
+
+			}
+			else if(f_mix < -0.75)
+			{
+				f_mix = -0.75 / f_mix;
+				f_mix = -((1.0f - f_mix) * (1.0f - 0.75) + 0.75);
+				f_mix = f_mix * 32768.0;
+
+				mix = (int32_t)f_mix;
+
+			}
+		}
+
+
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
-		//DC offset compensation:
 
 
-		// Combine stereo: Left<=Mix, Right<=Wet
-
-		if (CALIBRATE_JUMPER){
+		if (global_mode[CALIBRATE]){
 			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 			*dst++ = 0;
 
@@ -547,7 +618,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 			//Send out
 			*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-			//*dst++ = i_smoothed_cvadc[TIME*2+channel];
+			//*dst++ = param[channel][LEVEL]*16000;
 			*dst++ = 0;
 		}
 
@@ -564,6 +635,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
 
-//	if (channel==0)
-//	DEBUG0_OFF;
+	//if (channel==0)
+	//	DEBUG0_OFF;
 }

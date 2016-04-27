@@ -39,7 +39,7 @@
 
 #define INF1JACK_pin GPIO_Pin_7
 #define INF1JACK_GPIO GPIOD
-#define INF1JACK (!(INF1JACK_GPIO->IDR & INF1JACK_pin))
+#define INF1JACK ((INF1JACK_GPIO->IDR & INF1JACK_pin))
 
 
 #define INF2BUT_pin GPIO_Pin_9
@@ -48,18 +48,18 @@
 
 #define INF2JACK_pin GPIO_Pin_6
 #define INF2JACK_GPIO GPIOG
-#define INF2JACK (!(INF2JACK_GPIO->IDR & INF2JACK_pin))
+#define INF2JACK ((INF2JACK_GPIO->IDR & INF2JACK_pin))
 
 
 #define REV_RCC RCC_AHB1Periph_GPIOD
 
 #define REV1JACK_pin GPIO_Pin_11
 #define REV1JACK_GPIO GPIOD
-#define REV1JACK (!(REV1JACK_GPIO->IDR & REV1JACK_pin))
+#define REV1JACK ((REV1JACK_GPIO->IDR & REV1JACK_pin))
 
 #define REV2JACK_pin GPIO_Pin_3
 #define REV2JACK_GPIO GPIOD
-#define REV2JACK (!(REV2JACK_GPIO->IDR & REV2JACK_pin))
+#define REV2JACK ((REV2JACK_GPIO->IDR & REV2JACK_pin))
 
 
 
@@ -76,6 +76,11 @@
 
 #define TIMESW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE
 
+#define SWITCH_CENTER 0b11
+#define SWITCH_UP 0b10
+#define SWITCH_DOWN 0b01
+#define SWITCH_INVALID 0b00
+
 #define TIMESW_CH1_T1_pin GPIO_Pin_11
 #define TIMESW_CH1_T1_GPIO GPIOG
 #define TIMESW_CH1_T2_pin GPIO_Pin_12
@@ -86,10 +91,10 @@
 #define TIMESW_CH2_T1_GPIO GPIOA
 #define TIMESW_CH2_T2_pin GPIO_Pin_2
 #define TIMESW_CH2_T2_GPIO GPIOB
-#define TIMESW_CH2 ((TIMESW_CH2_T2_GPIO->IDR & TIMESW_CH2_T2_pin) ? 0b10:0b00) | ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01:0b00)
+#define TIMESW_CH2 (((TIMESW_CH2_T2_GPIO->IDR & TIMESW_CH2_T2_pin) ? 0b10:0b00) | ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01:0b00))
 
 
-#define JUMPER_RCC RCC_AHB1Periph_GPIOC
+#define JUMPER_RCC (RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOB)
 
 #define JUMPER_1_GPIO GPIOC
 #define JUMPER_1_pin GPIO_Pin_15
@@ -99,8 +104,57 @@
 #define JUMPER_2_pin GPIO_Pin_14
 #define JUMPER_2 (!(JUMPER_2_GPIO->IDR & JUMPER_2_pin))
 
-#define CALIBRATE_JUMPER JUMPER_1
-#define RAMTEST_JUMPER JUMPER_2
+#define JUMPER_3_GPIO GPIOE
+#define JUMPER_3_pin GPIO_Pin_6
+#define JUMPER_3 (!(JUMPER_3_GPIO->IDR & JUMPER_3_pin))
+
+/*
+#define JUMPER_4_GPIO GPIOB
+#define JUMPER_4_pin GPIO_Pin_7
+#define JUMPER_4 (!(JUMPER_4_GPIO->IDR & JUMPER_4_pin))
+*/
+
+#define DCINPUT_JUMPER JUMPER_1
+#define SOFTCLIP_JUMPER (!JUMPER_2)
+#define AUTOMUTE_JUMPER (!JUMPER_3)
+
+#define RAMTEST_BUTTONS (\
+		(TIMESW_CH1==SWITCH_UP) &&\
+		(TIMESW_CH2==SWITCH_DOWN) &&\
+		!PINGBUT &&\
+		REV1BUT &&\
+		INF1BUT &&\
+		!REV2BUT &&\
+		INF2BUT)
+
+
+#define ENTER_CALIBRATE_BUTTONS (\
+		(TIMESW_CH1==SWITCH_CENTER) &&\
+		(TIMESW_CH2==SWITCH_CENTER) &&\
+		!PINGBUT &&\
+		REV1BUT &&\
+		INF1BUT &&\
+		REV2BUT &&\
+		INF2BUT)
+
+#define SAVE_CALIBRATE_BUTTONS (\
+		(TIMESW_CH1==SWITCH_DOWN) &&\
+		(TIMESW_CH2==SWITCH_UP) &&\
+		!PINGBUT &&\
+		!REV1BUT &&\
+		INF1BUT &&\
+		REV2BUT &&\
+		INF2BUT)
+
+#define ENTER_SYSMODE_BUTTONS (\
+		(TIMESW_CH1==SWITCH_UP) &&\
+		(TIMESW_CH2==SWITCH_UP) &&\
+		PINGBUT &&\
+		REV1BUT &&\
+		INF1BUT &&\
+		REV2BUT &&\
+		INF2BUT)
+
 
 //OUTPUTS
 
@@ -198,23 +252,19 @@
 #define DEBUG2_ON DEBUG2_GPIO->BSRRL = DEBUG2
 #define DEBUG2_OFF DEBUG2_GPIO->BSRRH = DEBUG2
 
-#define DEBUG3 GPIO_Pin_6
-#define DEBUG3_GPIO GPIOE
-#define DEBUG3_ON DEBUG3_GPIO->BSRRL = DEBUG3
-#define DEBUG3_OFF DEBUG3_GPIO->BSRRH = DEBUG3
+//#define DEBUG3 GPIO_Pin_6
+//#define DEBUG3_GPIO GPIOE
+//#define DEBUG3_ON DEBUG3_GPIO->BSRRL = DEBUG3
+//#define DEBUG3_OFF DEBUG3_GPIO->BSRRH = DEBUG3
 
-#define DEBUG4 GPIO_Pin_5
-#define DEBUG4_GPIO GPIOA
-#define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
-#define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
+//#define DEBUG4 GPIO_Pin_5
+//#define DEBUG4_GPIO GPIOA
+//#define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
+//#define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
 
 
 void init_dig_inouts(void);
-void update_ping_ledbut(void);
 void init_EXTI_inputs(void);
-void update_channel_leds(uint8_t channel);
-void update_inf_ledbut(uint8_t channel);
-inline void update_instant_params(uint8_t channel);
 void init_inputread_timer(void);
 
 

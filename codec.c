@@ -132,7 +132,7 @@
 #define PART_mask	(0b11110000)
 #define REV_mask	(0b00001111)
 
-const uint8_t codec_init_data_slave[] =
+const uint8_t codec_init_data_slave_DCinput[] =
 {
 
 		SINGLE_SPEED
@@ -140,7 +140,7 @@ const uint8_t codec_init_data_slave[] =
 		| SLAVE
 		| DIF_I2S_24b,		//MODECTRL1
 
-		FAST_FILT_SEL
+		SLOW_FILT_SEL
 		| DEEMPH_OFF,		//DACCTRL
 
 		ATAPI_aLbR,			//DACMIX
@@ -150,7 +150,30 @@ const uint8_t codec_init_data_slave[] =
 
 		ADC_DIF_I2S
 		| HPFDisableA
-		| HPFDisableB //ADCCTRL
+		| HPFDisableB 	//ADCCTRL
+
+};
+
+
+const uint8_t codec_init_data_slave[] =
+{
+
+		SINGLE_SPEED
+		| RATIO0
+		| SLAVE
+		| DIF_I2S_24b,		//MODECTRL1
+
+		SLOW_FILT_SEL
+		| DEEMPH_OFF,		//DACCTRL
+
+		ATAPI_aLbR,			//DACMIX
+
+		0b00000000,			//DACAVOL
+		0b00000000,			//DACBVOL
+
+		ADC_DIF_I2S
+		/*| HPFDisableA
+		| HPFDisableB */	//ADCCTRL
 
 };
 const uint8_t codec_init_data_master[] =
@@ -220,7 +243,7 @@ void Codecs_Deinit(void)
 }
 
 
-uint32_t Codec_Register_Setup(void)
+uint32_t Codec_Register_Setup(uint8_t enable_DCinput)
 {
 	uint32_t err = 0;
 
@@ -230,19 +253,19 @@ uint32_t Codec_Register_Setup(void)
 	CODECA_RESET_HIGH;
 	delay_ms(2);
 
-	err+=Codec_Reset(CODECA_I2C, CODECA_MODE);
+	err+=Codec_Reset(CODECA_I2C, CODECA_MODE, enable_DCinput);
 
 
 	CODECB_RESET_HIGH;
 	delay_ms(2);
 
-	err+=Codec_Reset(CODECB_I2C, CODECB_MODE);
+	err+=Codec_Reset(CODECB_I2C, CODECB_MODE, enable_DCinput);
 
 	return err;
 }
 
 
-uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
+uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave, uint8_t enable_DCinput)
 {
 	uint8_t i;
 	uint32_t err=0;
@@ -258,8 +281,16 @@ uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave)
 	}
 	else
 	{
-		for(i=0;i<CS4271_NUM_REGS;i++)
-			err+=Codec_WriteRegister(i+1, codec_init_data_slave[i], CODEC);
+		if (enable_DCinput)
+		{
+			for(i=0;i<CS4271_NUM_REGS;i++)
+				err+=Codec_WriteRegister(i+1, codec_init_data_slave_DCinput[i], CODEC);
+		}
+		else
+		{
+			for(i=0;i<CS4271_NUM_REGS;i++)
+				err+=Codec_WriteRegister(i+1, codec_init_data_slave[i], CODEC);
+		}
 	}
 
 	err+=Codec_WriteRegister(CS4271_REG_MODELCTRL2, CPEN, CODEC); //Power Down disable

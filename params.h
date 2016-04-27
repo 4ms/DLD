@@ -15,8 +15,9 @@
 // Params are float values related to pots and CV jacks
 //
 
-#define NUM_PARAMS 5
+#define NUM_PARAMS 6
 
+/*
 //TIME: fractional value for time multiplication, integer value for time division
 #define TIME 0
 
@@ -31,47 +32,65 @@
 #define MIX_DRY 3
 #define MIX_WET 4
 
+#define TRACKING 5
+*/
+
+enum Params{
+	TIME,
+	LEVEL,
+	REGEN,
+	MIX_DRY,
+	MIX_WET,
+	TRACKING_COMP
+};
+#define MIXPOT MIX_DRY
+
 
 // Modes
 // Modes are integer values (often) related to switches or settings
 
-#define NUM_CHAN_MODES 6
+#define NUM_CHAN_MODES 8
 
-//INF: 0 = disabled, 1 = infinite repeat enabled
-#define INF 0
+enum ChannelModes{
+	INF,
+	REV,
+	TIMEMODE_POT,
+	TIMEMODE_JACK,
+	LOOP_CLOCK_GATETRIG,
+	MAIN_CLOCK_GATETRIG,
+	WINDOWMODE_POT,
+	WINDOWMODE_JACK
+};
 
-//REV: 0 = forward (default), 1 = reverse
-#define REV 1
-
-//TIMEMODE
-#define TIMEMODE_POT 2
-#define TIMEMODE_JACK 3
-
-//TIMEMODE values:
-enum Time_Modes {
-	MOD_READWRITE_TIME,
+enum TimeModes {
+	MOD_READWRITE_TIME_Q,
+	MOD_READWRITE_TIME_NOQ,
 	MOD_SAMPLE_RATE_NOQ,
 	MOD_SAMPLE_RATE_Q,
 	MOD_SR_INVRW
 };
 
-
-//Gate/Trig modes
-#define LOOP_CLOCK_JACK 4
-#define MAIN_CLOCK_JACK 5
-
-enum GateTrig_Modes{
+enum GateTrigModes{
 	GATE_MODE,
 	TRIG_MODE
 };
 
+enum WindowModes{
+	NO_WINDOW,
+	WINDOW
+};
+
 
 //Global Modes
-#define NUM_GLOBAL_MODES 1
+#define NUM_GLOBAL_MODES 4
 
 enum Global_Modes{
-	AUTO_MUTE
+	AUTO_MUTE,
+	SOFTCLIP,
+	DCINPUT,
+	CALIBRATE
 };
+
 
 #define P_1 1.0
 #define P_2 1.5
@@ -94,6 +113,8 @@ enum Global_Modes{
 
 void update_params(void);
 void process_adc(void);
+
+inline void process_mode_flags(void);
 
 float get_clk_div_nominal(uint16_t adc_val);
 float get_clk_div_exact(uint16_t adc_val);
