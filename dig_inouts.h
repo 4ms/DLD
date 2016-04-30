@@ -128,7 +128,7 @@
 		INF2BUT)
 
 
-#define ENTER_CALIBRATE_BUTTONS (\
+#define SAVE_CALIBRATE_BUTTONS (\
 		(TIMESW_CH1==SWITCH_CENTER) &&\
 		(TIMESW_CH2==SWITCH_CENTER) &&\
 		!PINGBUT &&\
@@ -137,7 +137,7 @@
 		REV2BUT &&\
 		INF2BUT)
 
-#define SAVE_CALIBRATE_BUTTONS (\
+#define ENTER_CALIBRATE_BUTTONS (\
 		(TIMESW_CH1==SWITCH_DOWN) &&\
 		(TIMESW_CH2==SWITCH_UP) &&\
 		!PINGBUT &&\
@@ -150,6 +150,15 @@
 		(TIMESW_CH1==SWITCH_UP) &&\
 		(TIMESW_CH2==SWITCH_UP) &&\
 		PINGBUT &&\
+		REV1BUT &&\
+		INF1BUT &&\
+		REV2BUT &&\
+		INF2BUT)
+
+#define SAVE_SYSMODE_BUTTONS (\
+		(TIMESW_CH1==SWITCH_CENTER) &&\
+		(TIMESW_CH2==SWITCH_CENTER) &&\
+		!PINGBUT &&\
 		REV1BUT &&\
 		INF1BUT &&\
 		REV2BUT &&\
@@ -264,7 +273,6 @@
 
 
 void init_dig_inouts(void);
-void init_EXTI_inputs(void);
 void init_inputread_timer(void);
 
 

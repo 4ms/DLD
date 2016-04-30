@@ -18,6 +18,8 @@
  * ...Some central place to compare all priorities.
  * ...This makes us a bit less portable? Unless we implement the nvic_control.c file on all projects
  *
+ * Initialize all arrays with size NUM_POT_ADCS OR NUM_CV_ADCS or NUM_GLOBAL_MODES etc. with a init_() function, not in the declaration
+ *
  */
 
 #include <stm32f4xx.h>
@@ -52,6 +54,7 @@ void check_errors(void){
 
 int main(void)
 {
+	uint32_t do_factory_reset=0;
 
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
@@ -82,6 +85,7 @@ int main(void)
 	delay();
 
 	init_timekeeper();
+	init_LED_PWM_IRQ();
 	init_inputread_timer();
 
 	Init_Pot_ADC((uint16_t *)potadc_buffer, NUM_POT_ADCS);
@@ -90,8 +94,6 @@ int main(void)
 	delay();
 
 	init_LowPassCoefs();
-	init_params();
-	init_modes();
 
 	SDRAM_Init();
 
@@ -112,33 +114,44 @@ int main(void)
 	init_audio_dma();
 
 	global_mode[DCINPUT] = DCINPUT_JUMPER;
+
 	Codec_Register_Setup(global_mode[DCINPUT]);
 
-	check_calibration_mode();
+	global_mode[CALIBRATE] = 0;
 
 	init_adc_param_update_timer();
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
 
-//	flag_time_param_changed[0]=1;
-//	flag_time_param_changed[1]=1;
-//	flag_ping_was_changed=1;
+	init_params();
+	init_modes();
 
-	while(1){//-O1 roughly 400kHz and takes 1us
+    if (ENTER_CALIBRATE_BUTTONS)
+    {
+    	global_mode[CALIBRATE] = 1;
+    }
+    else if (!load_flash_params())
+    {
+    	//let everything settle for about 12ms before auto calibrating
+    	do_factory_reset = 2048;
+    }
+
+	while(1){
+
+		check_entering_system_mode();
+
 		process_mode_flags();
 
 		check_errors();
 		
 		update_ping_ledbut();
+		update_INF_REV_ledbut(0);
+		update_INF_REV_ledbut(1);
 
-		//process_audio();
-		update_channel_leds(0);
-		update_channel_leds(1);
-
-		update_inf_ledbut(0);
-		update_inf_ledbut(1);
-
+    	if (do_factory_reset)
+    		if (!(--do_factory_reset))
+    			factory_reset();
 
 	}
 

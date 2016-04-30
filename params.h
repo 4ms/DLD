@@ -19,20 +19,10 @@
 
 /*
 //TIME: fractional value for time multiplication, integer value for time division
-#define TIME 0
-
 //LEVEL: 0..1 representing amount of main input mixed into delay loop
-#define LEVEL 1
-
 //REGEN: 0..1 representing amount of regeneration
-#define REGEN 2
-
 //MIX: 0..1 representing mix of delayed and clean on the main output
-#define MIXPOT 3
-#define MIX_DRY 3
-#define MIX_WET 4
-
-#define TRACKING 5
+//TRACKING_COMP: -2.0 .. 2.0 representing compensation for 1V/oct tracking
 */
 
 enum Params{
@@ -43,8 +33,13 @@ enum Params{
 	MIX_WET,
 	TRACKING_COMP
 };
-#define MIXPOT MIX_DRY
 
+enum Pots{
+	TIME_POT,
+	LEVEL_POT,
+	REGEN_POT,
+	MIX_POT
+};
 
 // Modes
 // Modes are integer values (often) related to switches or settings
@@ -82,13 +77,14 @@ enum WindowModes{
 
 
 //Global Modes
-#define NUM_GLOBAL_MODES 4
+#define NUM_GLOBAL_MODES 5
 
 enum Global_Modes{
 	AUTO_MUTE,
 	SOFTCLIP,
 	DCINPUT,
-	CALIBRATE
+	CALIBRATE,
+	SYSTEM_SETTINGS
 };
 
 

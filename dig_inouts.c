@@ -14,7 +14,7 @@ extern volatile uint32_t ping_tmr;
 
 extern volatile uint32_t ping_time;
 
-uint8_t flag_ping_was_changed;
+uint8_t flag_ping_was_changed[NUM_CHAN];
 
 uint8_t flag_inf_change[2]={0,0};
 uint8_t flag_rev_change[2]={0,0};
@@ -64,8 +64,8 @@ void init_dig_inouts(void){
 	gpio.GPIO_Pin = CLKOUT1_pin;	GPIO_Init(CLKOUT1_GPIO, &gpio);
 	gpio.GPIO_Pin = CLKOUT2_pin;	GPIO_Init(CLKOUT2_GPIO, &gpio);
 	CLKOUT_OFF;
-	CLKOUT1_ON;
-	CLKOUT2_ON;
+	CLKOUT1_OFF;
+	CLKOUT2_OFF;
 
 	//DEBUG pins
 	RCC_AHB1PeriphClockCmd(DEBUG_RCC, ENABLE);
@@ -138,72 +138,6 @@ void init_dig_inouts(void){
 
 
 }
-
-/**exti_ins.c**/
-
-void init_EXTI_inputs(void){
-	//  EXTI_InitTypeDef   EXTI_InitStructure;
-	//  NVIC_InitTypeDef   NVIC_InitStructure;
-/*
-	  //Set Priority Grouping mode to 2-bits for priority and 2-bits for sub-priority
-	  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-
-	  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-	  SYSCFG_EXTILineConfig(EXTI_PINGJACK_GPIO, EXTI_PINGJACK_pin);
-	  EXTI_InitStructure.EXTI_Line = EXTI_PINGJACK_line;
-	  EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-	  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	  EXTI_Init(&EXTI_InitStructure);
-
-	  NVIC_InitStructure.NVIC_IRQChannel = EXTI_PINGJACK_IRQ;
-	  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
-	  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-
-	  NVIC_Init(&NVIC_InitStructure);
-*/
-
-}
-
-//void EXTI2_IRQHandler(void)
-//{
-	/*
-  if(EXTI_GetITStatus(EXTI_PINGJACK_line) != RESET)
-  {
-	  //This should be software de-bounced, we can't rely on the external clock having a perfectly sharp rising edge...
-	  //Probably need to set the interrupt to record both edges, and ignore the up if a down happens shortly thereafter...?
-	  //Or grab PEG's ping code, which grabs the ping_tmr in the interrupt uses that to flag the main loop to check again if the jack is still high
-	  //..and if so, then it initiates the new timing information
-
-
-	  ping_button_state = 0;
-
-		if (ping_jack_state==1){ //second time we got a rising edge
-			ping_jack_state = 0;
-
-			//Log how much time has elapsed since last ping
-			ping_time=ping_tmr;
-
-			//Reset the timers
-			ping_ledbut_tmr=0;
-			clkout_trigger_tmr=0;
-
-			//Flag to update the divmult parameters
-			flag_ping_was_changed=1;
-		} else {
-
-			// This is the first rising edge, so start the ping timer
-			ping_tmr = 0;
-			ping_jack_state = 1;
-		}
-
-    EXTI_ClearITPendingBit(EXTI_PINGJACK_line);
-  }
-  */
-//}
-
 
 
 
@@ -292,7 +226,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 				//If the ping clock changes by +/-3% then track it until it's stable for more than 100 cycles *  35uS = 3.5ms
 				//if (t_f>1.03 || t_f<0.97)
-				if (t_f>1.005 || t_f<0.995)
+				if (t_f>1.01 || t_f<0.99)
 					ping_tracking=2;
 
 				if (ping_tracking){
@@ -303,10 +237,11 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					LED_PINGBUT_ON;
 					reset_ping_ledbut_tmr();
 
-					ping_time=t32;
+					ping_time=t32 & 0xFFFFFFF8;
 
 					//Flag to update the divmult parameters
-					flag_ping_was_changed=1;
+					flag_ping_was_changed[0]=1;
+					flag_ping_was_changed[1]=1;
 
 					//Decrement ping_tracking so that we eventually stop tracking it closely
 					ping_tracking--;
@@ -347,6 +282,7 @@ void TIM4_IRQHandler(void)
 	// Clear TIM4 update interrupt
 	TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
 
+
 	// Check Ping Button
 
 	if (PINGBUT) {
@@ -365,7 +301,7 @@ void TIM4_IRQHandler(void)
 			ping_button_state = 0;
 
 			//Log how much time has elapsed since last ping
-			ping_time=ping_tmr;
+			ping_time=ping_tmr & 0xFFFFFFF8; //multiple of 8
 
 			//Reset the timers
 			//ping_ledbut_tmr=0;
@@ -373,7 +309,9 @@ void TIM4_IRQHandler(void)
 			reset_clkout_trigger_tmr();
 
 			//Flag to update the divmult parameters
-			flag_ping_was_changed=1;
+			flag_ping_was_changed[0]=1;
+			flag_ping_was_changed[1]=1;
+
 		} else {
 
 			// This is the first button press, so start the ping timer
@@ -390,17 +328,17 @@ void TIM4_IRQHandler(void)
 	if (State[1]==0xf000)
 	{
 		// If we wiggled any pots while the inf button was held down, clear the flag
-		if (flag_pot_changed_infdown[TIME*2])
-			flag_pot_changed_infdown[TIME*2]=0;
+		if (flag_pot_changed_infdown[TIME_POT*2])
+			flag_pot_changed_infdown[TIME_POT*2]=0;
 
-		else if (flag_pot_changed_infdown[REGEN*2])
-			flag_pot_changed_infdown[REGEN*2]=0;
+		else if (flag_pot_changed_infdown[REGEN_POT*2])
+			flag_pot_changed_infdown[REGEN_POT*2]=0;
 
-		else if (flag_pot_changed_infdown[LEVEL*2])
-			flag_pot_changed_infdown[LEVEL*2]=0;
+		else if (flag_pot_changed_infdown[LEVEL_POT*2])
+			flag_pot_changed_infdown[LEVEL_POT*2]=0;
 
-		else if (flag_pot_changed_infdown[MIXPOT*2])
-			flag_pot_changed_infdown[MIXPOT*2]=0;
+		else if (flag_pot_changed_infdown[MIX_POT*2])
+			flag_pot_changed_infdown[MIX_POT*2]=0;
 
 		// Only flag a toggle of INF mode if we did not wiggle any of the pots
 		else
@@ -411,17 +349,17 @@ void TIM4_IRQHandler(void)
 	State[2]=(State[2]<<1) | t;
 	if (State[2]==0xf000)
 	{
-		if (flag_pot_changed_infdown[TIME*2+1])
-			flag_pot_changed_infdown[TIME*2+1]=0;
+		if (flag_pot_changed_infdown[TIME_POT*2+1])
+			flag_pot_changed_infdown[TIME_POT*2+1]=0;
 
-		else if (flag_pot_changed_infdown[REGEN*2+1])
-			flag_pot_changed_infdown[REGEN*2+1]=0;
+		else if (flag_pot_changed_infdown[REGEN_POT*2+1])
+			flag_pot_changed_infdown[REGEN_POT*2+1]=0;
 
-		else if (flag_pot_changed_infdown[LEVEL*2+1])
-			flag_pot_changed_infdown[LEVEL*2+1]=0;
+		else if (flag_pot_changed_infdown[LEVEL_POT*2+1])
+			flag_pot_changed_infdown[LEVEL_POT*2+1]=0;
 
-		else if (flag_pot_changed_infdown[MIXPOT*2+1])
-			flag_pot_changed_infdown[MIXPOT*2+1]=0;
+		else if (flag_pot_changed_infdown[MIX_POT*2+1])
+			flag_pot_changed_infdown[MIX_POT*2+1]=0;
 
 		else
 			flag_inf_change[1]=1;
@@ -447,17 +385,17 @@ void TIM4_IRQHandler(void)
 	State[5]=(State[5]<<1) | t;
 	if (State[5]==0xf000)
 	{
-		if (flag_pot_changed_revdown[TIME*2])
-			flag_pot_changed_revdown[TIME*2]=0;
+		if (flag_pot_changed_revdown[TIME_POT*2])
+			flag_pot_changed_revdown[TIME_POT*2]=0;
 
-		else if (flag_pot_changed_revdown[REGEN*2])
-			flag_pot_changed_revdown[REGEN*2]=0;
+		else if (flag_pot_changed_revdown[REGEN_POT*2])
+			flag_pot_changed_revdown[REGEN_POT*2]=0;
 
-		else if (flag_pot_changed_revdown[LEVEL*2])
-			flag_pot_changed_revdown[LEVEL*2]=0;
+		else if (flag_pot_changed_revdown[LEVEL_POT*2])
+			flag_pot_changed_revdown[LEVEL_POT*2]=0;
 
-		else if (flag_pot_changed_revdown[MIXPOT*2])
-			flag_pot_changed_revdown[MIXPOT*2]=0;
+		else if (flag_pot_changed_revdown[MIX_POT*2])
+			flag_pot_changed_revdown[MIX_POT*2]=0;
 
 		else
 			flag_rev_change[0]=1;
@@ -467,17 +405,17 @@ void TIM4_IRQHandler(void)
 	State[6]=(State[6]<<1) | t;
 	if (State[6]==0xf000)
 	{
-		if (flag_pot_changed_revdown[TIME*2+1])
-			flag_pot_changed_revdown[TIME*2+1]=0;
+		if (flag_pot_changed_revdown[TIME_POT*2+1])
+			flag_pot_changed_revdown[TIME_POT*2+1]=0;
 
-		else if (flag_pot_changed_revdown[REGEN*2+1])
-			flag_pot_changed_revdown[REGEN*2+1]=0;
+		else if (flag_pot_changed_revdown[REGEN_POT*2+1])
+			flag_pot_changed_revdown[REGEN_POT*2+1]=0;
 
-		else if (flag_pot_changed_revdown[LEVEL*2+1])
-			flag_pot_changed_revdown[LEVEL*2+1]=0;
+		else if (flag_pot_changed_revdown[LEVEL_POT*2+1])
+			flag_pot_changed_revdown[LEVEL_POT*2+1]=0;
 
-		else if (flag_pot_changed_revdown[MIXPOT*2+1])
-			flag_pot_changed_revdown[MIXPOT*2+1]=0;
+		else if (flag_pot_changed_revdown[MIX_POT*2+1])
+			flag_pot_changed_revdown[MIX_POT*2+1]=0;
 
 		else
 			flag_rev_change[1]=1;
@@ -496,5 +434,7 @@ void TIM4_IRQHandler(void)
 	}
 
 //	DEBUG2_OFF;
+
+
 }
 

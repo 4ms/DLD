@@ -9,10 +9,12 @@
 #define FLASH_USER_H_
 #include <stm32f4xx.h>
 
+void set_firmware_version(void);
+void factory_reset(void);
+uint32_t load_flash_params(void);
+void save_flash_params(void);
 void store_params_into_sram(void);
 void write_all_params_to_FLASH(void);
-void set_firmware_version(void);
-
-void factory_reset(void);
+void read_all_params_from_FLASH(void);
 
 #endif /* FLASH_USER_H_ */

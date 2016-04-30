@@ -39,7 +39,7 @@ uint32_t fade_queued_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
 
-uint8_t flag_reset_pingled_tmr_on_queueadvance[NUM_CHAN]={0,0};
+uint8_t flag_reset_loopled_tmr_on_queueadvance[NUM_CHAN]={0,0};
 
 
 #define FADE_INCREMENT 0.01
@@ -232,7 +232,7 @@ inline void set_divmult_time(uint8_t channel){
 
 	t_divmult_time = ping_time * param[channel][TIME];
 
-	t_divmult_time = t_divmult_time & 0xFFFFFFFC; //force it to be a multiple of 4
+	//t_divmult_time = t_divmult_time & 0xFFFFFFFC; //force it to be a multiple of 4
 
 	// Check for valid divmult time range
 	if (t_divmult_time > LOOP_SIZE>>1)
@@ -267,12 +267,12 @@ inline void set_divmult_time(uint8_t channel){
 					fade_queued_dest_divmult_time[channel] = 0;
 
 					fade_dest_read_addr[channel] = loop_start[channel];
-					reset_pingled_tmr(channel);
+					reset_loopled_tmr(channel);
 				}
 				else
 				{
 					fade_queued_dest_read_addr[channel]=loop_start[channel];
-					flag_reset_pingled_tmr_on_queueadvance[channel]=1;
+					flag_reset_loopled_tmr_on_queueadvance[channel]=1;
 				}
 			}
 		}
@@ -381,10 +381,11 @@ inline void process_read_addr_fade(uint8_t channel){
 				fade_queued_dest_read_addr[channel]=0;
 				fade_pos[channel] = FADE_INCREMENT;
 
-				if(flag_reset_pingled_tmr_on_queueadvance[channel])
-					reset_pingled_tmr(channel);
-
-				flag_reset_pingled_tmr_on_queueadvance[channel]=0;
+				if(flag_reset_loopled_tmr_on_queueadvance[channel])
+				{
+					reset_loopled_tmr(channel);
+				}
+				flag_reset_loopled_tmr_on_queueadvance[channel]=0;
 			}
 		}
 	}
@@ -467,12 +468,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			fade_queued_dest_divmult_time[channel] = 0;
 
 			fade_dest_read_addr[channel] = loop_start[channel];
-			reset_pingled_tmr(channel);
+			reset_loopled_tmr(channel);
 		}
 		else
 		{
 			fade_queued_dest_read_addr[channel]=loop_start[channel];
-			flag_reset_pingled_tmr_on_queueadvance[channel]=1;
+			flag_reset_loopled_tmr_on_queueadvance[channel]=1;
 		}
 	}
 
@@ -492,9 +493,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)-8, 1);
 		else
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)+8, 1);
-
-		reset_pingled_tmr(channel);
-
+		DEBUG2_ON;
+		reset_loopled_tmr(channel);
+		DEBUG2_OFF;
 	}
 
 	sdram_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0);
