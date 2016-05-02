@@ -113,10 +113,8 @@ void EXTI_Handler(void)
 	{
 		inc_tmrs();
 
-		DEBUG0_ON;
 		if (!global_mode[SYSTEM_SETTINGS] && !global_mode[CALIBRATE])
 			update_channel_leds();
-		DEBUG0_OFF;
 
 		EXTI_ClearITPendingBit(EXTI_CLOCK_line);
 	}

@@ -105,6 +105,7 @@ void init_modes(void)
 	}
 
 	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
+	global_mode[AUTO_UNQ] = 0;
 }
 
 
@@ -234,10 +235,13 @@ void process_adc(void)
 
 		}
 
-		if (divmult_time[i] < 2048)
-		 	mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_NOQ;
-		else
-			mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
+		//Audio rate divmult time: auto switch to Unquantized mode
+		if (global_mode[AUTO_UNQ]){
+			if (divmult_time[i] < 2048)
+				mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_NOQ;
+			else
+				mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
+		}
 
 
 

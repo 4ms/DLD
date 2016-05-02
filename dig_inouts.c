@@ -198,6 +198,9 @@ void TIM1_UP_TIM10_IRQHandler(void)
 	uint32_t t32;
 	float t_f;
 
+	DEBUG0_ON;
+
+
 
 	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET) {
 
@@ -225,8 +228,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				t_f = (float)t32 / (float)ping_time;
 
 				//If the ping clock changes by +/-3% then track it until it's stable for more than 100 cycles *  35uS = 3.5ms
+				if (t_f>1.005 || t_f<0.995)
 				//if (t_f>1.03 || t_f<0.97)
-				if (t_f>1.01 || t_f<0.99)
 					ping_tracking=2;
 
 				if (ping_tracking){
@@ -264,6 +267,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 		TIM_ClearITPendingBit(TIM10, TIM_IT_Update);
 	}
+	DEBUG0_OFF;
 
 }
 

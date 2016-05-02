@@ -15,23 +15,14 @@
 // Params are float values related to pots and CV jacks
 //
 
-#define NUM_PARAMS 6
-
-/*
-//TIME: fractional value for time multiplication, integer value for time division
-//LEVEL: 0..1 representing amount of main input mixed into delay loop
-//REGEN: 0..1 representing amount of regeneration
-//MIX: 0..1 representing mix of delayed and clean on the main output
-//TRACKING_COMP: -2.0 .. 2.0 representing compensation for 1V/oct tracking
-*/
-
 enum Params{
-	TIME,
-	LEVEL,
-	REGEN,
-	MIX_DRY,
+	TIME,			//TIME: fractional value for time multiplication, integer value for time division
+	LEVEL,			//LEVEL: 0..1 representing amount of main input mixed into delay loop
+	REGEN,			//REGEN: 0..1 representing amount of regeneration
+	MIX_DRY,		//MIX: 0..1 representing mix of delayed and clean on the main output
 	MIX_WET,
-	TRACKING_COMP
+	TRACKING_COMP,	//TRACKING_COMP: -2.0 .. 2.0 representing compensation for 1V/oct tracking
+	NUM_PARAMS
 };
 
 enum Pots{
@@ -41,10 +32,10 @@ enum Pots{
 	MIX_POT
 };
 
-// Modes
+//
+// Channel Modes
 // Modes are integer values (often) related to switches or settings
-
-#define NUM_CHAN_MODES 8
+//
 
 enum ChannelModes{
 	INF,
@@ -54,7 +45,8 @@ enum ChannelModes{
 	LOOP_CLOCK_GATETRIG,
 	MAIN_CLOCK_GATETRIG,
 	WINDOWMODE_POT,
-	WINDOWMODE_JACK
+	WINDOWMODE_JACK,
+	NUM_CHAN_MODES
 };
 
 enum TimeModes {
@@ -76,17 +68,19 @@ enum WindowModes{
 };
 
 
+//
 //Global Modes
-#define NUM_GLOBAL_MODES 5
-
+//Global Modes represent global settings or states of functionality
+//
 enum Global_Modes{
 	AUTO_MUTE,
 	SOFTCLIP,
 	DCINPUT,
 	CALIBRATE,
-	SYSTEM_SETTINGS
+	SYSTEM_SETTINGS,
+	AUTO_UNQ,
+	NUM_GLOBAL_MODES
 };
-
 
 #define P_1 1.0
 #define P_2 1.5
