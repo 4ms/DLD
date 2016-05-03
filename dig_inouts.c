@@ -178,7 +178,7 @@ void init_inputread_timer(void){
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 1000;
+	tim.TIM_Period = 5000;
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
@@ -192,15 +192,14 @@ void init_inputread_timer(void){
 
 void TIM1_UP_TIM10_IRQHandler(void)
 {
+	//every 30us
 	static uint16_t ping_tracking=100;
 	static uint16_t State = 0; // Current debounce status
 	uint16_t t;
 	uint32_t t32;
 	float t_f;
 
-	DEBUG0_ON;
-
-
+	//DEBUG0_ON;
 
 	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET) {
 
@@ -208,18 +207,23 @@ void TIM1_UP_TIM10_IRQHandler(void)
 		// ping detection time is 60us typical, 100us max from incoming clock until this line
 		if (PINGJACK){
 			t=0xe000;
+			DEBUG1_ON;
 		} else{
 			t=0xe001;
+			DEBUG1_OFF;
 		}
 
 		State=(State<<1) | t;
-		//if (State==0xfffe){ //jack low for 12 times (1ms), then detected high 1 time
-		if ((State & 0xff)==0xfe){ //jack low for 7 times (250us), then detected high 1 time
+		//if (State==0xfffffff0) //jack low for 27 times (0.810ms), then detected high 4 times (0.120ms)
+		if (State==0xfffe) //jack low for 12 times (1ms), then detected high 1 time
+		//if ((State & 0xff)==0xfe) //jack low for 7 times (250us), then detected high 1 time
+
+		{
 
 			ping_button_state = 0;
 
 			if (ping_jack_state==1){ //second time we got a rising edge
-
+				DEBUG0_ON;
 				ping_jack_state = 0;
 
 				t32=ping_tmr;
@@ -228,19 +232,19 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				t_f = (float)t32 / (float)ping_time;
 
 				//If the ping clock changes by +/-3% then track it until it's stable for more than 100 cycles *  35uS = 3.5ms
-				if (t_f>1.005 || t_f<0.995)
-				//if (t_f>1.03 || t_f<0.97)
-					ping_tracking=2;
+				//if (t_f>1.005 || t_f<0.995)
+				if (t_f>1.03 || t_f<0.97)
+					ping_tracking=100;
 
 				if (ping_tracking){
 
-					//CLKOUT_ON;
-					//reset_clkout_trigger_tmr();
+					CLKOUT_ON;
+					reset_clkout_trigger_tmr();
 
 					LED_PINGBUT_ON;
 					reset_ping_ledbut_tmr();
 
-					ping_time=t32 & 0xFFFFFFF8;
+					ping_time=t32 /*& 0xFFFFFFF8*/;
 
 					//Flag to update the divmult parameters
 					flag_ping_was_changed[0]=1;
@@ -250,9 +254,10 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					ping_tracking--;
 
 				}
+				DEBUG0_OFF;
 
 			} else {
-
+				DEBUG2_ON;
 				//CLKOUT_ON;
 				//reset_clkout_trigger_tmr();
 
@@ -262,12 +267,13 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				// This is the first rising edge, so start the ping timer
 				reset_ping_tmr();
 				ping_jack_state = 1;
+				DEBUG2_OFF;
+
 			}
 		}
 
 		TIM_ClearITPendingBit(TIM10, TIM_IT_Update);
 	}
-	DEBUG0_OFF;
 
 }
 

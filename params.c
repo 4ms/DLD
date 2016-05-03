@@ -119,10 +119,12 @@ void init_LowPassCoefs(void)
 	float t;
 	uint8_t i;
 
-	t=10.0;
+	t=50.0;
 
 	CV_LPF_COEF[TIME*2] = 1.0-(1.0/t);
 	CV_LPF_COEF[TIME*2+1] = 1.0-(1.0/t);
+
+	t=10.0;
 
 	CV_LPF_COEF[LEVEL*2] = 1.0-(1.0/t);
 	CV_LPF_COEF[LEVEL*2+1] = 1.0-(1.0/t);
@@ -232,12 +234,14 @@ void process_adc(void)
 		else if (flag_pot_changed[TIME_POT*2+i])
 		{
 			mode[i][TIMEMODE_POT]=MOD_READWRITE_TIME_Q;
+			if (!global_mode[AUTO_UNQ])
+				mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
 
 		}
 
 		//Audio rate divmult time: auto switch to Unquantized mode
 		if (global_mode[AUTO_UNQ]){
-			if (divmult_time[i] < 2048)
+			if (divmult_time[i] < 1024) // 48000 / 1023 = 47Hz
 				mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_NOQ;
 			else
 				mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
@@ -314,14 +318,14 @@ void update_params(void)
 			if (mode[channel][TIMEMODE_JACK]==MOD_READWRITE_TIME_NOQ) //Pot and Jack are unquantized
 			{
 
-				if (i_smoothed_cvadc[TIME*2+channel] <= 2048) //positive voltage on the Time CV jack
+				if (old_i_smoothed_cvadc[TIME*2+channel] <= 2048) //positive voltage on the Time CV jack
 				{
-					t_combined = (2048-i_smoothed_cvadc[TIME*2+channel]) * param[channel][TRACKING_COMP];
+					t_combined = (2048-old_i_smoothed_cvadc[TIME*2+channel]) * param[channel][TRACKING_COMP];
 					time_mult[channel] = get_clk_div_exact(i_smoothed_potadc[TIME_POT*2+channel])  / exp_1voct[t_combined];
 				}
 				else
 				{
-					t_combined = i_smoothed_potadc[TIME_POT*2+channel] + (i_smoothed_cvadc[TIME*2+channel]-2048);
+					t_combined = i_smoothed_potadc[TIME_POT*2+channel] + (old_i_smoothed_cvadc[TIME*2+channel]-2048);
 					time_mult[channel] = get_clk_div_exact(t_combined);
 				}
 			}
@@ -351,13 +355,13 @@ void update_params(void)
 
 				if (i_smoothed_cvadc[TIME*2+channel] <= 2048) //positive voltage on the Time CV jack
 				{
-					t_combined = (2048-i_smoothed_cvadc[TIME*2+channel]) * param[channel][TRACKING_COMP];
+					t_combined = (2048-old_i_smoothed_cvadc[TIME*2+channel]) * param[channel][TRACKING_COMP];
 					time_mult[channel] = get_clk_div_nominal(i_smoothed_potadc[TIME_POT*2+channel])  / exp_1voct[t_combined];
 				}
 				else
 				{
 					time_mult[channel] = get_clk_div_nominal(i_smoothed_potadc[TIME_POT*2+channel]);
-					time_mult[channel] *= get_clk_div_exact(i_smoothed_cvadc[TIME*2+channel]-2048);
+					time_mult[channel] *= get_clk_div_exact(old_i_smoothed_cvadc[TIME*2+channel]-2048);
 				}
 
 

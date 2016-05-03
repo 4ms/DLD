@@ -16,6 +16,8 @@ extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
 extern int16_t i_smoothed_cvadc[NUM_CV_ADCS];
+extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
+
 
 extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
 
@@ -418,6 +420,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float f_wr;
 	float f_mix;
 
+	float lpf_coef;
+	int32_t min_vol;
+
 	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
 
 	uint16_t i;
@@ -493,9 +498,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)-8, 1);
 		else
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)+8, 1);
-		DEBUG2_ON;
+
 		reset_loopled_tmr(channel);
-		DEBUG2_OFF;
 	}
 
 	sdram_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0);
@@ -512,12 +516,20 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 
 		if (global_mode[AUTO_MUTE]){
-			mainin_lpf[channel] = (mainin_lpf[channel]*0.9995) + (((mainin>0)?mainin:(-1*mainin))*0.0005);
-			if (mainin_lpf[channel]<20)
+
+			//debug: lpf_coef = 1.0 / ((i_smoothed_potadc[5]+1.0)*10.0);
+			lpf_coef = 0.0002;
+			//debug: min_vol = (i_smoothed_potadc[3])>>4;
+			min_vol = 10;
+
+			mainin_lpf[channel] = (mainin_lpf[channel]*(1.0-lpf_coef)) + (((mainin>0)?mainin:(-1*mainin))*lpf_coef);
+
+			if (mainin_lpf[channel]<min_vol)
 				mainin=0;
 
-			auxin_lpf[channel] = (auxin_lpf[channel]*0.9995) + (((auxin>0)?auxin:(-1*auxin))*0.0005);
-			if (auxin_lpf[channel]<20)
+			auxin_lpf[channel] = (auxin_lpf[channel]*(1.0-lpf_coef)) + (((auxin>0)?auxin:(-1*auxin))*lpf_coef);
+
+			if (auxin_lpf[channel]<min_vol)
 				auxin=0;
 		}
 

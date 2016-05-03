@@ -18,7 +18,15 @@
  * ...Some central place to compare all priorities.
  * ...This makes us a bit less portable? Unless we implement the nvic_control.c file on all projects
  *
+ *
  * Initialize all arrays with size NUM_POT_ADCS OR NUM_CV_ADCS or NUM_GLOBAL_MODES etc. with a init_() function, not in the declaration
+ *
+ *
+ * Change mode[0][MAIN_CLOCK_GATETRIG] to global_mode[MAIN_CLOCK_GATETRIG]
+ *
+ *
+ * Create a system settings input to turn on/off global_mode[AUTO_UNQ]
+ *
  *
  */
 

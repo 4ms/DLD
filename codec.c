@@ -195,8 +195,8 @@ const uint8_t codec_init_data_master[] =
 		0b00000000,			//DACBVOL
 
 		ADC_DIF_I2S
-		| HPFDisableA
-		| HPFDisableB //ADCCTRL
+	/*	| HPFDisableA
+		| HPFDisableB */	//ADCCTRL
 
 };
 
