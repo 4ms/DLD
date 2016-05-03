@@ -222,21 +222,21 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 			ping_button_state = 0;
 
-			if (ping_jack_state==1){ //second time we got a rising edge
+		//	if (ping_jack_state==1){ //second time we got a rising edge
 				DEBUG0_ON;
 				ping_jack_state = 0;
 
 				t32=ping_tmr;
-
+				reset_ping_tmr();
 				//See if new clock differs from existing ping time by +/-3%, or if we're tracking the ping
-				t_f = (float)t32 / (float)ping_time;
+			//	t_f = (float)t32 / (float)ping_time;
 
-				//If the ping clock changes by +/-3% then track it until it's stable for more than 100 cycles *  35uS = 3.5ms
+				//If the ping clock changes by +/-3% then track it until it's stable for at least 4 clocks
 				//if (t_f>1.005 || t_f<0.995)
-				if (t_f>1.03 || t_f<0.97)
-					ping_tracking=100;
+			//	if (t_f>1.03 || t_f<0.97)
+			//		ping_tracking=4;
 
-				if (ping_tracking){
+			//	if (ping_tracking){
 
 					CLKOUT_ON;
 					reset_clkout_trigger_tmr();
@@ -244,7 +244,9 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					LED_PINGBUT_ON;
 					reset_ping_ledbut_tmr();
 
-					ping_time=t32 /*& 0xFFFFFFF8*/;
+					//ping_time=t32;
+					ping_time=(float)t32*0.25 + (float)ping_time*0.75;
+					ping_time=ping_time & 0xFFFFFFF8;
 
 					//Flag to update the divmult parameters
 					flag_ping_was_changed[0]=1;
@@ -253,10 +255,10 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					//Decrement ping_tracking so that we eventually stop tracking it closely
 					ping_tracking--;
 
-				}
+			//	}
 				DEBUG0_OFF;
 
-			} else {
+		/*	} else {
 				DEBUG2_ON;
 				//CLKOUT_ON;
 				//reset_clkout_trigger_tmr();
@@ -270,6 +272,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				DEBUG2_OFF;
 
 			}
+			*/
 		}
 
 		TIM_ClearITPendingBit(TIM10, TIM_IT_Update);

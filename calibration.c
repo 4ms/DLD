@@ -78,6 +78,7 @@ void update_calibration(void)
 {
 	uint8_t switch1, switch2;
 	static uint32_t buttons_down=0;
+	static uint32_t factory_reset_buttons_down=0;
 
 	CV_CALIBRATION_OFFSET[0] = 2048-(i_smoothed_rawcvadc[0] & 0x0FFF);
 	CV_CALIBRATION_OFFSET[1] = 2048-(i_smoothed_rawcvadc[1] & 0x0FFF);
@@ -117,6 +118,58 @@ void update_calibration(void)
 		}
 	} else
 		buttons_down=0;
+
+	if (FACTORY_RESET_BUTTONS)
+	{
+		factory_reset_buttons_down++;
+		if (factory_reset_buttons_down==10000)
+		{
+			factory_reset();
+			global_mode[CALIBRATE] = 0;
+
+			while (1)
+			{
+				LED_LOOP1_ON;
+				delay();
+				LED_LOOP1_OFF;
+				delay();
+
+				LED_PINGBUT_ON;
+				delay();
+				LED_PINGBUT_OFF;
+				delay();
+
+				LED_LOOP2_ON;
+				delay();
+				LED_LOOP2_OFF;
+				delay();
+
+				LED_REV1_ON;
+				delay();
+				LED_REV1_OFF;
+				delay();
+
+				LED_INF1_ON;
+				delay();
+				LED_INF1_OFF;
+				delay();
+
+				LED_INF2_ON;
+				delay();
+				LED_INF2_OFF;
+				delay();
+
+				LED_REV2_ON;
+				delay();
+				LED_REV2_OFF;
+				delay();
+
+				//infinite loop to force user to reset
+			}
+		}
+	} else
+		factory_reset_buttons_down=0;
+
 }
 
 
