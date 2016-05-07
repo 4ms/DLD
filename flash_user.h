@@ -10,7 +10,7 @@
 #include <stm32f4xx.h>
 
 void set_firmware_version(void);
-void factory_reset(void);
+void factory_reset(uint8_t loop_afterwards);
 uint32_t load_flash_params(void);
 void save_flash_params(void);
 void store_params_into_sram(void);

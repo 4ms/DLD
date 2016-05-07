@@ -94,7 +94,7 @@
 #define TIMESW_CH2 (((TIMESW_CH2_T2_GPIO->IDR & TIMESW_CH2_T2_pin) ? 0b10:0b00) | ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01:0b00))
 
 
-#define JUMPER_RCC (RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOB)
+#define JUMPER_RCC (RCC_AHB1Periph_GPIOC /*| RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOB*/)
 
 #define JUMPER_1_GPIO GPIOC
 #define JUMPER_1_pin GPIO_Pin_15
@@ -104,11 +104,12 @@
 #define JUMPER_2_pin GPIO_Pin_14
 #define JUMPER_2 (!(JUMPER_2_GPIO->IDR & JUMPER_2_pin))
 
+/*
 #define JUMPER_3_GPIO GPIOE
 #define JUMPER_3_pin GPIO_Pin_6
 #define JUMPER_3 (!(JUMPER_3_GPIO->IDR & JUMPER_3_pin))
 
-/*
+
 #define JUMPER_4_GPIO GPIOB
 #define JUMPER_4_pin GPIO_Pin_7
 #define JUMPER_4 (!(JUMPER_4_GPIO->IDR & JUMPER_4_pin))
@@ -271,16 +272,17 @@
 #define DEBUG2_ON DEBUG2_GPIO->BSRRL = DEBUG2
 #define DEBUG2_OFF DEBUG2_GPIO->BSRRH = DEBUG2
 
-//#define DEBUG3 GPIO_Pin_6
-//#define DEBUG3_GPIO GPIOE
-//#define DEBUG3_ON DEBUG3_GPIO->BSRRL = DEBUG3
-//#define DEBUG3_OFF DEBUG3_GPIO->BSRRH = DEBUG3
+#define DEBUG3 GPIO_Pin_6
+#define DEBUG3_GPIO GPIOE
+#define DEBUG3_ON DEBUG3_GPIO->BSRRL = DEBUG3
+#define DEBUG3_OFF DEBUG3_GPIO->BSRRH = DEBUG3
 
-//#define DEBUG4 GPIO_Pin_5
-//#define DEBUG4_GPIO GPIOA
-//#define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
-//#define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
-
+/*
+#define DEBUG4 GPIO_Pin_5
+#define DEBUG4_GPIO GPIOA
+#define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
+#define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
+*/
 
 void init_dig_inouts(void);
 void init_inputread_timer(void);

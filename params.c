@@ -142,7 +142,7 @@ void init_LowPassCoefs(void)
 	MIN_CV_ADC_CHANGE[REGEN*2+1] = 20;
 
 
-	t=50.0; //50.0 = about 100ms to turn a knob fully
+	t=20.0; //50.0 = about 100ms to turn a knob fully
 
 	POT_LPF_COEF[TIME_POT*2] = 1.0-(1.0/t);
 	POT_LPF_COEF[TIME_POT*2+1] = 1.0-(1.0/t);
@@ -156,17 +156,17 @@ void init_LowPassCoefs(void)
 	POT_LPF_COEF[MIX_POT*2] = 1.0-(1.0/t);
 	POT_LPF_COEF[MIX_POT*2+1] = 1.0-(1.0/t);
 
-	MIN_POT_ADC_CHANGE[TIME_POT*2] = 75;
-	MIN_POT_ADC_CHANGE[TIME_POT*2+1] = 75;
+	MIN_POT_ADC_CHANGE[TIME_POT*2] = 60;
+	MIN_POT_ADC_CHANGE[TIME_POT*2+1] = 60;
 
-	MIN_POT_ADC_CHANGE[LEVEL_POT*2] = 40;
-	MIN_POT_ADC_CHANGE[LEVEL_POT*2+1] = 40;
+	MIN_POT_ADC_CHANGE[LEVEL_POT*2] = 60;
+	MIN_POT_ADC_CHANGE[LEVEL_POT*2+1] = 60;
 
 	MIN_POT_ADC_CHANGE[REGEN_POT*2] = 60;
 	MIN_POT_ADC_CHANGE[REGEN_POT*2+1] = 60;
 
-	MIN_POT_ADC_CHANGE[MIX_POT*2] = 40;
-	MIN_POT_ADC_CHANGE[MIX_POT*2+1] = 40;
+	MIN_POT_ADC_CHANGE[MIX_POT*2] = 60;
+	MIN_POT_ADC_CHANGE[MIX_POT*2+1] = 60;
 
 
 
@@ -196,6 +196,8 @@ void process_adc(void)
 
 	uint8_t flag_pot_changed[NUM_POT_ADCS];
 
+	static uint32_t track_moving_pot[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
+
 	//
 	// Run a LPF on the pots and CV jacks
 	//
@@ -207,13 +209,22 @@ void process_adc(void)
 		i_smoothed_potadc[i] = (int16_t)smoothed_potadc[i];
 
 		t=i_smoothed_potadc[i] - old_i_smoothed_potadc[i];
+
+		//if (track_moving_pot[i])
+		//	track_moving_pot[i]--;
+
 		if ((t>MIN_POT_ADC_CHANGE[i]) || (t<-MIN_POT_ADC_CHANGE[i]))
+			track_moving_pot[i]=500;
+
+		if (track_moving_pot[i])
 		{
+			track_moving_pot[i]--;//
+
 			flag_pot_changed[i]=1;
 
 			pot_delta[i] = t;
 
-			//Todo: We could clean up the use flag_pot_changed_XXXdown, instead change the mode right here
+			//Todo: We could clean up the use of flag_pot_changed_XXXdown, instead change the mode right here
 			if (!(i&1) && REV1BUT) flag_pot_changed_revdown[i]=1;
 			else if ((i&1) && REV2BUT) flag_pot_changed_revdown[i]=1;
 
@@ -240,6 +251,7 @@ void process_adc(void)
 		}
 
 		//Audio rate divmult time: auto switch to Unquantized mode
+		//Disabled by default
 		if (global_mode[AUTO_UNQ]){
 			if (divmult_time[i] < 1024) // 48000 / 1023 = 47Hz
 				mode[i][TIMEMODE_JACK] = MOD_READWRITE_TIME_NOQ;
@@ -260,11 +272,12 @@ void process_adc(void)
 	}
 
 
-
 	for (i=0;i<NUM_CV_ADCS;i++)
 	{
 		smoothed_cvadc[i] = LowPassSmoothingFilter(smoothed_cvadc[i], (float)(cvadc_buffer[i]+CV_CALIBRATION_OFFSET[i]), CV_LPF_COEF[i]);
 		i_smoothed_cvadc[i] = (int16_t)smoothed_cvadc[i];
+		if (i_smoothed_cvadc[i] < 0) i_smoothed_cvadc[i] = 0;
+		if (i_smoothed_cvadc[i] > 4095) i_smoothed_cvadc[i] = 4095;
 
 		t=i_smoothed_cvadc[i] - old_i_smoothed_cvadc[i];
 		if ((t>MIN_CV_ADC_CHANGE[i]) || (t<-MIN_CV_ADC_CHANGE[i]))
@@ -278,12 +291,10 @@ void process_adc(void)
 	{
 		for (i=0;i<NUM_CV_ADCS;i++)
 		{
-			smoothed_rawcvadc[i] = LowPassSmoothingFilter(smoothed_rawcvadc[i], (float)(cvadc_buffer[i]), 0.999);
+			smoothed_rawcvadc[i] = LowPassSmoothingFilter(smoothed_rawcvadc[i], (float)(cvadc_buffer[i]), 0.99);
 			i_smoothed_rawcvadc[i] = (int16_t)smoothed_rawcvadc[i];
 		}
 	}
-
-
 
 }
 
@@ -318,19 +329,27 @@ void update_params(void)
 			if (mode[channel][TIMEMODE_JACK]==MOD_READWRITE_TIME_NOQ) //Pot and Jack are unquantized
 			{
 
-				if (old_i_smoothed_cvadc[TIME*2+channel] <= 2048) //positive voltage on the Time CV jack
+				if (old_i_smoothed_cvadc[TIME*2+channel] < 2018) //positive voltage on the Time CV jack
 				{
 					t_combined = (2048-old_i_smoothed_cvadc[TIME*2+channel]) * param[channel][TRACKING_COMP];
-					time_mult[channel] = get_clk_div_exact(i_smoothed_potadc[TIME_POT*2+channel])  / exp_1voct[t_combined];
+					time_mult[channel] = get_clk_div_exact(old_i_smoothed_potadc[TIME_POT*2+channel])  / exp_1voct[t_combined];
+				}
+				else if (old_i_smoothed_cvadc[TIME*2+channel] > 2078)
+				{
+					t_combined = old_i_smoothed_potadc[TIME_POT*2+channel] + (old_i_smoothed_cvadc[TIME*2+channel]-2048);
+					time_mult[channel] = get_clk_div_exact(t_combined);
 				}
 				else
 				{
-					t_combined = i_smoothed_potadc[TIME_POT*2+channel] + (old_i_smoothed_cvadc[TIME*2+channel]-2048);
-					time_mult[channel] = get_clk_div_exact(t_combined);
+					time_mult[channel] = get_clk_div_exact(old_i_smoothed_potadc[TIME_POT*2+channel]);
+
 				}
+
 			}
-			else //Pot is unquantized, Jack is quantized
+
+			else //Pot is unquantized, Jack is quantized NOT WELL TESTED! BEWARE!
 			{
+
 				time_mult[channel] = get_clk_div_exact(i_smoothed_potadc[TIME_POT*2+channel]);
 				if (i_smoothed_cvadc[TIME*2+channel] >= 2048)
 					time_mult[channel] *= get_clk_div_nominal(i_smoothed_cvadc[TIME*2+channel]-2048);
@@ -341,16 +360,18 @@ void update_params(void)
 		}
 		else
 		{
+
 			if (mode[channel][TIMEMODE_JACK]==MOD_READWRITE_TIME_Q) //Pot and Jack are quantized
 			{
-				t_combined = i_smoothed_potadc[TIME_POT*2+channel] + (i_smoothed_cvadc[TIME*2+channel]-2048);
 
-				if (t_combined>4095) t_combined = 4095;
-				else if (t_combined<0) t_combined = 0;
+				if (i_smoothed_cvadc[TIME_POT*2+channel] <= 2048)
+					time_mult[channel] = get_clk_div_nominal(old_i_smoothed_potadc[TIME_POT*2+channel]) * get_clk_div_nominal(2048 - i_smoothed_cvadc[TIME_POT*2+channel]);
+				else
+					time_mult[channel] = get_clk_div_nominal(old_i_smoothed_potadc[TIME_POT*2+channel]) / get_clk_div_nominal(i_smoothed_cvadc[TIME_POT*2+channel] - 2048);
 
-				time_mult[channel] = get_clk_div_nominal(t_combined);
 			}
-			else //Pot is quantized, Jack is unquantized
+
+			else //Pot is quantized, Jack is unquantized  NOT WELL TESTED! BEWARE!
 			{
 
 				if (i_smoothed_cvadc[TIME*2+channel] <= 2048) //positive voltage on the Time CV jack
@@ -367,10 +388,8 @@ void update_params(void)
 
 			}
 		}
+
 		time_mult[channel] = adjust_time_by_switch(time_mult[channel], channel);
-
-
-
 
 		if (time_mult[channel] != param[channel][TIME])
 		{
@@ -379,8 +398,6 @@ void update_params(void)
 		}
 
 
-		// Set LEVEL and REGEN to 0 and 1 if we're in infinite repeat mode
-		// Otherwise combine Pot and CV, and hard-clip at 4096
 
 		if (mode[channel][INF] == 0)
 		{
@@ -388,7 +405,10 @@ void update_params(void)
 // ******* LEVEL **********
 
 			t_combined = i_smoothed_potadc[LEVEL_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
-			if (t_combined>4095) t_combined = 4095;
+			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+
+			//if (t_combined>4095) t_combined = 4095;
+			//if (t_combined<0) t_combined = 0;
 
 			param[channel][LEVEL] = log_taper[t_combined];
 
@@ -397,19 +417,21 @@ void update_params(void)
 // ******* REGEN **********
 
 			t_combined = i_smoothed_potadc[REGEN_POT*2+channel] + i_smoothed_cvadc[REGEN*2+channel];
-			if (t_combined>4095) t_combined = 4095;
+			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+			//if (t_combined>4095) t_combined = 4095;
+			//if (t_combined<0) t_combined = 0;
 
-			// From 0 to 80% of rotation, Regen goes from 0% to 100%
-			// From 80% to 90% of rotation, Regen is set at 100%
-			// From 90% to 100% of rotation, Regen goes from 100% to 110%
-			if (t_combined<3300.0)
-				param[channel][REGEN]=t_combined/3300.0;
+			// From 0 to 85% of rotation, Regen goes from 0% to 100%
+			// From 85% to 97% of rotation, Regen is set at 100%
+			// From 97% to 100% of rotation, Regen goes from 100% to 110%
+			if (t_combined<3500.0)
+				param[channel][REGEN]=t_combined/3500.0;
 
-			else if (t_combined<=3723.0)
+			else if (t_combined<=4000.0)
 				param[channel][REGEN]=1.0;
 
 			else
-				param[channel][REGEN]=t_combined/3723.0; // 4096/3723 = 110% regeneration
+				param[channel][REGEN]=(t_combined-3050)/950.0; // (4095-3050)/950 = 110% regeneration... (4000-3050)/950 = 100%
 
 		}
 		else
@@ -419,7 +441,6 @@ void update_params(void)
 
 			param[channel][LEVEL]=0.0;
 			param[channel][REGEN]=1.0;
-
 
 			//
 			// If REGEN was wiggled while INF is held down, then scroll the loop
@@ -500,7 +521,10 @@ inline void process_mode_flags(void){
 					reset_loopled_tmr(channel);
 
 					loop_start[channel]=read_addr[channel];
-					loop_end[channel]=write_addr[channel];
+					loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+
+//					loop_end[channel]=write_addr[channel];
+//					loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
 				}
 
 			}
@@ -519,6 +543,7 @@ inline void process_mode_flags(void){
 					loop_end[channel]=t;
 				}
 				else
+					//pivot_read_addr(channel);
 					swap_read_write(channel);
 			}
 
@@ -596,38 +621,38 @@ float get_clk_div_exact(uint16_t adc_val)
 {
 	float t, b, tval, bval;
 
-	if (adc_val<=40) //was 150
+	if (adc_val<=25)
 		return(P_1);
-	else if (adc_val<=176)
-	{t=176;b=40;tval=P_2;bval=P_1;}
-	else if (adc_val<=471)
-	{t=471;b=176;tval=P_3;bval=P_2;}
-	else if (adc_val<=780)
-	{t=780;b=471;tval=P_4;bval=P_3;}
-	else if (adc_val<=1076)
-	{t=1076;b=780;tval=P_5;bval=P_4;}
-	else if (adc_val<=1368)
-	{t=1368;b=1076;tval=P_6;bval=P_5;}
-	else if (adc_val<=1664)
-	{t=1664;b=1368;tval=P_7;bval=P_6;}
-	else if (adc_val<=1925)
-	{t=1925;b=1664;tval=P_8;bval=P_7;}
-	else if (adc_val<=2179) // Center
-	{t=2179;b=1925;tval=P_9;bval=P_8;}
-	else if (adc_val<=2448)
-	{t=2448;b=2179;tval=P_10;bval=P_9;}
-	else if (adc_val<=2714)
-	{t=2714;b=2448;tval=P_11;bval=P_10;}
-	else if (adc_val<=2991)
-	{t=2991;b=2714;tval=P_12;bval=P_11;}
-	else if (adc_val<=3276)
-	{t=3276;b=2991;tval=P_13;bval=P_12;}
-	else if (adc_val<=3586)
-	{t=3586;b=3276;tval=P_14;bval=P_13;}
-	else if (adc_val<=3879)
-	{t=3879;b=3586;tval=P_15;bval=P_14;}
-	else if (adc_val<=4046)
-	{t=4046;b=3879;tval=P_16;bval=P_15;}
+	else if (adc_val<=108)
+	{t=108;b=25;tval=P_2;bval=P_1;}
+	else if (adc_val<=323)
+	{t=323;b=108;tval=P_3;bval=P_2;}
+	else if (adc_val<=625)
+	{t=625;b=323;tval=P_4;bval=P_3;}
+	else if (adc_val<=928)
+	{t=928;b=625;tval=P_5;bval=P_4;}
+	else if (adc_val<=1222)
+	{t=1222;b=925;tval=P_6;bval=P_5;}
+	else if (adc_val<=1516)
+	{t=1516;b=1222;tval=P_7;bval=P_6;}
+	else if (adc_val<=1794)
+	{t=1794;b=1516;tval=P_8;bval=P_7;}
+	else if (adc_val<=2052)
+	{t=2052;b=1794;tval=P_9;bval=P_8;}
+	else if (adc_val<=2581)
+	{t=2581;b=2052;tval=P_10;bval=P_9;}
+	else if (adc_val<=2852)
+	{t=2852;b=2581;tval=P_11;bval=P_10;}
+	else if (adc_val<=3133)
+	{t=3133;b=2852;tval=P_12;bval=P_11;}
+	else if (adc_val<=3431)
+	{t=3431;b=3133;tval=P_13;bval=P_12;}
+	else if (adc_val<=3732)
+	{t=3732;b=3431;tval=P_14;bval=P_13;}
+	else if (adc_val<=3962)
+	{t=3962;b=3732;tval=P_15;bval=P_14;}
+	else if (adc_val<=4062)
+	{t=4062;b=3962;tval=P_16;bval=P_15;}
 	else
 		return(P_17);
 

@@ -89,17 +89,19 @@ void set_firmware_version(void)
 }
 
 
-void factory_reset(void)
+void factory_reset(uint8_t loop_afterwards)
 {
+
 
 	auto_calibrate();
 	set_firmware_version();
 	set_default_system_settings();
 
+	LED_PINGBUT_OFF;
 	LED_REV1_ON;
 	LED_REV2_ON;
-	LED_LOOP1_ON;
-	LED_LOOP2_ON;
+	LED_LOOP1_OFF;
+	LED_LOOP2_OFF;
 	LED_INF1_ON;
 	LED_INF2_ON;
 
@@ -114,6 +116,13 @@ void factory_reset(void)
 	LED_INF1_OFF;
 	LED_INF2_OFF;
 
+	if (loop_afterwards)
+	{
+		while(1)
+		{
+			chase_all_lights(20);
+		}
+	}
 }
 
 uint32_t load_flash_params(void)
@@ -153,7 +162,7 @@ uint32_t load_flash_params(void)
 		global_mode[SOFTCLIP] = flash_global_mode_SOFTCLIP;
 
 
-		return (1);
+		return (flash_firmware_version);
 
 	} else
 	{

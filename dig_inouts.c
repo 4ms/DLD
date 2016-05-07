@@ -73,13 +73,13 @@ void init_dig_inouts(void){
 	gpio.GPIO_Pin = DEBUG0;	GPIO_Init(DEBUG0_GPIO, &gpio);
 	gpio.GPIO_Pin = DEBUG1;	GPIO_Init(DEBUG1_GPIO, &gpio);
 	gpio.GPIO_Pin = DEBUG2;	GPIO_Init(DEBUG2_GPIO, &gpio);
-	//gpio.GPIO_Pin = DEBUG3;	GPIO_Init(DEBUG3_GPIO, &gpio);
-	//gpio.GPIO_Pin = DEBUG4;	GPIO_Init(DEBUG4_GPIO, &gpio);
+	gpio.GPIO_Pin = DEBUG3;	GPIO_Init(DEBUG3_GPIO, &gpio);
+//	gpio.GPIO_Pin = DEBUG4;	GPIO_Init(DEBUG4_GPIO, &gpio);
 	DEBUG0_OFF;
 	DEBUG1_OFF;
 	DEBUG2_OFF;
-	//DEBUG3_OFF;
-	//DEBUG4_OFF;
+	DEBUG3_OFF;
+//	DEBUG4_OFF;
 
 	//Configure inputs
 	gpio.GPIO_Mode = GPIO_Mode_IN;
@@ -132,8 +132,8 @@ void init_dig_inouts(void){
 	RCC_AHB1PeriphClockCmd(JUMPER_RCC, ENABLE);
 
 	gpio.GPIO_Pin = JUMPER_1_pin;	GPIO_Init(JUMPER_1_GPIO, &gpio);
-	gpio.GPIO_Pin = JUMPER_2_pin;	GPIO_Init(JUMPER_2_GPIO, &gpio);
-	gpio.GPIO_Pin = JUMPER_3_pin;	GPIO_Init(JUMPER_3_GPIO, &gpio);
+//	gpio.GPIO_Pin = JUMPER_2_pin;	GPIO_Init(JUMPER_2_GPIO, &gpio);
+//	gpio.GPIO_Pin = JUMPER_3_pin;	GPIO_Init(JUMPER_3_GPIO, &gpio);
 //	gpio.GPIO_Pin = JUMPER_4_pin;	GPIO_Init(JUMPER_4_GPIO, &gpio);
 
 
@@ -169,6 +169,7 @@ void init_inputread_timer(void){
 	TIM_Cmd(TIM4, ENABLE);
 
 
+	//Ping jack timer
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM10, ENABLE);
 
 	nvic.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
@@ -178,7 +179,7 @@ void init_inputread_timer(void){
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 5000;
+	tim.TIM_Period = 5000; //every 30uS
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
@@ -190,27 +191,30 @@ void init_inputread_timer(void){
 	TIM_Cmd(TIM10, ENABLE);
 }
 
+//every 30us (33.3kHz)
+//takes 0.3us if no ping
 void TIM1_UP_TIM10_IRQHandler(void)
 {
-	//every 30us
 	static uint16_t ping_tracking=100;
 	static uint16_t State = 0; // Current debounce status
 	uint16_t t;
 	uint32_t t32;
 	float t_f;
 
-	//DEBUG0_ON;
+	static uint16_t ringbuff[4]={0,0,0,0};
+	static uint16_t a=0;
+	static ring_buffer_filled=0;
+
 
 	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET) {
+
 
 		// Check Ping jack
 		// ping detection time is 60us typical, 100us max from incoming clock until this line
 		if (PINGJACK){
 			t=0xe000;
-			DEBUG1_ON;
 		} else{
 			t=0xe001;
-			DEBUG1_OFF;
 		}
 
 		State=(State<<1) | t;
@@ -222,21 +226,18 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 			ping_button_state = 0;
 
-		//	if (ping_jack_state==1){ //second time we got a rising edge
-				DEBUG0_ON;
 				ping_jack_state = 0;
 
 				t32=ping_tmr;
 				reset_ping_tmr();
-				//See if new clock differs from existing ping time by +/-3%, or if we're tracking the ping
-			//	t_f = (float)t32 / (float)ping_time;
 
 				//If the ping clock changes by +/-3% then track it until it's stable for at least 4 clocks
-				//if (t_f>1.005 || t_f<0.995)
 			//	if (t_f>1.03 || t_f<0.97)
 			//		ping_tracking=4;
 
 			//	if (ping_tracking){
+				//Decrement ping_tracking so that we eventually stop tracking it closely
+				//ping_tracking--;
 
 					CLKOUT_ON;
 					reset_clkout_trigger_tmr();
@@ -244,39 +245,56 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					LED_PINGBUT_ON;
 					reset_ping_ledbut_tmr();
 
-					//ping_time=t32;
-					ping_time=(float)t32*0.25 + (float)ping_time*0.75;
-					ping_time=ping_time & 0xFFFFFFF8;
+/* Ring buffer... hmm, kinda weird when the clock slows down: all sorts of double-hits
+ * But, it averages out phasing nicely
+
+					ringbuff[a] = t32;
+
+					//Use the clock period the first four times we receive ping after boot
+					//After that, use an average of the previous 4 clock periods
+					if (ring_buffer_filled)
+						ping_time=(ringbuff[0] + ringbuff[1] + ringbuff[2] + ringbuff[3])/4;
+					else
+						ping_time=ringbuff[a];
+
+					if (a++>=4) {
+						a=0;
+						ring_buffer_filled=1;
+					}
+*/
+
+//Simple linear average: the catchup is weird, and the phasing is not much different
+					//ping_time = (t32 + a)/2;
+					//a=t32;
+
+//Exponential LPF: never really gets to the actual tempo, so there is always drift
+					//ping_time=(float)t32*0.25 + (float)ping_time*0.75;
+					//ping_time=ping_time & 0xFFFFFFF8;
+
+/*Only update if there is a variation >1%
+					t_f = (float)t32 / (float)ping_time;
+					if (t_f>1.01 || t_f<0.99)
+					{
+						ping_time=t32;
+
+					}
+*/
+
+//Track the clock 1:1
+					ping_time=t32;
 
 					//Flag to update the divmult parameters
 					flag_ping_was_changed[0]=1;
 					flag_ping_was_changed[1]=1;
 
-					//Decrement ping_tracking so that we eventually stop tracking it closely
-					ping_tracking--;
 
-			//	}
-				DEBUG0_OFF;
 
-		/*	} else {
-				DEBUG2_ON;
-				//CLKOUT_ON;
-				//reset_clkout_trigger_tmr();
-
-				LED_PINGBUT_ON;
-				reset_ping_ledbut_tmr();
-
-				// This is the first rising edge, so start the ping timer
-				reset_ping_tmr();
-				ping_jack_state = 1;
-				DEBUG2_OFF;
-
-			}
-			*/
 		}
 
 		TIM_ClearITPendingBit(TIM10, TIM_IT_Update);
+		DEBUG2_OFF;
 	}
+
 
 }
 
@@ -310,8 +328,8 @@ void TIM4_IRQHandler(void)
 		//Clear the ping jack state
 		ping_jack_state = 0;
 
-		if (ping_button_state==1){ //second time we pressed the button
-			ping_button_state = 0;
+		//if (ping_button_state==1){ //second time we pressed the button
+			//ping_button_state = 0;
 
 			//Log how much time has elapsed since last ping
 			ping_time=ping_tmr & 0xFFFFFFF8; //multiple of 8
@@ -325,12 +343,12 @@ void TIM4_IRQHandler(void)
 			flag_ping_was_changed[0]=1;
 			flag_ping_was_changed[1]=1;
 
-		} else {
+		//} else {
 
 			// This is the first button press, so start the ping timer
 			ping_tmr = 0;
-			ping_button_state = 1;
-		}
+		//	ping_button_state = 1;
+		//}
 	}
 
 

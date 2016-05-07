@@ -27,7 +27,7 @@
  *
  * Create a system settings input to turn on/off global_mode[AUTO_UNQ]
  *
- *
+ * change name of loopled_tmr to channel_tmr
  */
 
 #include <stm32f4xx.h>
@@ -54,6 +54,7 @@ __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern uint8_t flag_time_param_changed[2];
+extern uint32_t flash_firmware_version;
 
 void check_errors(void){
 
@@ -93,8 +94,10 @@ int main(void)
 	delay();
 
 	init_timekeeper();
-	init_LED_PWM_IRQ();
 	init_inputread_timer();
+
+	Deinit_Pot_ADC();
+	Deinit_CV_ADC();
 
 	Init_Pot_ADC((uint16_t *)potadc_buffer, NUM_POT_ADCS);
 	Init_CV_ADC((uint16_t *)cvadc_buffer, NUM_CV_ADCS);
@@ -106,6 +109,8 @@ int main(void)
 	SDRAM_Init();
 
 	if (RAMTEST_BUTTONS) RAM_startup_test();
+
+	init_LED_PWM_IRQ();
 
 	audio_buffer_init();
 
@@ -129,9 +134,6 @@ int main(void)
 
 	init_adc_param_update_timer();
 
-	Start_I2SDMA_Channel1();
-	Start_I2SDMA_Channel2();
-
 	init_params();
 	init_modes();
 
@@ -139,11 +141,18 @@ int main(void)
     {
     	global_mode[CALIBRATE] = 1;
     }
-    else if (!load_flash_params())
+    else if (load_flash_params() == -1 ) //This line is for pre-production. For the production release, change FW_VERSION to 2, and replace this line with the one below:
+//  else if (load_flash_params() <=1 ) //If we detect an early version of firmware, then check the RAM and do a factory reset
     {
-    	//let everything settle for about 12ms before auto calibrating
-    	do_factory_reset = 2048;
+    	if (RAM_test()==0)
+    		do_factory_reset = 163840; //about 1 second
+    	else
+    		while (1) blink_all_lights(50); //It's on the fritz!
+
     }
+
+	Start_I2SDMA_Channel1();
+	Start_I2SDMA_Channel2();
 
 	while(1){
 
@@ -159,7 +168,7 @@ int main(void)
 
     	if (do_factory_reset)
     		if (!(--do_factory_reset))
-    			factory_reset();
+    			factory_reset(1);
 
 	}
 

@@ -59,7 +59,6 @@ inline void reset_clkout_trigger_tmr(void){
 inline void reset_loopled_tmr(uint8_t channel){
 	loopled_tmr[channel]=0;
 
-	//Don't mess with the loop LEDs if we're in calibrate or settings mode
 	if (!global_mode[CALIBRATE] && !global_mode[SYSTEM_SETTINGS])
 		loop_led_state[channel]=1;
 

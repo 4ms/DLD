@@ -51,6 +51,73 @@ void update_ping_ledbut(void)
 
  */
 
+void chase_all_lights(uint32_t delaytime)
+{
+
+		LED_LOOP1_ON;
+		delay_ms(delaytime);
+		LED_LOOP1_OFF;
+		delay_ms(delaytime);
+
+		LED_PINGBUT_ON;
+		delay_ms(delaytime);
+		LED_PINGBUT_OFF;
+		delay_ms(delaytime);
+
+		LED_LOOP2_ON;
+		delay_ms(delaytime);
+		LED_LOOP2_OFF;
+		delay_ms(delaytime);
+
+		LED_REV1_ON;
+		delay_ms(delaytime);
+		LED_REV1_OFF;
+		delay_ms(delaytime);
+
+		LED_INF1_ON;
+		delay_ms(delaytime);
+		LED_INF1_OFF;
+		delay_ms(delaytime);
+
+		LED_INF2_ON;
+		delay_ms(delaytime);
+		LED_INF2_OFF;
+		delay_ms(delaytime);
+
+		LED_REV2_ON;
+		delay_ms(delaytime);
+		LED_REV2_OFF;
+		delay_ms(delaytime);
+
+		//infinite loop to force user to reset
+
+}
+
+
+void blink_all_lights(uint32_t delaytime)
+{
+
+		LED_LOOP1_ON;
+		LED_PINGBUT_ON;
+		LED_LOOP2_ON;
+		LED_REV1_ON;
+		LED_INF1_ON;
+		LED_INF2_ON;
+		LED_REV2_ON;
+		delay_ms(delaytime);
+
+		LED_LOOP1_OFF;
+		LED_PINGBUT_OFF;
+		LED_LOOP2_OFF;
+		LED_REV1_OFF;
+		LED_INF1_OFF;
+		LED_INF2_OFF;
+		LED_REV2_OFF;
+		delay_ms(delaytime);
+
+}
+
+
 
 
 void update_channel_leds(void)
@@ -59,7 +126,7 @@ void update_channel_leds(void)
 	uint8_t channel;
 
 	for (channel=0;channel<NUM_CHAN;channel++)
-	{ //350ns - 450ns
+	{
 		if (loopled_tmr[channel] >= divmult_time[channel]){
 			reset_loopled_tmr(channel);
 		}

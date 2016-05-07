@@ -2,6 +2,7 @@
 #include "gpiof4.h"
 #include "sdram.h"
 #include "dig_inouts.h"
+#include "leds.h"
 
 uint32_t RAM_test(void){
 
@@ -9,21 +10,28 @@ uint32_t RAM_test(void){
 	uint32_t i;
 	uint16_t rd0;
 	uint16_t rd1;
-	volatile register uint32_t fail=0;
+	volatile uint32_t fail=0;
 
 	addr=SDRAM_BASE;
 	for (i=0;i<(SDRAM_SIZE/2);i++){
+		LED_REV1_ON;
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
+
+		LED_REV1_OFF;
 
 		rd1 = (uint16_t)((i) & 0x0000FFFF);
 		*((uint16_t *)addr) = rd1;
 
 		addr+=2;
+
+
 	}
 
 	addr=SDRAM_BASE;
 	for (i=0;i<(SDRAM_SIZE/2);i++){
+		LED_REV2_ON;
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
+		LED_REV2_OFF;
 
 		rd1 = *((uint16_t *)addr);
 
@@ -34,6 +42,7 @@ uint32_t RAM_test(void){
 		}
 
 		addr+=2;
+
 	}
 
 	return(fail);
@@ -80,38 +89,13 @@ void RAM_startup_test(void)
 	if (ram_errors & 64)
 		LED_REV2_OFF;
 
-	while (RAMTEST_BUTTONS)
+	while (1)
 	{
 		if (ram_errors >= 128)
 		{
-			LED_LOOP1_ON;
-			LED_LOOP2_ON;
-			LED_PINGBUT_ON;
-			LED_REV1_ON;
-			LED_REV2_ON;
-			LED_INF1_ON;
-			LED_INF2_ON;
-
-			delay();
-
-			LED_LOOP1_OFF;
-			LED_LOOP2_OFF;
-			LED_PINGBUT_OFF;
-			LED_REV1_OFF;
-			LED_REV2_OFF;
-			LED_INF1_OFF;
-			LED_INF2_OFF;
-
-			delay();
+			blink_all_lights(50);
 		}
 	}
-	LED_LOOP1_OFF;
-	LED_LOOP2_OFF;
-	LED_PINGBUT_OFF;
-	LED_REV1_OFF;
-	LED_REV2_OFF;
-	LED_INF1_OFF;
-	LED_INF2_OFF;
 
 
 }

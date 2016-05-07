@@ -4,6 +4,32 @@
 #include "globals.h"
 #include "adc.h"
 
+void Deinit_Pot_ADC(void)
+{
+
+	ADC_Cmd(ADC1, DISABLE);
+	ADC_DMACmd(ADC1, DISABLE);
+	ADC_DMARequestAfterLastTransferCmd(ADC1, DISABLE);
+	DMA_Cmd(DMA2_Stream4, DISABLE);
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, DISABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, DISABLE);
+}
+
+void Deinit_CV_ADC(void)
+{
+
+	ADC_Cmd(ADC3, DISABLE);
+	ADC_DMACmd(ADC3, DISABLE);
+	ADC_DMARequestAfterLastTransferCmd(ADC3, DISABLE);
+	DMA_Cmd(DMA2_Stream0, DISABLE);
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC3, DISABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, DISABLE);
+
+
+}
+
 void Init_Pot_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 {
 	DMA_InitTypeDef DMA_InitStructure;
@@ -26,7 +52,7 @@ void Init_Pot_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;
 	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         
 	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
 	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
@@ -38,7 +64,7 @@ void Init_Pot_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div8;
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
-	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_20Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
 
 	/* ADC1 Init ------------------------------------------------------------*/
@@ -124,7 +150,7 @@ void Init_CV_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
 	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
 	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
 	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
@@ -136,8 +162,16 @@ void Init_CV_ADC(uint16_t *ADC_Buffer, uint8_t num_adcs)
 	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div8;
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
-	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_20Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
+
+	//div2 and 20Cycle (and ADC_SampleTime_144Cycles): raises i_smoothed_cvadc[0] by ~45 when pot[2] goes to 4095
+	//div4 and 20Cycle (and ADC_SampleTime_144Cycles): raises i_smoothed_cvadc[0] by ~45 when pot[2] goes to 4095
+
+	//div6 and 12Cycle (and ADC_SampleTime_144Cycles): raises i_smoothed_cvadc[0] by ~45 when pot[2] goes to 4095
+	//div6 and 20Cycle (and ADC_SampleTime_144Cycles): lowers i_smoothed_cvadc[0] by ~45 when pot[2] goes to 4095
+
+	//div8 and 20Cycle (and ADC_SampleTime_144Cycles): lowers i_smoothed_cvadc[0] by ~45 when pot[2] goes to 4095
 
 	/* ADC3 Init ------------------------------------------------------------*/
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;

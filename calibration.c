@@ -58,11 +58,11 @@ void auto_calibrate(void)
 {
 	set_default_calibration_values();
 
+	//delay_ms(7000);
 	delay();
 	delay();
 	delay();
 	delay();
-
 
 	CV_CALIBRATION_OFFSET[0] = 2048-(i_smoothed_cvadc[0] & 0x0FFF);
 	CV_CALIBRATION_OFFSET[1] = 2048-(i_smoothed_cvadc[1] & 0x0FFF);
@@ -91,12 +91,18 @@ void update_calibration(void)
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
 
-	if (switch1==SWITCH_UP && switch2==SWITCH_UP)//both up: calibrate audio output offset, using the knobs to set DC level
+	if (switch1==SWITCH_UP && switch2==SWITCH_UP)//both up: calibrate audio output offset, using the knobs to set DC level. Enable by holding down button
 	{
-		CODEC_DAC_CALIBRATION_DCOFFSET[0]=(i_smoothed_potadc[LEVEL_POT*2]-2048-1750); //OUT A
-		CODEC_DAC_CALIBRATION_DCOFFSET[1]=(i_smoothed_potadc[LEVEL_POT*2+1]-2048-1750); //OUT B
-		CODEC_DAC_CALIBRATION_DCOFFSET[2]=(i_smoothed_potadc[MIX_POT*2]-2048-1750); //SEND A
-		CODEC_DAC_CALIBRATION_DCOFFSET[3]=(i_smoothed_potadc[MIX_POT*2+1]-2048-1750); //SEND B
+
+		if (REV1BUT)
+			CODEC_DAC_CALIBRATION_DCOFFSET[0]=(i_smoothed_potadc[LEVEL_POT*2]-2048-1750); //OUT A
+		if (REV2BUT)
+			CODEC_DAC_CALIBRATION_DCOFFSET[1]=(i_smoothed_potadc[LEVEL_POT*2+1]-2048-1750); //OUT B
+		if (INF1BUT)
+			CODEC_DAC_CALIBRATION_DCOFFSET[2]=(i_smoothed_potadc[MIX_POT*2]-2048-1750); //SEND A
+		if (INF2BUT)
+			CODEC_DAC_CALIBRATION_DCOFFSET[3]=(i_smoothed_potadc[MIX_POT*2+1]-2048-1750); //SEND B
+
 	}
 
 	if (switch1==SWITCH_DOWN && switch2==SWITCH_DOWN)//both down: calibrate audio input DC level
@@ -124,48 +130,8 @@ void update_calibration(void)
 		factory_reset_buttons_down++;
 		if (factory_reset_buttons_down==10000)
 		{
-			factory_reset();
+			factory_reset(1);
 			global_mode[CALIBRATE] = 0;
-
-			while (1)
-			{
-				LED_LOOP1_ON;
-				delay();
-				LED_LOOP1_OFF;
-				delay();
-
-				LED_PINGBUT_ON;
-				delay();
-				LED_PINGBUT_OFF;
-				delay();
-
-				LED_LOOP2_ON;
-				delay();
-				LED_LOOP2_OFF;
-				delay();
-
-				LED_REV1_ON;
-				delay();
-				LED_REV1_OFF;
-				delay();
-
-				LED_INF1_ON;
-				delay();
-				LED_INF1_OFF;
-				delay();
-
-				LED_INF2_ON;
-				delay();
-				LED_INF2_OFF;
-				delay();
-
-				LED_REV2_ON;
-				delay();
-				LED_REV2_OFF;
-				delay();
-
-				//infinite loop to force user to reset
-			}
 		}
 	} else
 		factory_reset_buttons_down=0;

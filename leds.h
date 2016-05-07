@@ -20,4 +20,7 @@ void update_channel_leds(void);
 void update_INF_REV_ledbut(uint8_t channel);
 void init_LED_PWM_IRQ(void);
 
+void blink_all_lights(uint32_t delaytime);
+void chase_all_lights(uint32_t delaytime);
+
 #endif /* LEDS_H_ */
