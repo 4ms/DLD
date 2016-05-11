@@ -84,7 +84,7 @@ void check_entering_system_mode(void)
 		}
 		else ctr++;
 
-		if (ctr>300000)
+		if (ctr>800000)
 		{
 			if (global_mode[SYSTEM_SETTINGS] == 0)
 			{
@@ -138,8 +138,11 @@ void update_system_settings(void)
 	{
 		disable_mode_changes=0;
 
-		param[0][TRACKING_COMP]=((i_smoothed_potadc[LEVEL_POT*2]/8192.0f) + 0.75);
-		param[1][TRACKING_COMP]=((i_smoothed_potadc[LEVEL_POT*2+1]/8192.0f) + 0.75);
+		if (INF1BUT)
+			param[0][TRACKING_COMP]=((i_smoothed_potadc[LEVEL_POT*2]/8192.0f) + 0.75);
+
+		if (INF2BUT)
+			param[1][TRACKING_COMP]=((i_smoothed_potadc[LEVEL_POT*2+1]/8192.0f) + 0.75);
 
 		param[0][LEVEL] = 1.0;
 		param[1][LEVEL] = 1.0;

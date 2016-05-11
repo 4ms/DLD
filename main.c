@@ -137,15 +137,20 @@ int main(void)
 	init_params();
 	init_modes();
 
+	flash_firmware_version = load_flash_params();
+
     if (ENTER_CALIBRATE_BUTTONS)
     {
     	global_mode[CALIBRATE] = 1;
     }
-    else if (load_flash_params() == -1 ) //This line is for pre-production. For the production release, change FW_VERSION to 2, and replace this line with the one below:
-//  else if (load_flash_params() <=1 ) //If we detect an early version of firmware, then check the RAM and do a factory reset
+//    else if (load_flash_params() == -1 ) //This line is for pre-production. For the production release, change FW_VERSION to 2, and replace this line with the one below:
+  else if (flash_firmware_version <=1 ) //If we detect an early version of firmware, then check the RAM and do a factory reset
     {
     	if (RAM_test()==0)
-    		do_factory_reset = 163840; //about 1 second
+    	{
+    		global_mode[CALIBRATE] = 1;
+    		do_factory_reset = 960000; //about 6 seconds
+    	}
     	else
     		while (1) blink_all_lights(50); //It's on the fritz!
 

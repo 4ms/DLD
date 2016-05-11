@@ -12,7 +12,7 @@
 #include "params.h"
 
 extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
-
+/*
 #define MEM_SIZE 16000
 
 int16_t memory[MEM_SIZE];
@@ -69,9 +69,9 @@ uint32_t test_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t n
 
 	return 0;
 }
+*/
 
-
-uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr){
+uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr, uint8_t reverse){
 	uint8_t i;
 	uint32_t heads_crossed=0;
 
@@ -89,7 +89,10 @@ uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t n
 
 		rd_buff[i] = *((int16_t *)(addr[channel]));
 
-		addr[channel] = inc_addr(addr[channel], channel);
+		if (!reverse)
+			addr[channel] = inc_addr(addr[channel], channel);
+		else
+			addr[channel] = dec_addr(addr[channel], channel);
 
 		if (addr[channel]==loop_addr) heads_crossed=1;
 

@@ -260,7 +260,6 @@ void process_adc(void)
 		}
 
 
-
 		if (flag_pot_changed_infdown[REGEN_POT*2+i])
 		{
 			mode[i][WINDOWMODE_POT]=WINDOW;
@@ -279,20 +278,19 @@ void process_adc(void)
 		if (i_smoothed_cvadc[i] < 0) i_smoothed_cvadc[i] = 0;
 		if (i_smoothed_cvadc[i] > 4095) i_smoothed_cvadc[i] = 4095;
 
+		if (global_mode[CALIBRATE])
+		{
+			smoothed_rawcvadc[i] = LowPassSmoothingFilter(smoothed_rawcvadc[i], (float)(cvadc_buffer[i]), CV_LPF_COEF[i]);
+			i_smoothed_rawcvadc[i] = (int16_t)smoothed_rawcvadc[i];
+			if (i_smoothed_rawcvadc[i] < 0) i_smoothed_rawcvadc[i] = 0;
+			if (i_smoothed_rawcvadc[i] > 4095) i_smoothed_rawcvadc[i] = 4095;
+		}
+
 		t=i_smoothed_cvadc[i] - old_i_smoothed_cvadc[i];
 		if ((t>MIN_CV_ADC_CHANGE[i]) || (t<-MIN_CV_ADC_CHANGE[i]))
 		{
 			cv_delta[i] = t;
 			old_i_smoothed_cvadc[i] = i_smoothed_cvadc[i];
-		}
-	}
-
-	if (global_mode[CALIBRATE])
-	{
-		for (i=0;i<NUM_CV_ADCS;i++)
-		{
-			smoothed_rawcvadc[i] = LowPassSmoothingFilter(smoothed_rawcvadc[i], (float)(cvadc_buffer[i]), 0.99);
-			i_smoothed_rawcvadc[i] = (int16_t)smoothed_rawcvadc[i];
 		}
 	}
 

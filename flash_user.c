@@ -6,6 +6,7 @@
 #include "calibration.h"
 #include "system_settings.h"
 #include "params.h"
+#include "adc.h"
 
 extern int16_t CV_CALIBRATION_OFFSET[6];
 extern int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];
@@ -16,6 +17,8 @@ extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern uint16_t loop_led_brightness;
+
+extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 
 
 #define FLASH_ADDR_userparams 0x08004000
@@ -91,7 +94,7 @@ void set_firmware_version(void)
 
 void factory_reset(uint8_t loop_afterwards)
 {
-
+	uint8_t i,fail=0;
 
 	auto_calibrate();
 	set_firmware_version();
@@ -118,9 +121,22 @@ void factory_reset(uint8_t loop_afterwards)
 
 	if (loop_afterwards)
 	{
+		fail=0;
+		for (i=0;i<6;i++)
+		{
+			if (CV_CALIBRATION_OFFSET[i]>100 || CV_CALIBRATION_OFFSET[i]<-100 )
+				fail=1;
+		}
+
+		if (i_smoothed_cvadc[0] > 2150 || i_smoothed_cvadc[0]<1950 || i_smoothed_cvadc[1] > 2150 || i_smoothed_cvadc[1]<1950)
+			fail=1;
+
 		while(1)
 		{
-			chase_all_lights(20);
+			if (fail)
+				blink_all_lights(200); //error: did not auto-calibrate!
+			else
+				chase_all_lights(20); //All good!
 		}
 	}
 }

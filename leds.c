@@ -245,6 +245,23 @@ void update_INF_REV_ledbut(uint8_t channel){
 		LED_INF1_OFF;
 		LED_INF2_OFF;
 	}
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
+	{
+		// Blink INF buttons to indicate Tracking adjust mode
+
+
+		led_flasher+=10000;
+		if (led_flasher<UINT32_MAX/20)
+		{
+			LED_INF1_ON;
+			LED_INF2_ON;
+
+		} else
+		{
+			LED_INF1_OFF;
+			LED_INF2_OFF;
+		}
+	}
 
 	else
 	{

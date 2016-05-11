@@ -64,12 +64,12 @@ void auto_calibrate(void)
 	delay();
 	delay();
 
-	CV_CALIBRATION_OFFSET[0] = 2048-(i_smoothed_cvadc[0] & 0x0FFF);
-	CV_CALIBRATION_OFFSET[1] = 2048-(i_smoothed_cvadc[1] & 0x0FFF);
-	CV_CALIBRATION_OFFSET[2] = -1*(i_smoothed_cvadc[2] & 0x0FFF);
-	CV_CALIBRATION_OFFSET[3] = -1*(i_smoothed_cvadc[3] & 0x0FFF);
-	CV_CALIBRATION_OFFSET[4] = -1*(i_smoothed_cvadc[4] & 0x0FFF);
-	CV_CALIBRATION_OFFSET[5] = -1*(i_smoothed_cvadc[5] & 0x0FFF);
+	CV_CALIBRATION_OFFSET[0] = 2048-(i_smoothed_rawcvadc[0] & 0x0FFF);
+	CV_CALIBRATION_OFFSET[1] = 2048-(i_smoothed_rawcvadc[1] & 0x0FFF);
+	CV_CALIBRATION_OFFSET[2] = -1*(i_smoothed_rawcvadc[2] & 0x0FFF);
+	CV_CALIBRATION_OFFSET[3] = -1*(i_smoothed_rawcvadc[3] & 0x0FFF);
+	CV_CALIBRATION_OFFSET[4] = -1*(i_smoothed_rawcvadc[4] & 0x0FFF);
+	CV_CALIBRATION_OFFSET[5] = -1*(i_smoothed_rawcvadc[5] & 0x0FFF);
 
 }
 

@@ -18,7 +18,7 @@
 
 #define PCB_PROTO_VERSION 8
 
-#define FW_VERSION 1
+#define FW_VERSION 2
 
 //Error codes for g_error
 #define OUT_OF_MEM 1

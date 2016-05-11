@@ -1,1 +1,49 @@
-st-flash write build/main.bin 0x08008000
+st-flash write build/combo.bin 0x08000000 2>.tmp | tee .tmp2
+echo "_________"
+if grep "unknown chip" .tmp
+  then
+    echo "
+     **************************
+     *  ERROR: Did not burn!! *
+     *  No module detected       *
+     **************************
+"
+elif grep "ERROR" .tmp
+  then
+    echo "
+     *****************************
+     * ERROR: Did not burn!!     *
+     * Flip power on at the same *
+     * time you ./burn           *
+     *****************************
+"
+elif grep "== -1" .tmp2
+  then
+    echo "
+     **************************
+     *  ERROR: Did not burn!! *
+     **************************
+"
+elif grep "failed" .tmp
+  then
+    echo "
+     ***************************
+     * ERROR: No st-link found *
+     ***************************
+"
+elif grep "Flash written and verified! jolly good!" .tmp
+  then
+    echo "
+Success!!
+
+"
+else
+  cat .tmp
+  cat .tmp2
+  echo "
+    ***********************
+    Not sure what happened?
+	unknown response
+    ***********************
+"
+fi
