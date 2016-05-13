@@ -541,7 +541,6 @@ inline void process_mode_flags(void){
 					loop_end[channel]=t;
 				}
 				else
-					//pivot_read_addr(channel);
 					swap_read_write(channel);
 			}
 

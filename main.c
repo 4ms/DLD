@@ -143,16 +143,15 @@ int main(void)
     {
     	global_mode[CALIBRATE] = 1;
     }
-//    else if (load_flash_params() == -1 ) //This line is for pre-production. For the production release, change FW_VERSION to 2, and replace this line with the one below:
-  else if (flash_firmware_version <=1 ) //If we detect an early version of firmware, then check the RAM and do a factory reset
+    else if (flash_firmware_version <=1 ) //If we detect an early version of firmware, then check the RAM and do a factory reset
     {
     	if (RAM_test()==0)
     	{
     		global_mode[CALIBRATE] = 1;
-    		do_factory_reset = 960000; //about 6 seconds
+    		do_factory_reset = 960000; //run normally for about 6 seconds before calibrating the CV jacks
     	}
     	else
-    		while (1) blink_all_lights(50); //It's on the fritz!
+    		while (1) blink_all_lights(50); //RAM Test failed: It's on the fritz!
 
     }
 

@@ -154,14 +154,15 @@ void swap_read_write(uint8_t channel){
 	uint32_t prev_write_addr;
 
 //	DEBUG1_ON;
+	/*
 	prev_write_addr=write_addr[channel];
-	read_addr[channel] = prev_write_addr;
 	write_addr[channel]=read_addr[channel];
+	read_addr[channel] = prev_write_addr;
+*/
 
-/*
 	prev_write_addr=write_addr[channel];
 
-	if (fade_pos[channel] < FADE_INCREMENT){
+//	if (fade_pos[channel] < FADE_INCREMENT){
 		fade_dest_read_addr[channel] = prev_write_addr;
 		//fade_dest_read_addr[channel] = calculate_addr_offset(channel, prev_write_addr, 16, mode[channel][REV]);
 
@@ -174,14 +175,14 @@ void swap_read_write(uint8_t channel){
 
 		fade_queued_dest_divmult_time[channel] = 0;
 
-	} else {
+//	} else {
 		//ToDo: Why are we setting fade_queued_dest_divmult_time? Is this to force an update in set_divmult_time()?
 		//Or is this a mistake, should we be instead setting fade_queued_dest_read_addr[channel]=prev_write_addr;
 		// In any case, this block is not called until divmult is being modulated while REV is toggled
-		fade_queued_dest_divmult_time[channel]=divmult_time[channel];
-		write_addr[channel]=read_addr[channel];
-	}
-*/
+//		fade_queued_dest_divmult_time[channel]=divmult_time[channel];
+//		write_addr[channel]=read_addr[channel];
+//	}
+
 //	DEBUG1_OFF;
 }
 
