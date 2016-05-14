@@ -39,6 +39,7 @@ const uint32_t LOOP_RAM_BASE[NUM_CHAN] = {SDRAM_BASE, SDRAM_BASE + LOOP_SIZE};
 uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
 uint32_t fade_queued_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
+uint32_t fade_dest_write_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
 uint8_t doing_reverse_fade[NUM_CHAN];
 
@@ -89,6 +90,7 @@ void audio_buffer_init(void)
 		write_addr[i]=LOOP_RAM_BASE[i] + ping_time;
 		read_addr[i] = LOOP_RAM_BASE[i];
 		fade_dest_read_addr[i] = LOOP_RAM_BASE[i];
+//		fade_dest_write_addr[i] = write_addr[i];
 		divmult_time[i]=ping_time;
 
 		set_divmult_time(i);
@@ -164,11 +166,9 @@ void swap_read_write(uint8_t channel){
 
 //	if (fade_pos[channel] < FADE_INCREMENT){
 		fade_dest_read_addr[channel] = prev_write_addr;
-		//fade_dest_read_addr[channel] = calculate_addr_offset(channel, prev_write_addr, 16, mode[channel][REV]);
 
 		write_addr[channel]=read_addr[channel];
-		//write_addr[channel]=calculate_addr_offset(channel, read_addr[channel], 16, 1-mode[channel][REV]);
-
+		//fade_dest_write_addr[channel]=read_addr[channel];
 
 		fade_pos[channel] = FADE_INCREMENT;
 		doing_reverse_fade[channel]=1;
@@ -423,6 +423,7 @@ inline void process_read_addr_fade(uint8_t channel){
 			doing_reverse_fade[channel] = 0;
 
 			read_addr[channel] = fade_dest_read_addr[channel];
+//			write_addr[channel] = fade_dest_write_addr[channel];
 
 			if (fade_queued_dest_divmult_time[channel])
 			{
@@ -439,6 +440,7 @@ inline void process_read_addr_fade(uint8_t channel){
 
 				if(flag_reset_loopled_tmr_on_queueadvance[channel])
 				{
+					//disabled
 					//reset_loopled_tmr(channel);
 				}
 				flag_reset_loopled_tmr_on_queueadvance[channel]=0;
@@ -489,6 +491,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	int16_t rd_buff_dest[codec_BUFF_LEN/4];
 
 	int16_t wr_buff[codec_BUFF_LEN/4];
+	int16_t wr_buff_combined[codec_BUFF_LEN/4];
 
 	uint32_t passed_end_of_loop;
 	uint32_t start_fade_addr;
@@ -549,9 +552,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	}
 
 
-	// If read addr crosses the end of the loop, reset it to the beginning of the loop
 
-
+	//For short periods (audio rate), disble crossfading before the end of the loop
 	if (divmult_time[channel]<420)
 		start_fade_addr = loop_end[channel];
 	else
@@ -562,6 +564,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	else
 		keep_reading_in_same_dir = 0;
 
+	// If read addr crosses the end of the loop, reset it to the beginning of the loop
 	passed_end_of_loop = sdram_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, keep_reading_in_same_dir);
 
 //	if (channel==0)
@@ -746,8 +749,19 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	//Write a block to memory
 	if (mode[channel][INF] == 0)
-		sdram_write(write_addr, channel, wr_buff, sz/2);
+	{
+//		if (write_addr[channel]==fade_dest_write_addr[channel] || fade_pos[channel]<FADE_INCREMENT)
+//		{
+			sdram_write(write_addr, channel, wr_buff, sz/2);
+			//sdram_fade_write(fade_dest_write_addr, channel, wr_buff_combined, sz/2, 0);
+//			fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
 
+//		}
+//		else {
+//			sdram_fade_write(write_addr, channel, wr_buff, sz/2, 1-fade_pos[channel]);
+//			sdram_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, fade_pos[channel]);
+//		}
+	}
 
 //	if (channel==0)
 //		DEBUG2_OFF;

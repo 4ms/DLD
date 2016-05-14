@@ -71,7 +71,7 @@ uint32_t test_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t n
 }
 */
 
-uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr, uint8_t reverse){
+uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr, uint8_t decrement){
 	uint8_t i;
 	uint32_t heads_crossed=0;
 
@@ -89,10 +89,10 @@ uint32_t sdram_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t n
 
 		rd_buff[i] = *((int16_t *)(addr[channel]));
 
-		if (!reverse)
-			addr[channel] = inc_addr(addr[channel], channel);
-		else
+		if (decrement)
 			addr[channel] = dec_addr(addr[channel], channel);
+		else
+			addr[channel] = inc_addr(addr[channel], channel);
 
 		if (addr[channel]==loop_addr) heads_crossed=1;
 
@@ -126,3 +126,36 @@ uint32_t sdram_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t 
 //	return(addr);
 
 }
+
+uint32_t sdram_fade_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples, float fade){
+	uint8_t i;
+	int16_t rd;
+	int16_t mix;
+
+	for (i=0;i<num_samples;i++){
+
+		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
+
+		//Enforce valid addr range
+		if ((addr[channel]<SDRAM_BASE) || (addr[channel] > (SDRAM_BASE + SDRAM_SIZE)))
+			addr[channel]=SDRAM_BASE;
+
+		//even addresses only
+		addr[channel] = (addr[channel] & 0xFFFFFFFE);
+
+		//read from address
+		rd = *((int16_t *)(addr[channel]));
+
+		mix = ((float)wr_buff[i] * fade) + ((float)rd * (1.0-fade));
+
+		*((int16_t *)addr[channel]) = mix;
+
+		addr[channel] = inc_addr(addr[channel], channel);
+
+	}
+
+	return 0;
+
+}
+
+

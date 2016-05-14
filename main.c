@@ -143,7 +143,7 @@ int main(void)
     {
     	global_mode[CALIBRATE] = 1;
     }
-    else if (flash_firmware_version <=1 ) //If we detect an early version of firmware, then check the RAM and do a factory reset
+    else if (flash_firmware_version <= 1 ) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
     {
     	if (RAM_test()==0)
     	{
@@ -154,6 +154,14 @@ int main(void)
     		while (1) blink_all_lights(50); //RAM Test failed: It's on the fritz!
 
     }
+    else if (flash_firmware_version <= FW_VERSION ) //If we detect a recently upgraded firmware version
+    {
+    	set_firmware_version();
+    	store_params_into_sram();
+    	write_all_params_to_FLASH();
+
+    }
+
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
