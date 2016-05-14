@@ -232,8 +232,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				reset_ping_tmr();
 
 				//If the ping clock changes by +/-3% then track it until it's stable for at least 4 clocks
-			//	if (t_f>1.03 || t_f<0.97)
-			//		ping_tracking=4;
+				//if (t_f>1.03 || t_f<0.97)
+				//	ping_tracking=4;
 
 			//	if (ping_tracking){
 				//Decrement ping_tracking so that we eventually stop tracking it closely
@@ -271,17 +271,17 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					//ping_time=(float)t32*0.25 + (float)ping_time*0.75;
 					//ping_time=ping_time & 0xFFFFFFF8;
 
-/*Only update if there is a variation >1%
+//Only update if there is a variation >1%
 					t_f = (float)t32 / (float)ping_time;
 					if (t_f>1.01 || t_f<0.99)
 					{
 						ping_time=t32;
 
 					}
-*/
+
 
 //Track the clock 1:1
-					ping_time=t32;
+//					ping_time=t32;
 
 					//Flag to update the divmult parameters
 					flag_ping_was_changed[0]=1;
