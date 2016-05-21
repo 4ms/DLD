@@ -53,11 +53,33 @@ __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
-extern uint8_t flag_time_param_changed[2];
 extern uint32_t flash_firmware_version;
 
 void check_errors(void){
 
+}
+
+uint8_t check_bootloader_keys(void)
+{
+	uint32_t dly;
+	uint32_t button_debounce=0;
+
+	dly=32000;
+	while(dly--){
+		if (BOOTLOADER_BUTTONS) button_debounce++;
+		else button_debounce=0;
+	}
+	return (button_debounce>15000);
+
+}
+
+typedef void (*EntryPoint)(void);
+
+void JumpTo(uint32_t address) {
+  uint32_t application_address = *(__IO uint32_t*)(address + 4);
+  EntryPoint application = (EntryPoint)(application_address);
+  __set_MSP(*(__IO uint32_t*)address);
+  application();
 }
 
 
@@ -66,6 +88,9 @@ int main(void)
 	uint32_t do_factory_reset=0;
 
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
+
+    if (check_bootloader_keys())
+    	JumpTo(0x080000000);
 
     Codecs_Deinit();
 

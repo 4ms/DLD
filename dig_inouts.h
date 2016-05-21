@@ -176,6 +176,14 @@
 		INF2BUT)
 
 
+#define BOOTLOADER_BUTTONS (\
+		PINGBUT &&\
+		REV1BUT &&\
+		!INF1BUT &&\
+		REV2BUT &&\
+		!INF2BUT)
+
+
 //OUTPUTS
 
 //CLK OUT
