@@ -239,11 +239,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				//Decrement ping_tracking so that we eventually stop tracking it closely
 				//ping_tracking--;
 
-					CLKOUT_ON;
-					reset_clkout_trigger_tmr();
-
-					LED_PINGBUT_ON;
-					reset_ping_ledbut_tmr();
 
 /* Ring buffer... hmm, kinda weird when the clock slows down: all sorts of double-hits
  * But, it averages out phasing nicely
@@ -275,6 +270,15 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					t_f = (float)t32 / (float)ping_time;
 					if (t_f>1.01 || t_f<0.99)
 					{
+						CLKOUT_ON;
+						reset_clkout_trigger_tmr();
+
+						LED_PINGBUT_ON;
+						reset_ping_ledbut_tmr();
+
+						flag_ping_was_changed[0]=1;
+						flag_ping_was_changed[1]=1;
+
 						ping_time=t32;
 
 					}
@@ -284,8 +288,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
 //					ping_time=t32;
 
 					//Flag to update the divmult parameters
-					flag_ping_was_changed[0]=1;
-					flag_ping_was_changed[1]=1;
 
 
 

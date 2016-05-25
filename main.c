@@ -87,10 +87,10 @@ int main(void)
 {
 	uint32_t do_factory_reset=0;
 
-    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
-
     if (check_bootloader_keys())
-    	JumpTo(0x080000000);
+    	JumpTo(0x08000000);
+
+    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
     Codecs_Deinit();
 
