@@ -176,6 +176,28 @@
 		INF2BUT)
 
 
+#define BOOTLOADER_BUTTONS (\
+		PINGBUT &&\
+		REV1BUT &&\
+		!INF1BUT &&\
+		REV2BUT &&\
+		!INF2BUT)
+
+
+#define RAM_CLEAR_CH1_BUTTONS (\
+		!PINGBUT &&\
+		REV1BUT &&\
+		INF1BUT &&\
+		!REV2BUT &&\
+		!INF2BUT)
+
+#define RAM_CLEAR_CH2_BUTTONS (\
+		!PINGBUT &&\
+		!REV1BUT &&\
+		!INF1BUT &&\
+		REV2BUT &&\
+		INF2BUT)
+
 //OUTPUTS
 
 //CLK OUT
@@ -254,6 +276,7 @@
 #define LED_LOOP2_ON LED_GPIO->BSRRL = LED_LOOP2
 #define LED_LOOP2_OFF LED_GPIO->BSRRH = LED_LOOP2
 
+
 //DEBUG pins
 #define DEBUG_RCC (RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOA)
 
@@ -283,6 +306,11 @@
 #define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
 #define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
 */
+
+#define INF_REV_BUTTON_JACK_TIM TIM4
+#define INF_REV_BUTTON_JACK_TIM_RCC RCC_APB1Periph_TIM4
+#define INF_REV_BUTTON_JACK_TIM_IRQn TIM4_IRQn
+#define INF_REV_BUTTON_JACK_IRQHandler TIM4_IRQHandler
 
 void init_dig_inouts(void);
 void init_inputread_timer(void);

@@ -14,5 +14,6 @@ void check_entering_system_mode(void);
 void update_system_settings(void);
 void set_default_system_settings(void);
 
+void update_system_settings_button_leds(void);
 
 #endif /* SYSTEM_SETTINGS_H_ */

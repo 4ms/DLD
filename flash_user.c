@@ -59,7 +59,11 @@ extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 #define FLASH_ADDR_SOFTCLIP					(FLASH_ADDR_AUTO_MUTE			 		+ SZ_AM)		/* 73  ..	*/
 #define SZ_SC 1
 
+#define FLASH_ADDR_LEVELCV_IS_MIX_0			(FLASH_ADDR_SOFTCLIP			 		+ SZ_SC)		/* 74  ..	*/
+#define SZ_LM0 1
 
+#define FLASH_ADDR_LEVELCV_IS_MIX_1			(FLASH_ADDR_LEVELCV_IS_MIX_0	 		+ SZ_LM0)		/* 75  ..	*/
+#define SZ_LM1 1
 
 
 #define FLASH_SYMBOL_bankfilled 0x01
@@ -83,6 +87,9 @@ uint8_t flash_mode_MAIN_CLOCK_GATETRIG;
 
 uint8_t flash_global_mode_AUTO_MUTE;
 uint8_t flash_global_mode_SOFTCLIP;
+
+uint8_t flash_mode_LEVELCV_IS_MIX_0;
+uint8_t flash_mode_LEVELCV_IS_MIX_1;
 
 
 void set_firmware_version(void)
@@ -177,6 +184,8 @@ uint32_t load_flash_params(void)
 		global_mode[AUTO_MUTE] = flash_global_mode_AUTO_MUTE;
 		global_mode[SOFTCLIP] = flash_global_mode_SOFTCLIP;
 
+		mode[0][LEVELCV_IS_MIX] = flash_mode_LEVELCV_IS_MIX_0;
+		mode[1][LEVELCV_IS_MIX] = flash_mode_LEVELCV_IS_MIX_1;
 
 		return (flash_firmware_version);
 
@@ -263,7 +272,8 @@ void store_params_into_sram(void)
 	flash_global_mode_AUTO_MUTE = global_mode[AUTO_MUTE];
 	flash_global_mode_SOFTCLIP = global_mode[SOFTCLIP];
 
-
+	flash_mode_LEVELCV_IS_MIX_0 = mode[0][LEVELCV_IS_MIX];
+	flash_mode_LEVELCV_IS_MIX_1 = mode[1][LEVELCV_IS_MIX];
 
 }
 
@@ -304,6 +314,8 @@ void write_all_params_to_FLASH(void)
 	flash_open_program_byte(flash_global_mode_AUTO_MUTE, FLASH_ADDR_AUTO_MUTE);
 	flash_open_program_byte(flash_global_mode_SOFTCLIP, FLASH_ADDR_SOFTCLIP);
 
+	flash_open_program_byte(flash_mode_LEVELCV_IS_MIX_0, FLASH_ADDR_LEVELCV_IS_MIX_0);
+	flash_open_program_byte(flash_mode_LEVELCV_IS_MIX_1, FLASH_ADDR_LEVELCV_IS_MIX_1);
 
 	flash_end_open_program();
 }
@@ -343,6 +355,9 @@ void read_all_params_from_FLASH(void)
 
 	flash_global_mode_AUTO_MUTE = flash_read_word(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;
 	flash_global_mode_SOFTCLIP = flash_read_word(FLASH_ADDR_SOFTCLIP) ? 1 : 0;
+
+	flash_mode_LEVELCV_IS_MIX_0 = flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_0) ? 1 : 0;
+	flash_mode_LEVELCV_IS_MIX_1 = flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_1) ? 1 : 0;
 
 }
 

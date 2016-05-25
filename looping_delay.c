@@ -10,19 +10,21 @@
 #include "params.h"
 #include "audio_memory.h"
 
-extern const float epp_lut[4096];
+//extern const float epp_lut[4096];
 extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
-extern int16_t i_smoothed_cvadc[NUM_CV_ADCS];
-extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
+//extern int16_t i_smoothed_cvadc[NUM_CV_ADCS];
+//extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
+
+extern uint8_t SAMPLESIZE;
 
 
 extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
 
 extern int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];
-extern int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
+//extern int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
 
 volatile uint32_t ping_time;
 volatile uint32_t divmult_time[NUM_CHAN];
@@ -77,9 +79,6 @@ void audio_buffer_init(void)
 {
 	uint32_t i;
 
-	//Takes 1.4 seconds to clear it in 32-bit chunks, roughly 83ns per write
-	for(i = SDRAM_BASE; i < (SDRAM_BASE + SDRAM_SIZE); i += 4)
-			*((uint32_t *)i) = 0x00000000;
 
 	if (!ping_time)
 		ping_time=0x00004000;
@@ -87,10 +86,12 @@ void audio_buffer_init(void)
 	//ping_time=7376;
 
 	for(i=0;i<NUM_CHAN;i++){
+		memory_clear(i);
+
 		write_addr[i]=LOOP_RAM_BASE[i] + ping_time;
 		read_addr[i] = LOOP_RAM_BASE[i];
 		fade_dest_read_addr[i] = LOOP_RAM_BASE[i];
-//		fade_dest_write_addr[i] = write_addr[i];
+		fade_dest_write_addr[i] = write_addr[i];
 		divmult_time[i]=ping_time;
 
 		set_divmult_time(i);
@@ -103,6 +104,10 @@ void audio_buffer_init(void)
 
 inline uint32_t calculate_addr_offset(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract){
 	uint32_t t_addr;
+
+	if (SAMPLESIZE>2)
+		offset<<=1;
+
 
 	if (subtract == 0){
 
@@ -120,7 +125,11 @@ inline uint32_t calculate_addr_offset(uint8_t channel, uint32_t base_addr, uint3
 
 	}
 
-	t_addr = t_addr & 0xFFFFFFFE; //addresses must be even!
+	if (SAMPLESIZE==2)
+		t_addr = t_addr & 0xFFFFFFFE; //addresses must be even
+	else
+		t_addr = t_addr & 0xFFFFFFFC; //addresses must end in 00
+
 	return (t_addr);
 }
 
@@ -155,7 +164,6 @@ void pivot_read_addr(uint8_t channel)
 void swap_read_write(uint8_t channel){
 	uint32_t prev_write_addr;
 
-//	DEBUG1_ON;
 	/*
 	prev_write_addr=write_addr[channel];
 	write_addr[channel]=read_addr[channel];
@@ -167,8 +175,8 @@ void swap_read_write(uint8_t channel){
 //	if (fade_pos[channel] < FADE_INCREMENT){
 		fade_dest_read_addr[channel] = prev_write_addr;
 
-		write_addr[channel]=read_addr[channel];
-		//fade_dest_write_addr[channel]=read_addr[channel];
+		//write_addr[channel]=read_addr[channel];
+		fade_dest_write_addr[channel]=read_addr[channel];
 
 		fade_pos[channel] = FADE_INCREMENT;
 		doing_reverse_fade[channel]=1;
@@ -183,7 +191,6 @@ void swap_read_write(uint8_t channel){
 //		write_addr[channel]=read_addr[channel];
 //	}
 
-//	DEBUG1_OFF;
 }
 
 
@@ -192,15 +199,15 @@ inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 
 	if (mode[channel][REV] == 0)
 	{
-		addr+=2;
+		addr+=SAMPLESIZE;
 		if (addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
 			addr = LOOP_RAM_BASE[channel];
 	}
 	else
 	{
-		addr-=2;
+		addr-=SAMPLESIZE;
 		if (addr <= LOOP_RAM_BASE[channel])
-			addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
+			addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - SAMPLESIZE;
 	}
 
 	return(addr & 0xFFFFFFFE);
@@ -423,7 +430,7 @@ inline void process_read_addr_fade(uint8_t channel){
 			doing_reverse_fade[channel] = 0;
 
 			read_addr[channel] = fade_dest_read_addr[channel];
-//			write_addr[channel] = fade_dest_write_addr[channel];
+			write_addr[channel] = fade_dest_write_addr[channel];
 
 			if (fade_queued_dest_divmult_time[channel])
 			{
@@ -565,10 +572,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		keep_reading_in_same_dir = 0;
 
 	// If read addr crosses the end of the loop, reset it to the beginning of the loop
-	passed_end_of_loop = sdram_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, keep_reading_in_same_dir);
-
-//	if (channel==0)
-//		DEBUG2_ON;
+	passed_end_of_loop = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, keep_reading_in_same_dir);
 
 
 	if (mode[channel][INF] && divmult_time[channel]<420 && passed_end_of_loop)
@@ -584,11 +588,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		fade_pos[channel] = FADE_INCREMENT;
 		fade_queued_dest_divmult_time[channel]=0;
 
-//		if (mode[channel][REV])
-//			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)-8, 1);
-//		else
-//			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-(read_addr[channel]-start_fade_addr)+8, 1);
-
 		if (mode[channel][REV])
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-sz, 1);
 		else
@@ -597,7 +596,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		reset_loopled_tmr(channel);
 	}
 
-	sdram_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0, 0);
+	memory_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0, 0);
 
 	for (i=0;i<(sz/2);i++){
 
@@ -717,10 +716,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			}
 		}
 
-
 		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
-
-
 
 		if (global_mode[CALIBRATE]){
 			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
@@ -750,33 +746,31 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//Write a block to memory
 	if (mode[channel][INF] == 0)
 	{
-//		if (write_addr[channel]==fade_dest_write_addr[channel] || fade_pos[channel]<FADE_INCREMENT)
-//		{
-			sdram_write(write_addr, channel, wr_buff, sz/2);
-			//sdram_fade_write(fade_dest_write_addr, channel, wr_buff_combined, sz/2, 0);
-//			fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
+		if (write_addr[channel]==fade_dest_write_addr[channel] || fade_pos[channel]<FADE_INCREMENT)
+		{
+			memory_write(write_addr, channel, wr_buff, sz/2);
+			fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
 
-//		}
-//		else {
-//			sdram_fade_write(write_addr, channel, wr_buff, sz/2, 1-fade_pos[channel]);
-//			sdram_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, fade_pos[channel]);
-//		}
+		}
+		else {
+			memory_fade_write(write_addr, channel, wr_buff, sz/2, 1-fade_pos[channel]);
+			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, fade_pos[channel]);
+		}
 	}
 
-//	if (channel==0)
-//		DEBUG2_OFF;
 
-
-//	if ((write_addr[channel] - read_addr[channel]) != divmult_time[channel]*2)
-//		DEBUG0_ON;
-//	else
-//		DEBUG0_OFF;
 
 	//Handle new cross-fade position
 	process_read_addr_fade(channel);
 
-//	if (channel==0)
-//		DEBUG2_OFF;
+
+	//	if ((write_addr[channel] - read_addr[channel]) != divmult_time[channel]*2)
+	//		DEBUG0_ON;
+	//	else
+	//		DEBUG0_OFF;
+
+	//if (channel==0)
+	//	DEBUG2_OFF;
 	//else
 	//	DEBUG2_OFF;
 }

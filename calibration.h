@@ -14,5 +14,6 @@ void set_default_calibration_values(void);
 void update_calibration(void);
 void auto_calibrate(void);
 void update_calibrate_leds(void);
+void update_calibration_button_leds(void);
 
 #endif /* CALIBRATION_H_ */

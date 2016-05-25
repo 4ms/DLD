@@ -18,7 +18,7 @@
 
 #define PCB_PROTO_VERSION 8
 
-#define FW_VERSION 3
+#define FW_VERSION 4
 
 //Error codes for g_error
 #define OUT_OF_MEM 1
@@ -37,6 +37,7 @@
 
 //#define TRIG_TIME 196
 #define TRIG_TIME 1000
+
 
 //#define USE_VCXO
 

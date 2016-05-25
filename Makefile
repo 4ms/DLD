@@ -118,5 +118,5 @@ qpsk-wav: $(BIN)
 
 fsk-wav: $(BIN)
 	python stm_audio_bootloader/fsk/encoder.py \
-		-s 48000 -b 16 -n 8 -z 4 -p 256 -g 16384 -k 1100 \
+		-s 48000 -b 16 -n 8 -z 4 -p 256 -g 16384 -k 1800 \
 		$(BIN)

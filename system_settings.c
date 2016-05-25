@@ -1,5 +1,5 @@
 /*
- * Calibration
+ * System Settings
  *
  * Loop A/B/Main Clock Out jacks:
  * -Gate
@@ -9,7 +9,7 @@
  *
  * 1V/oct tracking compensation
  *
- * ????Level A/B CV jacks:
+ * Level A/B CV jacks:
  * -Delay Level (default)
  * -Dry/Wet amount
  *
@@ -46,6 +46,8 @@ extern uint8_t loop_led_state[NUM_CHAN];
 extern uint8_t flag_inf_change[2];
 extern uint8_t flag_rev_change[2];
 
+extern uint32_t flash_firmware_version;
+
 
 uint8_t disable_mode_changes=0;
 
@@ -58,6 +60,9 @@ void set_default_system_settings(void)
 	mode[0][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[1][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
+
+	mode[0][LEVELCV_IS_MIX] = 0;
+	mode[1][LEVELCV_IS_MIX] = 0;
 
 	global_mode[AUTO_MUTE] = 1;
 	global_mode[SOFTCLIP] = 1;
@@ -157,7 +162,9 @@ void update_system_settings(void)
 	if (switch1==SWITCH_UP && switch2==SWITCH_DOWN)
 	{
 		disable_mode_changes=1;
-		loop_led_brightness=((i_smoothed_potadc[REGEN_POT*2]/137) + 1);
+
+		if (INF2BUT)
+			loop_led_brightness=((i_smoothed_potadc[REGEN_POT*2]/137) + 1);
 
 		if (flag_rev_change[0])
 		{
@@ -219,10 +226,128 @@ void update_system_settings(void)
 			flag_rev_change[1]=0;
 		}
 
+		if (flag_inf_change[0])
+		{
+			if (mode[0][LEVELCV_IS_MIX])
+				mode[0][LEVELCV_IS_MIX] = 0;
+			else
+				mode[0][LEVELCV_IS_MIX] = 1;
+
+			flag_inf_change[0]=0;
+		}
+
+		if (flag_inf_change[1])
+		{
+			if (mode[1][LEVELCV_IS_MIX])
+				mode[1][LEVELCV_IS_MIX] = 0;
+			else
+				mode[1][LEVELCV_IS_MIX] = 1;
+
+			flag_inf_change[1]=0;
+		}
 	}
 
 }
 
+void update_system_settings_button_leds(void)
+{
+	uint8_t switch1, switch2;
+	static uint32_t led_flasher=0;
+
+	switch1=TIMESW_CH1;
+	switch2=TIMESW_CH2;
+
+	if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_UP)
+	{
+		//Display firmware version
+
+			if (flash_firmware_version & 0b0001)
+				LED_REV1_ON;
+			else
+				LED_REV1_OFF;
+
+			if (flash_firmware_version & 0b0010)
+				LED_INF1_ON;
+			else
+				LED_INF1_OFF;
+
+			if (flash_firmware_version & 0b0100)
+				LED_INF2_ON;
+			else
+				LED_INF2_OFF;
+
+			if (flash_firmware_version & 0b1000)
+				LED_REV2_ON;
+			else
+				LED_REV2_OFF;
+	}
+
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_DOWN)
+	{
+		//Display Trig/Gate settings
+
+			if (mode[0][LOOP_CLOCK_GATETRIG] == GATE_MODE)
+				LED_REV1_ON;
+			else
+				LED_REV1_OFF;
+
+			if (mode[0][MAIN_CLOCK_GATETRIG] == GATE_MODE)
+				LED_INF1_ON;
+			else
+				LED_INF1_OFF;
+
+			if (mode[1][LOOP_CLOCK_GATETRIG] == GATE_MODE)
+				LED_REV2_ON;
+			else
+				LED_REV2_OFF;
+
+			LED_INF2_OFF;
+	}
+
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_DOWN && switch2==SWITCH_UP)
+	{
+		// Display Auto-Mute and Soft Clip settings
+
+		if (global_mode[AUTO_MUTE])
+			LED_REV1_ON;
+		else
+			LED_REV1_OFF;
+
+		if (global_mode[SOFTCLIP])
+			LED_REV2_ON;
+		else
+			LED_REV2_OFF;
+
+		if (mode[0][LEVELCV_IS_MIX])
+			LED_INF1_ON;
+		else
+			LED_INF1_OFF;
+
+		if (mode[1][LEVELCV_IS_MIX])
+			LED_INF2_ON;
+		else
+			LED_INF2_OFF;
+
+	}
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
+	{
+		// Blink INF buttons to indicate Tracking adjust mode
+
+
+		led_flasher+=10000;
+		if (led_flasher<UINT32_MAX/20)
+		{
+			LED_INF1_ON;
+			LED_INF2_ON;
+
+		} else
+		{
+			LED_INF1_OFF;
+			LED_INF2_OFF;
+		}
+	}
+
+}
 
 //100 * 0.2ms = 20ms
 #define TRIG_CNTS 200

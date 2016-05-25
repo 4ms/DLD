@@ -156,113 +156,15 @@ void update_channel_leds(void)
 }
 
 void update_INF_REV_ledbut(uint8_t channel){
-	static uint32_t led_flasher=0;
-	uint8_t switch1, switch2;
-
-	switch1=TIMESW_CH1;
-	switch2=TIMESW_CH2;
 
 	if (global_mode[CALIBRATE])
 	{
-		//Flash button LEDs to indicate we're in Calibrate mode
-		led_flasher+=10000;
-		if (led_flasher<UINT32_MAX/20)
-		{
-			LED_INF1_OFF;
-			LED_INF2_OFF;
-			LED_REV1_OFF;
-			LED_REV2_OFF;
-		}
-		else
-		{
-			LED_INF1_ON;
-			LED_INF2_ON;
-			LED_REV1_ON;
-			LED_REV2_ON;
-		}
+		update_calibration_button_leds();
 	}
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_UP)
+	else if (global_mode[SYSTEM_SETTINGS])
 	{
-		//Display firmware version
-
-			if (flash_firmware_version & 0b0001)
-				LED_REV1_ON;
-			else
-				LED_REV1_OFF;
-
-			if (flash_firmware_version & 0b0010)
-				LED_INF1_ON;
-			else
-				LED_INF1_OFF;
-
-			if (flash_firmware_version & 0b0100)
-				LED_INF2_ON;
-			else
-				LED_INF2_OFF;
-
-			if (flash_firmware_version & 0b1000)
-				LED_REV2_ON;
-			else
-				LED_REV2_OFF;
+		update_system_settings_button_leds();
 	}
-
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_DOWN)
-	{
-		//Display Trig/Gate settings
-
-			if (mode[0][LOOP_CLOCK_GATETRIG] == GATE_MODE)
-				LED_REV1_ON;
-			else
-				LED_REV1_OFF;
-
-			if (mode[0][MAIN_CLOCK_GATETRIG] == GATE_MODE)
-				LED_INF1_ON;
-			else
-				LED_INF1_OFF;
-
-			if (mode[1][LOOP_CLOCK_GATETRIG] == GATE_MODE)
-				LED_REV2_ON;
-			else
-				LED_REV2_OFF;
-
-			LED_INF2_OFF;
-	}
-
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_DOWN && switch2==SWITCH_UP)
-	{
-		// Display Auto-Mute and Soft Clip settings
-
-		if (global_mode[AUTO_MUTE])
-			LED_REV1_ON;
-		else
-			LED_REV1_OFF;
-
-		if (global_mode[SOFTCLIP])
-			LED_REV2_ON;
-		else
-			LED_REV2_OFF;
-
-		LED_INF1_OFF;
-		LED_INF2_OFF;
-	}
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
-	{
-		// Blink INF buttons to indicate Tracking adjust mode
-
-
-		led_flasher+=10000;
-		if (led_flasher<UINT32_MAX/20)
-		{
-			LED_INF1_ON;
-			LED_INF2_ON;
-
-		} else
-		{
-			LED_INF1_OFF;
-			LED_INF2_OFF;
-		}
-	}
-
 	else
 	{
 		//Display Reverse and Infinite settings

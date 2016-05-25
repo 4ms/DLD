@@ -102,9 +102,12 @@ void init_modes(void)
 		mode[channel][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
 
 		mode[channel][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
+
+		mode[channel][LEVELCV_IS_MIX] = 0;
 	}
 
 	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
+
 	global_mode[AUTO_UNQ] = 0;
 }
 
@@ -402,11 +405,15 @@ void update_params(void)
 
 // ******* LEVEL **********
 
-			t_combined = i_smoothed_potadc[LEVEL_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
-			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
-
-			//if (t_combined>4095) t_combined = 4095;
-			//if (t_combined<0) t_combined = 0;
+			if (mode[channel][LEVELCV_IS_MIX]==0)
+			{
+				t_combined = i_smoothed_potadc[LEVEL_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
+				asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+			}
+			else
+			{
+				t_combined = i_smoothed_potadc[LEVEL_POT*2+channel];
+			}
 
 			param[channel][LEVEL] = log_taper[t_combined];
 
@@ -416,8 +423,6 @@ void update_params(void)
 
 			t_combined = i_smoothed_potadc[REGEN_POT*2+channel] + i_smoothed_cvadc[REGEN*2+channel];
 			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
-			//if (t_combined>4095) t_combined = 4095;
-			//if (t_combined<0) t_combined = 0;
 
 			// From 0 to 85% of rotation, Regen goes from 0% to 100%
 			// From 85% to 97% of rotation, Regen is set at 100%
@@ -475,9 +480,18 @@ void update_params(void)
 		// Each MIX pot sets two parameters: wet and dry
 		//
 
-		param[channel][MIX_DRY]=epp_lut[i_smoothed_potadc[MIX_POT*2+channel]];
+		if (mode[channel][LEVELCV_IS_MIX])
+		{
+			t_combined = i_smoothed_potadc[MIX_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
+			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+		}
+		else
+		{
+			t_combined = i_smoothed_potadc[MIX_POT*2+channel];
+		}
 
-		param[channel][MIX_WET]=epp_lut[4095 - i_smoothed_potadc[MIX_POT*2+channel]];
+		param[channel][MIX_DRY]=epp_lut[t_combined];
+		param[channel][MIX_WET]=epp_lut[4095 - t_combined];
 
 	}
 }
