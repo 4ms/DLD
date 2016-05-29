@@ -10,7 +10,9 @@
 #include "params.h"
 #include "audio_memory.h"
 
-//extern const float epp_lut[4096];
+extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
+
+extern const float epp_lut[4096];
 extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
@@ -43,36 +45,23 @@ uint32_t fade_queued_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_write_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
-uint8_t doing_reverse_fade[NUM_CHAN];
+
+uint8_t doing_reverse_fade[NUM_CHAN] = {0,0};
+uint8_t doing_inf_fade[NUM_CHAN] = {0,0};
 
 uint8_t flag_reset_loopled_tmr_on_queueadvance[NUM_CHAN]={0,0};
 
 //.01 is a xfade time of 12ms or max hold period of 83Hz = divmult_time of 420
 
-#define FADE_INCREMENT 0.01
+//#define FADE_INCREMENT 0.01
 //#define FADE_INCREMENT 0.001
+#define FADE_INCREMENT 0.0025
 
 //FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
 
-#define FADE_ADDRESSES 792
+//#define FADE_ADDRESSES 792
 //#define FADE_ADDRESSES 7992
-
-/* numbers are for ping time of 16384 (default speed at power-on) and a timemult setting of 0.25, for a divmult of 4096
- * Main clock output is 2.861Hz measured or 2.858Hz calculated */
-
-//#define FADE_ADDRESSES 1600 /* 11.455 leads 5ms every 14 clocks */
-//#define FADE_ADDRESSES 1592 /* 11.445 stable between Main clock and Loop clock with INF=1 of INF=0 at 16384 ping clock. But not at 7376 ping clock!*/
-//#define FADE_ADDRESSES 1584 /* 11.437 lags 5ms every 14 clocks */
-//#define FADE_ADDRESSES 1500 /* 11.320 or 4137 smpls -40 -23*/
-//#define FADE_ADDRESSES 1460 /* 11.258 or 4160 smpls -20 -6*/
-//#define FADE_ADDRESSES 1440 /* 11.240 or 4166 smpls */
-//#define FADE_ADDRESSES 144
-//#define FADE_ADDRESSES 288
-//#define FADE_ADDRESSES 620
-
-//0.01 ===> 8.25 ms fade time
-//0.05 ===> 1.5 ms fade time
-//0.1  ===> 0.75ms fade time
+#define FADE_ADDRESSES 3192
 
 
 void audio_buffer_init(void)
@@ -162,7 +151,7 @@ void pivot_read_addr(uint8_t channel)
 
 
 void swap_read_write(uint8_t channel){
-	uint32_t prev_write_addr;
+//	uint32_t prev_write_addr;
 
 	/*
 	prev_write_addr=write_addr[channel];
@@ -170,13 +159,16 @@ void swap_read_write(uint8_t channel){
 	read_addr[channel] = prev_write_addr;
 */
 
-	prev_write_addr=write_addr[channel];
+	//prev_write_addr = write_addr[channel];
+
 
 //	if (fade_pos[channel] < FADE_INCREMENT){
-		fade_dest_read_addr[channel] = prev_write_addr;
+		fade_dest_read_addr[channel] = write_addr[channel];
+		//fade_dest_read_addr[channel] = calculate_addr_offset(channel, write_addr[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
 
 		//write_addr[channel]=read_addr[channel];
 		fade_dest_write_addr[channel]=read_addr[channel];
+		//fade_dest_write_addr[channel] = calculate_addr_offset(channel, read_addr[channel], FADE_ADDRESSES, mode[channel][REV]);
 
 		fade_pos[channel] = FADE_INCREMENT;
 		doing_reverse_fade[channel]=1;
@@ -512,18 +504,16 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	sz=sz/2;
 
-//	if (channel==0)
-//		DEBUG2_ON;
-//	else
-//		DEBUG2_ON;
+	if (doing_reverse_fade[0])
+		DEBUG2_ON;
+	else
+		DEBUG2_OFF;
 
 
-	//if (fade_pos[0]<FADE_INCREMENT)
-//	if (!doing_reverse_fade[0])
-//		DEBUG0_OFF;
-//	else
-//		DEBUG0_ON;
-
+	if (fade_pos[0]<FADE_INCREMENT)
+		DEBUG0_OFF;
+	else
+		DEBUG0_ON;
 
 									//Sanity check to made sure the read_addr is inside the loop.
 									//We shouldn't have to do this. The likely reason the read_addr escapes the loop
@@ -537,7 +527,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	if (mode[channel][INF] && (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
 //	if (mode[channel][INF] && (!in_between(fade_dest_read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
 	{
-		//DEBUG2_ON;
 		if (fade_pos[channel] < FADE_INCREMENT)
 		{
 
@@ -555,7 +544,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 			flag_reset_loopled_tmr_on_queueadvance[channel]=1;
 		}
-		//DEBUG2_OFF;
 	}
 
 
@@ -564,14 +552,16 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	if (divmult_time[channel]<420)
 		start_fade_addr = loop_end[channel];
 	else
-		start_fade_addr = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, 1);
+		start_fade_addr = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
 
 	if (doing_reverse_fade[channel])
 		keep_reading_in_same_dir = 1;
 	else
 		keep_reading_in_same_dir = 0;
 
-	// If read addr crosses the end of the loop, reset it to the beginning of the loop
+	// passed_end_of_loop is true if read addr crosses the end of the loop, and then we will reset it to the beginning of the loop
+	// if doing_reverse_fade is true, then we should read in the opposite direction as mode[][REV] dictates (this is because we just
+	// made REV=!REV, and are doing a cross fade from rd_buff going !REV to dest_rd_buff going REV)
 	passed_end_of_loop = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, keep_reading_in_same_dir);
 
 
@@ -589,7 +579,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		fade_queued_dest_divmult_time[channel]=0;
 
 		if (mode[channel][REV])
-			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])-sz, 1);
+			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_start[channel]-loop_end[channel])+sz, 0);
 		else
 			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])+sz, 1);
 
@@ -639,11 +629,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 
 		// Read from the loop and save this value so we can output it to the Delay Out jack
-		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
+//		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
 
-//		t = (4095.0 * fade_pos[channel]);
-//		asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
-//		rd=((float)rd_buff[i] * epp_lut[t]) + ((float)rd_buff_dest[i] * epp_lut[4095-t]);
+		t = (uint16_t)(4095.0 * fade_pos[channel]);
+		//asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
+		rd=((float)rd_buff[i] * epp_lut[t]) + ((float)rd_buff_dest[i] * epp_lut[4095-t]);
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
@@ -727,14 +717,25 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		}
 		else
 		{
+
+#ifdef DEBUG_ADC_TO_CODEC
+			*dst++ = potadc_buffer[channel+0]*4;
+			*dst++ = 0;
+
+			if (TIMESW_CH1==SWITCH_CENTER) *dst++ = potadc_buffer[channel+2]*4;
+			else if (TIMESW_CH1==SWITCH_UP) *dst++ = potadc_buffer[channel+4]*4;
+			else *dst++ = potadc_buffer[channel+6]*4;
+			*dst++ = 0;
+#else
 			//Main out
 			*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 			*dst++ = 0;
 
 			//Send out
 			*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-			//*dst++ = param[channel][LEVEL]*16000;
 			*dst++ = 0;
+#endif
+
 		}
 
 
@@ -748,13 +749,15 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	{
 		if (write_addr[channel]==fade_dest_write_addr[channel] || fade_pos[channel]<FADE_INCREMENT)
 		{
-			memory_write(write_addr, channel, wr_buff, sz/2);
+			memory_write(write_addr, channel, wr_buff, sz/2, 0);
 			fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
 
 		}
 		else {
-			memory_fade_write(write_addr, channel, wr_buff, sz/2, 1-fade_pos[channel]);
-			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, fade_pos[channel]);
+			//memory_fade_write(write_addr, channel, wr_buff, sz/2, doing_reverse_fade[channel], 1-fade_pos[channel]);
+			//write_addr[channel] = calculate_addr_offset(channel, write_addr[channel], sz, mode[channel][REV]);
+
+			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, 0, fade_pos[channel]);
 		}
 	}
 
@@ -769,8 +772,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//	else
 	//		DEBUG0_OFF;
 
-	//if (channel==0)
-	//	DEBUG2_OFF;
-	//else
-	//	DEBUG2_OFF;
+
+//	DEBUG0_OFF;
+//	DEBUG2_OFF;
+
 }

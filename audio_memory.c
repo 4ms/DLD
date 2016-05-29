@@ -60,7 +60,8 @@ uint32_t memory_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t 
 }
 
 
-uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples){
+uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples, uint8_t decrement)
+{
 	uint8_t i;
 
 	for (i=0;i<num_samples;i++){
@@ -76,7 +77,11 @@ uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t
 
 		*((int16_t *)addr[channel]) = wr_buff[i];
 
-		addr[channel] = inc_addr(addr[channel], channel);
+		if (decrement)
+			addr[channel] = dec_addr(addr[channel], channel);
+		else
+			addr[channel] = inc_addr(addr[channel], channel);
+
 
 	}
 
@@ -91,7 +96,7 @@ uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t
 // fade=0.5 means write 50% wr_buff and 50% read.
 // fade=0.0 means write 0% wr_buff and 100% read.
 //
-uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples, float fade){
+uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples, uint8_t decrement, float fade){
 	uint8_t i;
 	int16_t rd;
 	int16_t mix;
@@ -116,7 +121,10 @@ uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, ui
 
 		*((int16_t *)addr[channel]) = mix;
 
-		addr[channel] = inc_addr(addr[channel], channel);
+		if (decrement)
+			addr[channel] = dec_addr(addr[channel], channel);
+		else
+			addr[channel] = inc_addr(addr[channel], channel);
 
 	}
 

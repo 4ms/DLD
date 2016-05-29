@@ -43,6 +43,12 @@ extern uint8_t flag_pot_changed_infdown[NUM_POT_ADCS];
 
 extern uint8_t disable_mode_changes;
 
+extern uint8_t doing_reverse_fade[NUM_CHAN];
+extern uint8_t doing_inf_fade[NUM_CHAN];
+extern uint32_t fade_dest_write_addr[NUM_CHAN];
+extern uint32_t fade_dest_read_addr[NUM_CHAN];
+
+
 float param[NUM_CHAN][NUM_PARAMS];
 uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 uint8_t global_mode[NUM_GLOBAL_MODES];
@@ -510,52 +516,63 @@ inline void process_mode_flags(void){
 
 			if (flag_inf_change[channel])
 			{
-				flag_inf_change[channel]=0;
-
-				if (mode[channel][INF])
+				if (!doing_inf_fade[channel])
 				{
-					mode[channel][INF] = 0;
 
-					//need to reset the read_addr to a good place
-					write_addr[channel]=loop_end[channel];
-					set_divmult_time(channel);
+					flag_inf_change[channel]=0;
 
-					//set the write pointer ahead of the read addr
-					//this way is weird, when we exit INF, it plays the rest of the loop and then silence for the duration of the period
-					//write_addr[channel]=calculate_write_addr(channel, divmult_time[channel], mode[channel][REV]);
+					if (mode[channel][INF])
+					{
+						mode[channel][INF] = 0;
+
+						//need to reset the read_addr to a good place
+						//write_addr[channel]=loop_end[channel];
+						//set_divmult_time(channel);
+
+						//set the write pointer ahead of the read addr
+						//this way is weird, when we exit INF, it plays the rest of the loop and then silence for the duration of the period
+						//write_addr[channel]=calculate_write_addr(channel, divmult_time[channel], mode[channel][REV]);
 
 
-					loop_start[channel] = LOOP_RAM_BASE[channel];
-					loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
+						write_addr[channel] = calculate_addr_offset(channel, read_addr[channel], divmult_time[channel]*2, mode[channel][REV]);
+						fade_dest_write_addr[channel] = write_addr[channel];
 
-				} else {
-					mode[channel][INF] = 1;
-					reset_loopled_tmr(channel);
 
-					loop_start[channel]=read_addr[channel];
-					loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+						loop_start[channel] = LOOP_RAM_BASE[channel];
+						loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
 
-//					loop_end[channel]=write_addr[channel];
-//					loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
+					} else {
+						mode[channel][INF] = 1;
+						reset_loopled_tmr(channel);
+
+						loop_start[channel]=fade_dest_read_addr[channel];
+						loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+
+	//					loop_end[channel]=write_addr[channel];
+	//					loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
+					}
 				}
-
 			}
 
 
 			if (flag_rev_change[channel])
 			{
-				flag_rev_change[channel]=0;
 
-				mode[channel][REV] = 1- mode[channel][REV];
-
-				if (mode[channel][INF])
+				if (!doing_reverse_fade[channel])
 				{
-					t=loop_start[channel];
-					loop_start[channel]=loop_end[channel];
-					loop_end[channel]=t;
+					flag_rev_change[channel]=0;
+
+					mode[channel][REV] = 1- mode[channel][REV];
+
+					if (mode[channel][INF])
+					{
+						t=loop_start[channel];
+						loop_start[channel]=loop_end[channel];
+						loop_end[channel]=t;
+					}
+					else
+						swap_read_write(channel);
 				}
-				else
-					swap_read_write(channel);
 			}
 
 
