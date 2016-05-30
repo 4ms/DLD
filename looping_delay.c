@@ -41,7 +41,9 @@ const uint32_t LOOP_RAM_BASE[NUM_CHAN] = {SDRAM_BASE, SDRAM_BASE + LOOP_SIZE};
 
 
 uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
+uint8_t fade_queued_doing_inf_fade[NUM_CHAN];
 uint32_t fade_queued_dest_read_addr[NUM_CHAN];
+uint32_t fade_queued_dest_write_addr[NUM_CHAN];
 uint32_t fade_dest_read_addr[NUM_CHAN];
 uint32_t fade_dest_write_addr[NUM_CHAN];
 float fade_pos[NUM_CHAN];
@@ -51,17 +53,6 @@ uint8_t doing_inf_fade[NUM_CHAN] = {0,0};
 
 uint8_t flag_reset_loopled_tmr_on_queueadvance[NUM_CHAN]={0,0};
 
-//.01 is a xfade time of 12ms or max hold period of 83Hz = divmult_time of 420
-
-//#define FADE_INCREMENT 0.01
-//#define FADE_INCREMENT 0.001
-#define FADE_INCREMENT 0.0025
-
-//FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
-
-//#define FADE_ADDRESSES 792
-//#define FADE_ADDRESSES 7992
-#define FADE_ADDRESSES 3192
 
 
 void audio_buffer_init(void)
@@ -151,37 +142,14 @@ void pivot_read_addr(uint8_t channel)
 
 
 void swap_read_write(uint8_t channel){
-//	uint32_t prev_write_addr;
 
-	/*
-	prev_write_addr=write_addr[channel];
-	write_addr[channel]=read_addr[channel];
-	read_addr[channel] = prev_write_addr;
-*/
+	fade_dest_read_addr[channel] = write_addr[channel];
+	fade_dest_write_addr[channel] = read_addr[channel];
 
-	//prev_write_addr = write_addr[channel];
+	fade_pos[channel] = FADE_INCREMENT;
+	doing_reverse_fade[channel]=1;
 
-
-//	if (fade_pos[channel] < FADE_INCREMENT){
-		fade_dest_read_addr[channel] = write_addr[channel];
-		//fade_dest_read_addr[channel] = calculate_addr_offset(channel, write_addr[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
-
-		//write_addr[channel]=read_addr[channel];
-		fade_dest_write_addr[channel]=read_addr[channel];
-		//fade_dest_write_addr[channel] = calculate_addr_offset(channel, read_addr[channel], FADE_ADDRESSES, mode[channel][REV]);
-
-		fade_pos[channel] = FADE_INCREMENT;
-		doing_reverse_fade[channel]=1;
-
-		fade_queued_dest_divmult_time[channel] = 0;
-
-//	} else {
-		//ToDo: Why are we setting fade_queued_dest_divmult_time? Is this to force an update in set_divmult_time()?
-		//Or is this a mistake, should we be instead setting fade_queued_dest_read_addr[channel]=prev_write_addr;
-		// In any case, this block is not called until divmult is being modulated while REV is toggled
-//		fade_queued_dest_divmult_time[channel]=divmult_time[channel];
-//		write_addr[channel]=read_addr[channel];
-//	}
+	fade_queued_dest_divmult_time[channel] = 0;
 
 }
 
@@ -204,7 +172,7 @@ inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 
 	return(addr & 0xFFFFFFFE);
 
-	//return (calculate_addr_offset(channel, addr, 2, mode[channel][REV]));
+	//return (calculate_addr_offset(channel, addr, SAMPLESIZE, mode[channel][REV]));
 }
 
 inline uint32_t dec_addr(uint32_t addr, uint8_t channel)
@@ -212,17 +180,20 @@ inline uint32_t dec_addr(uint32_t addr, uint8_t channel)
 
 	if (mode[channel][REV] != 0)
 	{
-		addr+=2;
+		addr+=SAMPLESIZE;
 		if (addr >= (LOOP_RAM_BASE[channel] + LOOP_SIZE))
 			addr = LOOP_RAM_BASE[channel];
 	}
 	else
 	{
-		addr-=2;
+		addr-=SAMPLESIZE;
 		if (addr <= LOOP_RAM_BASE[channel])
 			addr = LOOP_RAM_BASE[channel] + LOOP_SIZE - 2;
 	}
 	return(addr & 0xFFFFFFFE);
+
+	//return (calculate_addr_offset(channel, addr, SAMPLESIZE, 1-mode[channel][REV]));
+
 }
 
 
@@ -420,6 +391,7 @@ inline void process_read_addr_fade(uint8_t channel){
 			fade_pos[channel] = 0.0;
 
 			doing_reverse_fade[channel] = 0;
+			doing_inf_fade[channel]=0;
 
 			read_addr[channel] = fade_dest_read_addr[channel];
 			write_addr[channel] = fade_dest_write_addr[channel];
@@ -431,19 +403,34 @@ inline void process_read_addr_fade(uint8_t channel){
 				fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
 				fade_pos[channel] = FADE_INCREMENT;
 			}
-			else if (fade_queued_dest_read_addr[channel])
+			else
 			{
-				fade_dest_read_addr[channel] = fade_queued_dest_read_addr[channel];
-				fade_queued_dest_read_addr[channel]=0;
-				fade_pos[channel] = FADE_INCREMENT;
-
-				if(flag_reset_loopled_tmr_on_queueadvance[channel])
+				if (fade_queued_dest_read_addr[channel])
 				{
+					fade_dest_read_addr[channel] = fade_queued_dest_read_addr[channel];
+					fade_queued_dest_read_addr[channel]=0;
+					fade_pos[channel] = FADE_INCREMENT;
+				}
+
+				if (fade_queued_dest_write_addr[channel])
+				{
+					fade_dest_write_addr[channel] = fade_queued_dest_write_addr[channel];
+					fade_queued_dest_write_addr[channel]=0;
+					fade_pos[channel] = FADE_INCREMENT;
+
+					if (fade_queued_doing_inf_fade[channel])
+						doing_inf_fade[channel] = 1;
+
+				}
+
+				//if(flag_reset_loopled_tmr_on_queueadvance[channel])
+				//{
 					//disabled
 					//reset_loopled_tmr(channel);
-				}
-				flag_reset_loopled_tmr_on_queueadvance[channel]=0;
+				//}
+				//flag_reset_loopled_tmr_on_queueadvance[channel]=0;
 			}
+
 		}
 	}
 }
@@ -497,6 +484,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	int32_t dummy;
 
+	uint32_t t32;
+
 	uint32_t fade_addresses;
 	uint8_t keep_reading_in_same_dir;
 
@@ -504,10 +493,10 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	sz=sz/2;
 
-	if (doing_reverse_fade[0])
-		DEBUG2_ON;
-	else
-		DEBUG2_OFF;
+//	if (doing_reverse_fade[0])
+//		DEBUG2_ON;
+//	else
+//		DEBUG2_OFF;
 
 
 	if (fade_pos[0]<FADE_INCREMENT)
@@ -515,14 +504,15 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	else
 		DEBUG0_ON;
 
-									//Sanity check to made sure the read_addr is inside the loop.
-									//We shouldn't have to do this. The likely reason the read_addr escapes the loop
-									//is that it passes the start_fade_addr and triggers the passed_end_of_loop block,
-									//while at the same time already in the middle of a cross fade due to change in divmult_time or reverse
-									//What to do? If we queue to passed_end_of_loop fade then we risk overflowing out of the loop
-									//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
-									//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
-									//one crossfade period, maybe 3ms or so. Acceptable??
+
+	//Sanity check to made sure the read_addr is inside the loop.
+	//We shouldn't have to do this. The likely reason the read_addr escapes the loop
+	//is that it passes the start_fade_addr and triggers the passed_end_of_loop block,
+	//while at the same time already in the middle of a cross fade due to change in divmult_time or reverse
+	//What to do? If we queue to passed_end_of_loop fade then we risk overflowing out of the loop
+	//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
+	//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
+	//one crossfade period, maybe 3ms or so. Acceptable??
 
 	if (mode[channel][INF] && (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
 //	if (mode[channel][INF] && (!in_between(fade_dest_read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
@@ -546,6 +536,21 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		}
 	}
 
+	/*
+	 * Sanity check: make sure read_addr and write_addr are spaced properly
+	 * We shouldn't have to do this
+	 */
+	if ((mode[channel][INF]==0) && (fade_pos[channel] < FADE_INCREMENT))
+	{
+		t32 = calculate_read_addr(channel, divmult_time[channel]);
+		if (t32 != read_addr[channel])
+		{
+			if (channel==0) DEBUG2_ON;
+			set_divmult_time(channel);
+			if (channel==0) DEBUG2_OFF;
+		}
+
+	}
 
 
 	//For short periods (audio rate), disble crossfading before the end of the loop
@@ -750,7 +755,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		if (write_addr[channel]==fade_dest_write_addr[channel] || fade_pos[channel]<FADE_INCREMENT)
 		{
 			memory_write(write_addr, channel, wr_buff, sz/2, 0);
-			fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
+			//fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
+			fade_dest_write_addr[channel] = write_addr[channel];
 
 		}
 		else {

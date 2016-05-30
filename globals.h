@@ -39,6 +39,17 @@
 #define TRIG_TIME 1000
 
 
+//.01 is a xfade time of 12ms or max hold period of 83Hz = divmult_time of 420
+//#define FADE_INCREMENT 0.01
+//#define FADE_INCREMENT 0.001
+#define FADE_INCREMENT 0.0025
+
+//FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
+//#define FADE_ADDRESSES 792
+//#define FADE_ADDRESSES 7992
+#define FADE_ADDRESSES 3192
+
+
 //#define USE_VCXO
 
 //About 45ms delay
