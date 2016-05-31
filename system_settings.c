@@ -45,6 +45,9 @@ extern uint8_t loop_led_state[NUM_CHAN];
 
 extern uint8_t flag_inf_change[2];
 extern uint8_t flag_rev_change[2];
+extern uint8_t flag_ignore_infdown[2];
+extern uint8_t flag_ignore_revdown[2];
+
 
 extern uint32_t flash_firmware_version;
 
@@ -93,6 +96,10 @@ void check_entering_system_mode(void)
 		{
 			if (global_mode[SYSTEM_SETTINGS] == 0)
 			{
+				if (mode[0][INF]) flag_inf_change[0]=1;
+				if (mode[1][INF]) flag_inf_change[1]=1;
+
+
 				global_mode[SYSTEM_SETTINGS] = 1;
 				global_mode[CALIBRATE] = 0;
 				ctr=-1;
@@ -101,6 +108,7 @@ void check_entering_system_mode(void)
 			{
 				save_flash_params();
 				global_mode[SYSTEM_SETTINGS] = 0;
+				ctr=-1;
 			}
 		}
 	}
@@ -121,6 +129,10 @@ void update_system_settings(void)
 	uint8_t switch1, switch2;
 	static uint32_t buttons_down=0;
 
+	flag_ignore_infdown[0]=1;
+	flag_ignore_infdown[1]=1;
+	flag_ignore_revdown[0]=1;
+	flag_ignore_revdown[1]=1;
 
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
@@ -148,6 +160,11 @@ void update_system_settings(void)
 
 		if (INF2BUT)
 			param[1][TRACKING_COMP]=((i_smoothed_potadc[LEVEL_POT*2+1]/8192.0f) + 0.75);
+
+		mode[0][TIMEMODE_POT] = MOD_READWRITE_TIME_NOQ;
+		mode[0][TIMEMODE_JACK] = MOD_READWRITE_TIME_NOQ;
+		mode[1][TIMEMODE_POT] = MOD_READWRITE_TIME_NOQ;
+		mode[1][TIMEMODE_JACK] = MOD_READWRITE_TIME_NOQ;
 
 		param[0][LEVEL] = 1.0;
 		param[1][LEVEL] = 1.0;
@@ -198,11 +215,11 @@ void update_system_settings(void)
 	}
 
 	//
-	// Switches: Down | Up
+	// Switches: Up | Center
 	// Set Auto-Mute and Soft Clipping
 	//
 
-	if (switch1==SWITCH_DOWN && switch2==SWITCH_UP)
+	if (switch1==SWITCH_UP && switch2==SWITCH_CENTER)
 	{
 		disable_mode_changes=1;
 
@@ -304,7 +321,7 @@ void update_system_settings_button_leds(void)
 			LED_INF2_OFF;
 	}
 
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_DOWN && switch2==SWITCH_UP)
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_CENTER)
 	{
 		// Display Auto-Mute and Soft Clip settings
 
@@ -346,6 +363,14 @@ void update_system_settings_button_leds(void)
 			LED_INF2_OFF;
 		}
 	}
+	else if (global_mode[SYSTEM_SETTINGS])
+	{
+		LED_REV1_OFF;
+		LED_REV2_OFF;
+		LED_INF1_OFF;
+		LED_INF2_OFF;
+
+	}
 
 }
 
@@ -362,7 +387,7 @@ void update_system_settings_leds(void)
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
 
-	if (switch1==SWITCH_UP)
+	if (switch1==SWITCH_UP && switch2==SWITCH_DOWN)
 	{
 		led_flasher++;
 
@@ -401,6 +426,13 @@ void update_system_settings_leds(void)
 		}
 		else
 			led_flasher=0;
+	}
+	else
+	{
+		loop_led_state[0]=0;
+		loop_led_state[1]=0;
+		LED_PINGBUT_OFF;
+
 	}
 
 }

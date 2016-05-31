@@ -184,8 +184,8 @@ uint32_t load_flash_params(void)
 		global_mode[AUTO_MUTE] = flash_global_mode_AUTO_MUTE;
 		global_mode[SOFTCLIP] = flash_global_mode_SOFTCLIP;
 
-		mode[0][LEVELCV_IS_MIX] = flash_mode_LEVELCV_IS_MIX_0;
-		mode[1][LEVELCV_IS_MIX] = flash_mode_LEVELCV_IS_MIX_1;
+		mode[0][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_0==1) ? 1:0;
+		mode[1][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_1==1) ? 1:0;
 
 		return (flash_firmware_version);
 
@@ -356,8 +356,8 @@ void read_all_params_from_FLASH(void)
 	flash_global_mode_AUTO_MUTE = flash_read_word(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;
 	flash_global_mode_SOFTCLIP = flash_read_word(FLASH_ADDR_SOFTCLIP) ? 1 : 0;
 
-	flash_mode_LEVELCV_IS_MIX_0 = flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_0) ? 1 : 0;
-	flash_mode_LEVELCV_IS_MIX_1 = flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_1) ? 1 : 0;
+	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
+	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
 
 }
 

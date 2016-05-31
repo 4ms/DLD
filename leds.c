@@ -208,7 +208,8 @@ void init_LED_PWM_IRQ(void)
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 17500; //168MHz / 2 / 17500 = 4.8kHz (208.3us) ... / 32 =
+//	tim.TIM_Period = 17500; //168MHz / 2 / 17500 = 4.8kHz (208.3us) ... / 32 =
+	tim.TIM_Period = 4375; //168MHz / 2 / 4375 = 19.2kHz
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;
