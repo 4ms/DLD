@@ -345,19 +345,19 @@ void read_all_params_from_FLASH(void)
 	if (flash_param_TRACKING_COMP_1 > 1.25 || flash_param_TRACKING_COMP_1 < 0.75)
 		flash_param_TRACKING_COMP_1 = 1.0;
 
-	flash_loop_led_brightness = flash_read_word(FLASH_ADDR_loop_led_brightness);
+	flash_loop_led_brightness = flash_read_byte(FLASH_ADDR_loop_led_brightness);
 	if (flash_loop_led_brightness > 31 || flash_loop_led_brightness < 2)
 		flash_loop_led_brightness = 4;
 
-	flash_mode_LOOP_CLOCK_GATETRIG_0 = flash_read_word(FLASH_ADDR_LOOP_CLOCK_GATETRIG_0) ? 1 : 0;
-	flash_mode_LOOP_CLOCK_GATETRIG_1 = flash_read_word(FLASH_ADDR_LOOP_CLOCK_GATETRIG_1) ? 1 : 0;
-	flash_mode_MAIN_CLOCK_GATETRIG = flash_read_word(FLASH_ADDR_MAIN_CLOCK_GATETRIG) ? 1 : 0;
+	flash_mode_LOOP_CLOCK_GATETRIG_0 = flash_read_byte(FLASH_ADDR_LOOP_CLOCK_GATETRIG_0) ? 1 : 0;
+	flash_mode_LOOP_CLOCK_GATETRIG_1 = flash_read_byte(FLASH_ADDR_LOOP_CLOCK_GATETRIG_1) ? 1 : 0;
+	flash_mode_MAIN_CLOCK_GATETRIG = flash_read_byte(FLASH_ADDR_MAIN_CLOCK_GATETRIG) ? 1 : 0;
 
-	flash_global_mode_AUTO_MUTE = flash_read_word(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;
-	flash_global_mode_SOFTCLIP = flash_read_word(FLASH_ADDR_SOFTCLIP) ? 1 : 0;
+	flash_global_mode_AUTO_MUTE = flash_read_byte(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;
+	flash_global_mode_SOFTCLIP = flash_read_byte(FLASH_ADDR_SOFTCLIP) ? 1 : 0;
 
-	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
-	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_word(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
+	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
+	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
 
 }
 

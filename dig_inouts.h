@@ -198,6 +198,13 @@
 		REV2BUT &&\
 		INF2BUT)
 
+#define RAM_CLEAR_BOTHCHAN_BUTTONS (\
+		!PINGBUT &&\
+		REV1BUT &&\
+		INF1BUT &&\
+		REV2BUT &&\
+		INF2BUT)
+
 //OUTPUTS
 
 //CLK OUT

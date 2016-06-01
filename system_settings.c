@@ -129,10 +129,10 @@ void update_system_settings(void)
 	uint8_t switch1, switch2;
 	static uint32_t buttons_down=0;
 
-	flag_ignore_infdown[0]=1;
-	flag_ignore_infdown[1]=1;
-	flag_ignore_revdown[0]=1;
-	flag_ignore_revdown[1]=1;
+	//flag_ignore_infdown[0]=1;
+	//flag_ignore_infdown[1]=1;
+	//flag_ignore_revdown[0]=1;
+	//flag_ignore_revdown[1]=1;
 
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
@@ -153,7 +153,7 @@ void update_system_settings(void)
 	//
 	if (switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
 	{
-		disable_mode_changes=0;
+		disable_mode_changes=1;
 
 		if (INF1BUT)
 			param[0][TRACKING_COMP]=((i_smoothed_potadc[LEVEL_POT*2]/8192.0f) + 0.75);

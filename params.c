@@ -552,10 +552,10 @@ inline void process_mode_flags(void){
 						if (fade_pos[channel] < FADE_INCREMENT){
 
 							//Fade read head back to the start of the loop (right before the start, so we can fade up to it as the current position fades down)
-							fade_dest_read_addr[channel] = calculate_addr_offset(channel, loop_start[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
+							fade_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], FADE_SAMPLES, 1-mode[channel][REV]);
 
 							//Fade in the writing over the last bit of the loop (right before the loop end, so we can fade out the last bit of the loop and fade in our new write data)
-							fade_dest_write_addr[channel] = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
+							fade_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], FADE_SAMPLES, 1-mode[channel][REV]);
 
 							fade_pos[channel] = FADE_INCREMENT;
 							doing_inf_fade[channel]=1;
@@ -566,8 +566,8 @@ inline void process_mode_flags(void){
 						}
 						else
 						{
-							fade_queued_dest_read_addr[channel] = calculate_addr_offset(channel, loop_start[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
-							fade_queued_dest_write_addr[channel] = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
+							fade_queued_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], FADE_SAMPLES, 1-mode[channel][REV]);
+							fade_queued_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], FADE_SAMPLES, 1-mode[channel][REV]);
 							fade_queued_doing_inf_fade[channel] = 1;
 						}
 
@@ -582,7 +582,7 @@ inline void process_mode_flags(void){
 						reset_loopled_tmr(channel);
 
 						loop_start[channel]=fade_dest_read_addr[channel];
-						loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+						loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
 
 					}
 				}
@@ -600,11 +600,11 @@ inline void process_mode_flags(void){
 
 					if (mode[channel][INF])
 					{
-						//When reversing in INF mode, swap the loop start/end but offset them by the FADE_ADDRESSES so the crossfade stays within already recorded audio
+						//When reversing in INF mode, swap the loop start/end but offset them by the FADE_SAMPLES so the crossfade stays within already recorded audio
 						t=loop_start[channel];
 
-						loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, mode[channel][REV]);
-						loop_end[channel] = calculate_addr_offset(channel, t, FADE_ADDRESSES, mode[channel][REV]);
+						loop_start[channel] = offset_samples(channel, loop_end[channel], FADE_SAMPLES, mode[channel][REV]);
+						loop_end[channel] = offset_samples(channel, t, FADE_SAMPLES, mode[channel][REV]);
 
 						//ToDo: Add a crossfade for read head reversing direction here
 					}

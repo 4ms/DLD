@@ -21,7 +21,7 @@ void memory_clear(uint8_t channel)
 
 	uint32_t i;
 
-	//Takes 1.4 seconds to clear the full buffer in 32-bit chunks, roughly 83ns per write
+	//Takes 700ms to clear the channel buffer in 32-bit chunks, roughly 83ns per write
 	for(i = LOOP_RAM_BASE[channel]; i < (LOOP_RAM_BASE[channel] + LOOP_SIZE); i += 4)
 			*((uint32_t *)i) = 0x00000000;
 

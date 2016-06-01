@@ -47,7 +47,10 @@
 //FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
 //#define FADE_ADDRESSES 792
 //#define FADE_ADDRESSES 7992
-#define FADE_ADDRESSES 3192
+//#define FADE_ADDRESSES 3192
+
+//FADE_SAMPLES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/4
+#define FADE_SAMPLES 1596
 
 
 //#define USE_VCXO

@@ -82,12 +82,12 @@ void audio_buffer_init(void)
 	}
 }
 
-inline uint32_t calculate_addr_offset(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract){
+inline uint32_t offset_samples(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract)
+{
 	uint32_t t_addr;
 
-	if (SAMPLESIZE>2)
-		offset<<=1;
-
+	//convert samples to addresses
+	offset*=SAMPLESIZE;
 
 	if (subtract == 0){
 
@@ -123,7 +123,7 @@ inline uint32_t calculate_addr_offset(uint8_t channel, uint32_t base_addr, uint3
 inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	uint32_t t_read_addr;
 
-	t_read_addr = calculate_addr_offset(channel, write_addr[channel], new_divmult_time*2, 1-mode[channel][REV]);
+	t_read_addr = offset_samples(channel, write_addr[channel], new_divmult_time, 1-mode[channel][REV]);
 	return (t_read_addr);
 }
 
@@ -172,7 +172,7 @@ inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 
 	return(addr & 0xFFFFFFFE);
 
-	//return (calculate_addr_offset(channel, addr, SAMPLESIZE, mode[channel][REV]));
+	//return (offset_samples(channel, addr, 1, mode[channel][REV]));
 }
 
 inline uint32_t dec_addr(uint32_t addr, uint8_t channel)
@@ -192,7 +192,7 @@ inline uint32_t dec_addr(uint32_t addr, uint8_t channel)
 	}
 	return(addr & 0xFFFFFFFE);
 
-	//return (calculate_addr_offset(channel, addr, SAMPLESIZE, 1-mode[channel][REV]));
+	//return (offset_samples(channel, addr, 1, 1-mode[channel][REV]));
 
 }
 
@@ -268,17 +268,17 @@ inline void set_divmult_time(uint8_t channel){
 			divmult_time[channel] = t_divmult_time;
 
 			/*
-			t=flag_timepot_changed_revdown[channel];
+			t=flag_pot_changed_revdown[TIME*2+channel];
 			if (mode[REVTIME_POLARITY]==NORMAL_LOOPEND) t=1-t;
 			if (t)
-				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+				loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
 			else
-				loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
+				loop_start[channel] = offset_samples(channel, loop_end[channel], divmult_time[channel], 1-mode[channel][REV]);
 			 */
 			if (flag_pot_changed_revdown[TIME*2+channel])
-				loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
+				loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
 			else
-				loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
+				loop_start[channel] = offset_samples(channel, loop_end[channel], divmult_time[channel], 1-mode[channel][REV]);
 
 
 			// If the read addr is not in between the loop start and end, then fade to the loop start
@@ -305,19 +305,15 @@ inline void set_divmult_time(uint8_t channel){
 		if (fade_pos[channel] < FADE_INCREMENT)
 		{
 
-		//	if (old_divmult_time[channel] != t_divmult_time){
-		//		old_divmult_time[channel] = t_divmult_time;
+			divmult_time[channel] = t_divmult_time;
 
-				divmult_time[channel] = t_divmult_time;
+			fade_queued_dest_divmult_time[channel] = 0;
 
-				fade_queued_dest_divmult_time[channel] = 0;
+			fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
 
-				fade_dest_read_addr[channel] = calculate_read_addr(channel, divmult_time[channel]);
+			if (fade_dest_read_addr[channel] != read_addr[channel])
+				fade_pos[channel] = FADE_INCREMENT;
 
-				if (fade_dest_read_addr[channel] != read_addr[channel])
-					fade_pos[channel] = FADE_INCREMENT;
-
-		//	}
 
 		} else
 			fade_queued_dest_divmult_time[channel]=t_divmult_time;
@@ -363,9 +359,12 @@ void scroll_loop(uint8_t channel, float scroll_amount, uint8_t scroll_subtract)
 	//Calculate amount to shift
 	loop_shift = (uint32_t)(scroll_amount * (float)loop_length);
 
-	//Add (or subtract) to the loop points
-	loop_start[channel] = calculate_addr_offset(channel, loop_start[channel], loop_shift, scroll_subtract);
-	loop_end[channel] = calculate_addr_offset(channel, loop_end[channel], loop_shift, scroll_subtract);
+	//convert the units from addresses to samples
+	loop_shift = loop_shift / SAMPLESIZE;
+
+	//Add (or subtract) to the loop points.
+	loop_start[channel] = offset_samples(channel, loop_start[channel], loop_shift, scroll_subtract);
+	loop_end[channel] = offset_samples(channel, loop_end[channel], loop_shift, scroll_subtract);
 }
 
 
@@ -499,10 +498,10 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 //		DEBUG2_OFF;
 
 
-	if (fade_pos[0]<FADE_INCREMENT)
-		DEBUG0_OFF;
-	else
-		DEBUG0_ON;
+//	if (fade_pos[0]<FADE_INCREMENT)
+//		DEBUG0_OFF;
+//	else
+//		DEBUG0_ON;
 
 
 	//Sanity check to made sure the read_addr is inside the loop.
@@ -538,16 +537,15 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	/*
 	 * Sanity check: make sure read_addr and write_addr are spaced properly
-	 * We shouldn't have to do this
 	 */
 	if ((mode[channel][INF]==0) && (fade_pos[channel] < FADE_INCREMENT))
 	{
 		t32 = calculate_read_addr(channel, divmult_time[channel]);
 		if (t32 != read_addr[channel])
 		{
-			if (channel==0) DEBUG2_ON;
+			//if (channel==0) DEBUG2_ON;
 			set_divmult_time(channel);
-			if (channel==0) DEBUG2_OFF;
+			//if (channel==0) DEBUG2_OFF;
 		}
 
 	}
@@ -557,7 +555,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	if (divmult_time[channel]<420)
 		start_fade_addr = loop_end[channel];
 	else
-		start_fade_addr = calculate_addr_offset(channel, loop_end[channel], FADE_ADDRESSES, 1-mode[channel][REV]);
+		start_fade_addr = offset_samples(channel, loop_end[channel], FADE_SAMPLES, 1-mode[channel][REV]);
 
 	if (doing_reverse_fade[channel])
 		keep_reading_in_same_dir = 1;
@@ -575,7 +573,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		reset_loopled_tmr(channel);
 		read_addr[channel]=loop_start[channel];
 		fade_pos[channel] = 0.0;
-		fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], sz, 1-mode[channel][REV]);
+		fade_dest_read_addr[channel] = offset_samples(channel, read_addr[channel], sz/SAMPLESIZE, 1-mode[channel][REV]);
 
 	}
 	else if (mode[channel][INF] && passed_end_of_loop)
@@ -584,9 +582,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		fade_queued_dest_divmult_time[channel]=0;
 
 		if (mode[channel][REV])
-			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_start[channel]-loop_end[channel])+sz, 0);
+			fade_dest_read_addr[channel] = offset_samples(channel, read_addr[channel], ((loop_start[channel]-loop_end[channel])+sz)/SAMPLESIZE, 0);
 		else
-			fade_dest_read_addr[channel] = calculate_addr_offset(channel, read_addr[channel], (loop_end[channel]-loop_start[channel])+sz, 1);
+			fade_dest_read_addr[channel] = offset_samples(channel, read_addr[channel], ((loop_end[channel]-loop_start[channel])+sz)/SAMPLESIZE, 1);
 
 		reset_loopled_tmr(channel);
 	}
@@ -637,7 +635,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 //		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
 
 		t = (uint16_t)(4095.0 * fade_pos[channel]);
-		//asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
+		asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
 		rd=((float)rd_buff[i] * epp_lut[t]) + ((float)rd_buff_dest[i] * epp_lut[4095-t]);
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
@@ -755,14 +753,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		if (write_addr[channel]==fade_dest_write_addr[channel] || fade_pos[channel]<FADE_INCREMENT)
 		{
 			memory_write(write_addr, channel, wr_buff, sz/2, 0);
-			//fade_dest_write_addr[channel] = calculate_addr_offset(channel, fade_dest_write_addr[channel], sz, mode[channel][REV]);
 			fade_dest_write_addr[channel] = write_addr[channel];
 
 		}
 		else {
 			//memory_fade_write(write_addr, channel, wr_buff, sz/2, doing_reverse_fade[channel], 1-fade_pos[channel]);
-			//write_addr[channel] = calculate_addr_offset(channel, write_addr[channel], sz, mode[channel][REV]);
-
 			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, 0, fade_pos[channel]);
 		}
 	}
