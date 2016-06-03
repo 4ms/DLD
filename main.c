@@ -180,7 +180,7 @@ int main(void)
     		while (1) blink_all_lights(50); //RAM Test failed: It's on the fritz!
 
     }
-    else if (flash_firmware_version <= FW_VERSION ) //If we detect a recently upgraded firmware version
+    else if (flash_firmware_version < FW_VERSION ) //If we detect a recently upgraded firmware version
     {
     	set_firmware_version();
     	store_params_into_sram();
