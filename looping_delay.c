@@ -11,6 +11,7 @@
 #include "audio_memory.h"
 
 extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
+extern __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 extern const float epp_lut[4096];
 extern float param[NUM_CHAN][NUM_PARAMS];
@@ -471,6 +472,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
 
 	uint16_t i,t;
+	static int16_t ctr16;
 
 	int16_t rd_buff[codec_BUFF_LEN/4];
 	int16_t rd_buff_dest[codec_BUFF_LEN/4];
@@ -595,6 +597,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 
+
 		mainin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+0]*/;
 		dummy=*src++;
 
@@ -633,10 +636,10 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Read from the loop and save this value so we can output it to the Delay Out jack
 //		rd=(rd_buff[i] * (1.0-fade_pos[channel])) + (rd_buff_dest[i] * fade_pos[channel]);
-
 		t = (uint16_t)(4095.0 * fade_pos[channel]);
 		asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
 		rd=((float)rd_buff[i] * epp_lut[t]) + ((float)rd_buff_dest[i] * epp_lut[4095-t]);
+
 
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
@@ -655,7 +658,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			// T = 0.8
 			// -T + T^2 = -0.16
 
-			//This could be optimized!
+			//ToDo: This could be optimized!
 			if (global_mode[SOFTCLIP]){
 				f_wr=(float)wr / 32768.0;
 				if(f_wr > 0.75)
@@ -687,7 +690,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		// Wet/dry mix, as determined by the MIX parameter
 		mix = ( ((float)dry) * param[channel][MIX_DRY] ) + ( ((float)rd) * param[channel][MIX_WET] );
 
-		//This could be optimized!
+		//ToDo: This could be optimized!
 		if (global_mode[SOFTCLIP]){
 			f_mix=(float)mix / 32768.0;
 			if(f_mix > 0.75)
@@ -721,7 +724,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		else
 		{
 
-#ifdef DEBUG_ADC_TO_CODEC
+#ifdef DEBUG_POTADC_TO_CODEC
 			*dst++ = potadc_buffer[channel+0]*4;
 			*dst++ = 0;
 
@@ -730,6 +733,16 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			else *dst++ = potadc_buffer[channel+6]*4;
 			*dst++ = 0;
 #else
+#ifdef DEBUG_CVADC_TO_CODEC
+			*dst++ = potadc_buffer[channel+2]*4;
+			*dst++ = 0;
+
+			if (TIMESW_CH1==SWITCH_CENTER) *dst++ = cvadc_buffer[channel+4]*4;
+			else if (TIMESW_CH1==SWITCH_UP) *dst++ = cvadc_buffer[channel+0]*4;
+			else *dst++ = cvadc_buffer[channel+2]*4;
+			*dst++ = 0;
+
+#else
 			//Main out
 			*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 			*dst++ = 0;
@@ -737,6 +750,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			//Send out
 			*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
 			*dst++ = 0;
+#endif
 #endif
 
 		}

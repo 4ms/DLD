@@ -335,6 +335,7 @@ void update_params(void)
 	int32_t t;
 
 	int32_t t_combined;
+	float temp_f;
 
 	float abs_amt;
 	uint8_t subtract;
@@ -448,6 +449,31 @@ void update_params(void)
 
 // ******* REGEN **********
 
+
+			if (i_smoothed_potadc[REGEN_POT*2+channel]<3500.0)
+				temp_f = i_smoothed_potadc[REGEN_POT*2+channel] / 3500.0;
+
+			else if (i_smoothed_potadc[REGEN_POT*2+channel]<=4000.0)
+				temp_f=1.0;
+
+			else
+				temp_f=(i_smoothed_potadc[REGEN_POT*2+channel]-3050)/950.0; // (4095-3050)/950 = 110% regeneration... (4000-3050)/950 = 100%
+
+			if (i_smoothed_cvadc[REGEN*2+channel] > 30)
+				temp_f = temp_f + (i_smoothed_cvadc[REGEN*2+channel] / 4096.0);
+
+			else if (i_smoothed_cvadc[REGEN*2+channel] > 4080)
+				temp_f = temp_f + 1.0;
+
+			if (temp_f > 1.1)
+				temp_f = 1.1;
+
+			else if ((temp_f<1.003) && (temp_f>0.997))
+				temp_f = 1.0;
+
+			param[channel][REGEN] = temp_f;
+
+/*
 			t_combined = i_smoothed_potadc[REGEN_POT*2+channel] + i_smoothed_cvadc[REGEN*2+channel];
 			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
 
@@ -461,7 +487,8 @@ void update_params(void)
 				param[channel][REGEN]=1.0;
 
 			else
-				param[channel][REGEN]=(t_combined-3050)/950.0; // (4095-3050)/950 = 110% regeneration... (4000-3050)/950 = 100%
+				param[channel][REGEN]=(t_combined-3050)/950.0; // (4095-3050)/950 = 110% regeneration, and (4000-3050)/950 = 100%
+*/
 
 		}
 		else
