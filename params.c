@@ -569,34 +569,41 @@ inline void process_mode_flags(void){
 
 					flag_inf_change[channel]=0;
 
-					//ToDo: These blocks of code should be in looping_delay since they use globals in that file
+					//ToDo: These blocks of code should be functions in looping_delay.c since they use globals in that file
 
 					//Exitting INF:
 					if (mode[channel][INF])
 					{
 						mode[channel][INF] = 0;
 
-						if (fade_pos[channel] < FADE_INCREMENT){
 
-							//Fade read head back to the start of the loop (right before the start, so we can fade up to it as the current position fades down)
-							fade_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], FADE_SAMPLES, 1-mode[channel][REV]);
+					//	fade_dest_read_addr[channel] = loop_start[channel];
+					//	fade_dest_write_addr[channel] = loop_end[channel];
+					//  glitch occurs about 300-500us after rising edge of INF button and lasts about 500us
 
-							//Fade in the writing over the last bit of the loop (right before the loop end, so we can fade out the last bit of the loop and fade in our new write data)
-							fade_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], FADE_SAMPLES, 1-mode[channel][REV]);
+						//Fade read head back to the start of the loop (right before the start, so we can fade up to it as the current position fades down)
+						//But, this delays the actual start of the loop by about 40ms = FADE_SAMPLES time
 
-							fade_pos[channel] = FADE_INCREMENT;
+						fade_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], EXITINF_FADE_SAMPLES, 1-mode[channel][REV]);
+
+						//Fade in the writing over the last bit of the loop (right before the loop end, so we can fade out the last bit of the loop and fade in our new write data)
+						fade_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], EXITINF_FADE_SAMPLES, 1-mode[channel][REV]);
+
+
+						//if (fade_pos[channel] < FADE_INCREMENT)
+						//{
+
+							fade_pos[channel] = EXITINF_FADE_INCREMENT;
 							doing_inf_fade[channel]=1;
 
 							fade_queued_dest_divmult_time[channel] = 0;
 							fade_queued_doing_inf_fade[channel] = 0;
 
-						}
-						else
-						{
-							fade_queued_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], FADE_SAMPLES, 1-mode[channel][REV]);
-							fade_queued_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], FADE_SAMPLES, 1-mode[channel][REV]);
-							fade_queued_doing_inf_fade[channel] = 1;
-						}
+						//}
+						//else
+						//{
+						//	fade_queued_doing_inf_fade[channel] = 1;
+						//}
 
 						loop_start[channel] = LOOP_RAM_BASE[channel];
 						loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
@@ -608,9 +615,20 @@ inline void process_mode_flags(void){
 						mode[channel][INF] = 1;
 						reset_loopled_tmr(channel);
 
-						loop_start[channel]=fade_dest_read_addr[channel];
+						loop_start[channel] = fade_dest_read_addr[channel];
+
 						loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
 
+
+						/*
+						loop_end[channel] = write_addr[channel];
+						loop_start[channel] = offset_samples(channel, loop_end[channel], divmult_time[channel], 1-mode[channel][REV]);
+
+						fade_pos[channel] = FADE_INCREMENT;
+						doing_inf_fade[channel]=1;
+						fade_dest_write_addr[channel] = loop_end[channel];
+
+*/
 					}
 				}
 			}

@@ -380,7 +380,10 @@ inline void process_read_addr_fade(uint8_t channel){
 //			fade_pos[channel]=1.0;
 
 	if (fade_pos[channel]>0.0){
-		fade_pos[channel] += FADE_INCREMENT;
+		if (doing_inf_fade[channel])
+			fade_pos[channel] += EXITINF_FADE_INCREMENT;
+		else
+			fade_pos[channel] += FADE_INCREMENT;
 
 		//If we've cross-faded 100%:
 		//	-Stop the cross-fade
@@ -644,7 +647,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		//In INF mode, REGEN and LEVEL have been set to 1.0 and 0.0 in params.c, but we can just shortcut this completely.
 		//Also, we must ignore auxin in INF mode
 
-		if (mode[channel][INF] == 0){
+		if (mode[channel][INF] == 0)
+		{
 			// Attenuate the delayed signal with REGEN
 			regen = ((float)rd) * param[channel][REGEN];
 
@@ -775,7 +779,16 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, 0, fade_pos[channel]);
 		}
 	}
+	/*
+	else
+	{
+		if (doing_inf_fade[channel])
+		{
+			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz/2, 0, 1.0-fade_pos[channel]);
 
+		}
+	}
+*/
 
 
 	//Handle new cross-fade position
