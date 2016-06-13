@@ -26,14 +26,12 @@ extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 extern __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 
-extern volatile uint32_t write_addr[NUM_CHAN];
 extern volatile uint32_t read_addr[NUM_CHAN];
 
 extern volatile uint32_t divmult_time[NUM_CHAN];
 
 extern uint32_t loop_start[NUM_CHAN];
 extern uint32_t loop_end[NUM_CHAN];
-extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 
 extern uint8_t flag_ping_was_changed[NUM_CHAN];
 extern uint8_t flag_inf_change[NUM_CHAN];
@@ -44,14 +42,9 @@ extern uint8_t flag_pot_changed_infdown[NUM_POT_ADCS];
 extern uint8_t disable_mode_changes;
 
 extern uint8_t doing_reverse_fade[NUM_CHAN];
-extern uint8_t doing_inf_fade[NUM_CHAN];
-extern uint8_t fade_queued_doing_inf_fade[NUM_CHAN];
-extern uint32_t fade_dest_write_addr[NUM_CHAN];
 extern uint32_t fade_dest_read_addr[NUM_CHAN];
-extern uint32_t fade_queued_dest_read_addr[NUM_CHAN];
-extern uint32_t fade_queued_dest_write_addr[NUM_CHAN];
 extern uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
-extern float fade_pos[NUM_CHAN];
+extern float read_fade_pos[NUM_CHAN];
 
 
 float param[NUM_CHAN][NUM_PARAMS];
@@ -107,7 +100,7 @@ void init_modes(void)
 	uint8_t channel=0;
 
 	for (channel=0;channel<NUM_CHAN;channel++){
-		mode[channel][INF] = 0;
+		mode[channel][INF] = INF_OFF;
 		mode[channel][REV] = 0;
 		mode[channel][TIMEMODE_POT] = MOD_READWRITE_TIME_Q;
 		mode[channel][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
@@ -120,6 +113,7 @@ void init_modes(void)
 	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
 
 	global_mode[AUTO_UNQ] = 0;
+	global_mode[EXITINF_MODE]=PLAYTHROUGH;
 }
 
 
@@ -240,24 +234,18 @@ void process_adc(void)
 
 			//Todo: We could clean up the use of flag_pot_changed_XXXdown, instead change the mode right here
 
-			//if (!(i&1) && REV1BUT) flag_pot_changed_revdown[i]=1;
-			//else if ((i&1) && REV2BUT) flag_pot_changed_revdown[i]=1;
-
-			//if (!(i&1) && INF1BUT) flag_pot_changed_infdown[i]=1;
-			//else if ((i&1) && INF2BUT) flag_pot_changed_infdown[i]=1;
-
 			//REV + TIME (in INF mode) is change loop end ---> disallow toggling Reverse
-			if (REV1BUT && (i==TIME1_POT && mode[0][INF]))
+			if (REV1BUT && (i==TIME1_POT && mode[0][INF]==INF_ON))
 				flag_pot_changed_revdown[i]=1;
 
-			else if (REV2BUT && (i==TIME2_POT && mode[1][INF]))
+			else if (REV2BUT && (i==TIME2_POT && mode[1][INF]==INF_ON))
 				flag_pot_changed_revdown[i]=1;
 
 			//INF + TIME is UNQ mode, INF + REGEN (in INF mode) is windowing ---> disallow toggling INF
-			if (INF1BUT && (i==TIME1_POT || (i==REGEN1_POT && mode[0][INF])))
+			if (INF1BUT && (i==TIME1_POT || (i==REGEN1_POT && mode[0][INF])==INF_ON))
 				flag_pot_changed_infdown[i]=1;
 
-			if (INF2BUT && (i==TIME2_POT || (i==REGEN2_POT && mode[1][INF])))
+			if (INF2BUT && (i==TIME2_POT || (i==REGEN2_POT && mode[1][INF])==INF_ON))
 				flag_pot_changed_infdown[i]=1;
 
 
@@ -428,9 +416,9 @@ void update_params(void)
 
 
 
-		if (mode[channel][INF] == 0)
+		if (mode[channel][INF]!=INF_ON)
 		{
-
+// *******  INF OFF **********
 // ******* LEVEL **********
 
 			if (mode[channel][LEVELCV_IS_MIX]==0)
@@ -473,32 +461,17 @@ void update_params(void)
 
 			param[channel][REGEN] = temp_f;
 
-/*
-			t_combined = i_smoothed_potadc[REGEN_POT*2+channel] + i_smoothed_cvadc[REGEN*2+channel];
-			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
-
-			// From 0 to 85% of rotation, Regen goes from 0% to 100%
-			// From 85% to 97% of rotation, Regen is set at 100%
-			// From 97% to 100% of rotation, Regen goes from 100% to 110%
-			if (t_combined<3500.0)
-				param[channel][REGEN]=t_combined/3500.0;
-
-			else if (t_combined<=4000.0)
-				param[channel][REGEN]=1.0;
-
-			else
-				param[channel][REGEN]=(t_combined-3050)/950.0; // (4095-3050)/950 = 110% regeneration, and (4000-3050)/950 = 100%
-*/
 
 		}
 		else
 		{
 
-// *******  INF  **********
+// *******  INF ON **********
 
 			param[channel][LEVEL]=0.0;
 			param[channel][REGEN]=1.0;
 
+// ********* WINDOW *********
 			//
 			// If REGEN was wiggled while INF is held down, then scroll the loop
 			//
@@ -560,78 +533,14 @@ inline void process_mode_flags(void){
 
 	if (!disable_mode_changes)
 	{
-		for (channel=0;channel<2;channel++){
+		for (channel=0;channel<2;channel++)
+		{
 
 			if (flag_inf_change[channel])
 			{
-				if (!doing_inf_fade[channel])
-				{
-
-					flag_inf_change[channel]=0;
-
-					//ToDo: These blocks of code should be functions in looping_delay.c since they use globals in that file
-
-					//Exitting INF:
-					if (mode[channel][INF])
-					{
-						mode[channel][INF] = 0;
-
-
-					//	fade_dest_read_addr[channel] = loop_start[channel];
-					//	fade_dest_write_addr[channel] = loop_end[channel];
-					//  glitch occurs about 300-500us after rising edge of INF button and lasts about 500us
-
-						//Fade read head back to the start of the loop (right before the start, so we can fade up to it as the current position fades down)
-						//But, this delays the actual start of the loop by about 40ms = FADE_SAMPLES time
-
-						fade_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], EXITINF_FADE_SAMPLES, 1-mode[channel][REV]);
-
-						//Fade in the writing over the last bit of the loop (right before the loop end, so we can fade out the last bit of the loop and fade in our new write data)
-						fade_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], EXITINF_FADE_SAMPLES, 1-mode[channel][REV]);
-
-
-						//if (fade_pos[channel] < FADE_INCREMENT)
-						//{
-
-							fade_pos[channel] = EXITINF_FADE_INCREMENT;
-							doing_inf_fade[channel]=1;
-
-							fade_queued_dest_divmult_time[channel] = 0;
-							fade_queued_doing_inf_fade[channel] = 0;
-
-						//}
-						//else
-						//{
-						//	fade_queued_doing_inf_fade[channel] = 1;
-						//}
-
-						loop_start[channel] = LOOP_RAM_BASE[channel];
-						loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
-
-					}
-					else
-					//Entering INF:
-					{
-						mode[channel][INF] = 1;
-						reset_loopled_tmr(channel);
-
-						loop_start[channel] = fade_dest_read_addr[channel];
-
-						loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
-
-
-						/*
-						loop_end[channel] = write_addr[channel];
-						loop_start[channel] = offset_samples(channel, loop_end[channel], divmult_time[channel], 1-mode[channel][REV]);
-
-						fade_pos[channel] = FADE_INCREMENT;
-						doing_inf_fade[channel]=1;
-						fade_dest_write_addr[channel] = loop_end[channel];
-
-*/
-					}
-				}
+				change_inf_mode(channel);
 			}
+
 
 
 			if (flag_rev_change[channel])
@@ -643,7 +552,7 @@ inline void process_mode_flags(void){
 
 					mode[channel][REV] = 1- mode[channel][REV];
 
-					if (mode[channel][INF])
+					if (mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
 					{
 						//When reversing in INF mode, swap the loop start/end but offset them by the FADE_SAMPLES so the crossfade stays within already recorded audio
 						t=loop_start[channel];
@@ -652,6 +561,13 @@ inline void process_mode_flags(void){
 						loop_end[channel] = offset_samples(channel, t, FADE_SAMPLES, mode[channel][REV]);
 
 						//ToDo: Add a crossfade for read head reversing direction here
+						fade_dest_read_addr[channel] = read_addr[channel];
+
+						read_fade_pos[channel] = FADE_INCREMENT;
+						doing_reverse_fade[channel]=1;
+
+						fade_queued_dest_divmult_time[channel] = 0;
+
 					}
 					else
 						swap_read_write(channel);

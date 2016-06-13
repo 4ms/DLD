@@ -180,7 +180,7 @@ void update_INF_REV_ledbut(uint8_t channel){
 			else 			LED_REV2_ON;
 		}
 
-		if (!mode[channel][INF])
+		if (mode[channel][INF]!=1)
 		{
 			if (channel==0)	LED_INF1_OFF;
 			else			LED_INF2_OFF;
