@@ -78,7 +78,7 @@ enum WindowModes{
 
 //
 //Global Modes
-//Global Modes represent global settings or states of functionality
+//Global Modes represent global states of functionality
 //
 enum Global_Modes{
 	AUTO_MUTE,
@@ -88,14 +88,27 @@ enum Global_Modes{
 	SYSTEM_SETTINGS,
 	AUTO_UNQ,
 	EXITINF_MODE,
+	REV_GATETRIG,
+	INF_GATETRIG,
 	NUM_GLOBAL_MODES
 };
 
 enum ExitINFModes{
-	IMMEDIATE_GLTICH,
 	PLAYTHROUGH,
+	IMMEDIATE_GLTICH,
 	RESET_LOOPSTART
 };
+
+
+enum Global_Params{
+	FAST_FADE_SAMPLES,
+	SLOW_FADE_SAMPLES,
+	FAST_FADE_INCREMENT,
+	SLOW_FADE_INCREMENT,
+	NUM_GLOBAL_PARAMS
+};
+
+
 
 #define P_1 1.0
 #define P_2 1.5
@@ -128,5 +141,7 @@ float adjust_time_by_switch(float val, uint8_t channel);
 void init_LowPassCoefs(void);
 void init_params(void);
 void init_modes(void);
+
+float set_fade_increment(uint32_t samples);
 
 #endif /* PARAMS_H_ */

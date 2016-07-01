@@ -1,3 +1,9 @@
+//ToDo:
+//separate mode[][] into two arrays: one for modes stored in flash, and one for modes that the user changes "on the fly"
+//mode[][] (On the fly): REV INF TIMEMODE_POT TIMEMODE_JACK
+//global_modes[]: DC_INPUT, CALIBRATE, SYSTEM_SETTING
+//flash_setting[]: CV_CAL ADC_CAL, DAC_CAL, TRACKING_COMP, LED_DIM, LOOP_CLOCK, etc...
+//Store and recall the entire flash_setting array in one read/write operation (so we don't have to spell out the address of each element etc)
 
 #include "globals.h"
 #include "dig_inouts.h"
@@ -7,6 +13,7 @@
 #include "system_settings.h"
 #include "params.h"
 #include "adc.h"
+#include "leds.h"
 
 extern int16_t CV_CALIBRATION_OFFSET[6];
 extern int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];
@@ -16,6 +23,7 @@ extern int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
 extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
+extern float global_param[NUM_GLOBAL_PARAMS];
 extern uint16_t loop_led_brightness;
 
 extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
@@ -65,6 +73,18 @@ extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 #define FLASH_ADDR_LEVELCV_IS_MIX_1			(FLASH_ADDR_LEVELCV_IS_MIX_0	 		+ SZ_LM0)		/* 75  ..	*/
 #define SZ_LM1 1
 
+#define FLASH_ADDR_FAST_FADE_SAMPLES		(FLASH_ADDR_LEVELCV_IS_MIX_1	 		+ SZ_LM1)		/* 76  ..79	*/
+#define SZ_FFS 4
+
+#define FLASH_ADDR_SLOW_FADE_SAMPLES		(FLASH_ADDR_FAST_FADE_SAMPLES	 		+ SZ_FFS)		/* 80  ..83	*/
+#define SZ_SFS 4
+
+#define FLASH_ADDR_REV_GATETRIG				(FLASH_ADDR_SLOW_FADE_SAMPLES			+ SZ_SFS)		/* 84 ..	*/
+#define SZ_RGT 1
+
+#define FLASH_ADDR_INF_GATETRIG				(FLASH_ADDR_REV_GATETRIG				+ SZ_RGT)		/* 85 ..	*/
+#define SZ_IGT 1
+
 
 #define FLASH_SYMBOL_bankfilled 0x01
 #define FLASH_SYMBOL_startupoffset 0xAA
@@ -79,6 +99,9 @@ int32_t flash_CODEC_ADC_CALIBRATION_DCOFFSET[4];
 float flash_param_TRACKING_COMP_0;
 float flash_param_TRACKING_COMP_1;
 
+uint32_t flash_global_param_FAST_FADE_SAMPLES;
+uint32_t flash_global_param_SLOW_FADE_SAMPLES;
+
 uint8_t flash_loop_led_brightness;
 
 uint8_t flash_mode_LOOP_CLOCK_GATETRIG_0;
@@ -87,6 +110,9 @@ uint8_t flash_mode_MAIN_CLOCK_GATETRIG;
 
 uint8_t flash_global_mode_AUTO_MUTE;
 uint8_t flash_global_mode_SOFTCLIP;
+
+uint8_t flash_global_mode_REV_GATETRIG;
+uint8_t flash_global_mode_INF_GATETRIG;
 
 uint8_t flash_mode_LEVELCV_IS_MIX_0;
 uint8_t flash_mode_LEVELCV_IS_MIX_1;
@@ -184,8 +210,17 @@ uint32_t load_flash_params(void)
 		global_mode[AUTO_MUTE] = flash_global_mode_AUTO_MUTE;
 		global_mode[SOFTCLIP] = flash_global_mode_SOFTCLIP;
 
+		global_mode[REV_GATETRIG] = flash_global_mode_REV_GATETRIG;
+		global_mode[INF_GATETRIG] = flash_global_mode_INF_GATETRIG;
+
 		mode[0][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_0==1) ? 1:0;
 		mode[1][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_1==1) ? 1:0;
+
+
+		global_param[FAST_FADE_SAMPLES] = (float)flash_global_param_FAST_FADE_SAMPLES;
+		global_param[SLOW_FADE_SAMPLES] = (float)flash_global_param_SLOW_FADE_SAMPLES;
+		global_param[FAST_FADE_INCREMENT] = set_fade_increment(flash_global_param_FAST_FADE_SAMPLES);
+		global_param[SLOW_FADE_INCREMENT] = set_fade_increment(flash_global_param_SLOW_FADE_SAMPLES);
 
 		return (flash_firmware_version);
 
@@ -260,8 +295,11 @@ void store_params_into_sram(void)
 
 
 	flash_param_TRACKING_COMP_0 = param[0][TRACKING_COMP];
-
 	flash_param_TRACKING_COMP_1 = param[1][TRACKING_COMP];
+
+	flash_global_param_FAST_FADE_SAMPLES = global_param[FAST_FADE_SAMPLES];
+	flash_global_param_SLOW_FADE_SAMPLES = global_param[SLOW_FADE_SAMPLES];
+
 
 	flash_loop_led_brightness = loop_led_brightness;
 
@@ -271,6 +309,9 @@ void store_params_into_sram(void)
 
 	flash_global_mode_AUTO_MUTE = global_mode[AUTO_MUTE];
 	flash_global_mode_SOFTCLIP = global_mode[SOFTCLIP];
+
+	flash_global_mode_REV_GATETRIG = global_mode[REV_GATETRIG];
+	flash_global_mode_INF_GATETRIG = global_mode[INF_GATETRIG];
 
 	flash_mode_LEVELCV_IS_MIX_0 = mode[0][LEVELCV_IS_MIX];
 	flash_mode_LEVELCV_IS_MIX_1 = mode[1][LEVELCV_IS_MIX];
@@ -302,7 +343,6 @@ void write_all_params_to_FLASH(void)
 
 
 	flash_open_program_word(*(uint32_t *)&flash_param_TRACKING_COMP_0, FLASH_ADDR_TRACKING_COMP_0);
-
 	flash_open_program_word(*(uint32_t *)&flash_param_TRACKING_COMP_1, FLASH_ADDR_TRACKING_COMP_1);
 
 	flash_open_program_byte(flash_loop_led_brightness, FLASH_ADDR_loop_led_brightness);
@@ -316,6 +356,12 @@ void write_all_params_to_FLASH(void)
 
 	flash_open_program_byte(flash_mode_LEVELCV_IS_MIX_0, FLASH_ADDR_LEVELCV_IS_MIX_0);
 	flash_open_program_byte(flash_mode_LEVELCV_IS_MIX_1, FLASH_ADDR_LEVELCV_IS_MIX_1);
+
+	flash_open_program_word(flash_global_param_FAST_FADE_SAMPLES, FLASH_ADDR_FAST_FADE_SAMPLES);
+	flash_open_program_word(flash_global_param_SLOW_FADE_SAMPLES, FLASH_ADDR_SLOW_FADE_SAMPLES);
+
+	flash_open_program_byte(flash_global_mode_REV_GATETRIG, FLASH_ADDR_REV_GATETRIG);
+	flash_open_program_byte(flash_global_mode_INF_GATETRIG, FLASH_ADDR_INF_GATETRIG);
 
 	flash_end_open_program();
 }
@@ -345,6 +391,15 @@ void read_all_params_from_FLASH(void)
 	if (flash_param_TRACKING_COMP_1 > 1.25 || flash_param_TRACKING_COMP_1 < 0.75)
 		flash_param_TRACKING_COMP_1 = 1.0;
 
+
+	flash_global_param_FAST_FADE_SAMPLES = flash_read_word(FLASH_ADDR_FAST_FADE_SAMPLES);
+	if (flash_global_param_FAST_FADE_SAMPLES < 1 || flash_global_param_FAST_FADE_SAMPLES > 48000)
+		flash_global_param_FAST_FADE_SAMPLES = 196;
+
+	flash_global_param_SLOW_FADE_SAMPLES = flash_read_word(FLASH_ADDR_SLOW_FADE_SAMPLES);
+	if (flash_global_param_SLOW_FADE_SAMPLES < 1 || flash_global_param_SLOW_FADE_SAMPLES > 48000)
+		flash_global_param_SLOW_FADE_SAMPLES = 1596;
+
 	flash_loop_led_brightness = flash_read_byte(FLASH_ADDR_loop_led_brightness);
 	if (flash_loop_led_brightness > 31 || flash_loop_led_brightness < 2)
 		flash_loop_led_brightness = 4;
@@ -358,6 +413,9 @@ void read_all_params_from_FLASH(void)
 
 	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
 	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
+
+	flash_global_mode_REV_GATETRIG = flash_read_byte(FLASH_ADDR_REV_GATETRIG) ? 1 : 0;
+	flash_global_mode_INF_GATETRIG = flash_read_byte(FLASH_ADDR_INF_GATETRIG) ? 1 : 0;
 
 }
 

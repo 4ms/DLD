@@ -45,7 +45,9 @@
 #include "calibration.h"
 #include "flash_user.h"
 #include "leds.h"
+#include "system_settings.h"
 
+#include "ITM.h"
 
 uint32_t g_error=0;
 
@@ -100,6 +102,13 @@ int main(void)
 	DeInit_I2SDMA_Channel2();
 	DeInit_I2SDMA_Channel1();
 
+//	*((volatile int *)(0xE0042004)) = 0x00000000;
+
+
+//	ITM_Init(6000000);
+//	ITM_Print(0,"\rStaring ITM\r");
+//	ITM_Disable();
+
 #ifdef HAS_VCXO
 	init_VCXO();
 
@@ -119,7 +128,6 @@ int main(void)
 	delay();
 
 	init_timekeeper();
-	init_inputread_timer();
 
 	Deinit_Pot_ADC();
 	Deinit_CV_ADC();
@@ -188,6 +196,7 @@ int main(void)
 
     }
 
+	init_inputread_timer();
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();

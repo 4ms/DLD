@@ -40,13 +40,16 @@ extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
 extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
+extern float global_param[NUM_GLOBAL_PARAMS];
+
+
 extern uint16_t loop_led_brightness;
 extern uint8_t loop_led_state[NUM_CHAN];
 
 extern uint8_t flag_inf_change[2];
 extern uint8_t flag_rev_change[2];
-extern uint8_t flag_ignore_infdown[2];
-extern uint8_t flag_ignore_revdown[2];
+//extern uint8_t flag_ignore_infdown[2];
+//extern uint8_t flag_ignore_revdown[2];
 
 
 extern uint32_t flash_firmware_version;
@@ -69,6 +72,20 @@ void set_default_system_settings(void)
 
 	global_mode[AUTO_MUTE] = 1;
 	global_mode[SOFTCLIP] = 1;
+	global_mode[INF_GATETRIG] = TRIG_MODE;
+	global_mode[REV_GATETRIG] = TRIG_MODE;
+
+
+	mode[0][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
+	mode[1][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
+	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
+
+	mode[0][LEVELCV_IS_MIX] = 0;
+	mode[1][LEVELCV_IS_MIX] = 0;
+
+
+	global_mode[AUTO_UNQ] = 0;
+	global_mode[EXITINF_MODE]=PLAYTHROUGH;
 
 }
 
@@ -92,7 +109,7 @@ void check_entering_system_mode(void)
 		}
 		else ctr++;
 
-		if (ctr>800000)
+		if (ctr>400000)
 		{
 			if (global_mode[SYSTEM_SETTINGS] == 0)
 			{
@@ -114,7 +131,7 @@ void check_entering_system_mode(void)
 	}
 	else
 	{
-		if ((ctr>1000) && (ctr<50000) && (global_mode[SYSTEM_SETTINGS] == 1)) //released buttons too early ==> cancel (exit without save)
+		if ((ctr>1000) && (ctr<=400000) && (global_mode[SYSTEM_SETTINGS] == 1)) //released buttons too early ==> cancel (exit without save)
 		{
 			global_mode[SYSTEM_SETTINGS] = 0;
 		}
@@ -127,12 +144,6 @@ void check_entering_system_mode(void)
 void update_system_settings(void)
 {
 	uint8_t switch1, switch2;
-	static uint32_t buttons_down=0;
-
-	//flag_ignore_infdown[0]=1;
-	//flag_ignore_infdown[1]=1;
-	//flag_ignore_revdown[0]=1;
-	//flag_ignore_revdown[1]=1;
 
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
@@ -149,7 +160,8 @@ void update_system_settings(void)
 
 	//
 	// Switches: Center | Center
-	// Set Tracking Compensation (1V/oct) using LEVEL pots ("Delay Feed")
+	// Set Tracking Compensation (1V/oct) using LEVEL pots ("Delay Feed") while holding down INF buttons
+	// Set Cross-fade time by holding down REV A button and turning Time A
 	//
 	if (switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
 	{
@@ -169,12 +181,49 @@ void update_system_settings(void)
 		param[0][LEVEL] = 1.0;
 		param[1][LEVEL] = 1.0;
 
+		if (REV1BUT)
+		{
+			//*_FADE_SAMPLES must equal (blocks - 1) * 4, where blocks is an integer
+			//
+
+
+			if (i_smoothed_potadc[TIME_POT*2] < 500) //1 - 2
+			{
+				global_param[FAST_FADE_SAMPLES] = 0;
+				global_param[SLOW_FADE_SAMPLES]  = 0; //instant cut
+			}
+			else if (i_smoothed_potadc[TIME_POT*2] < 1664) //3 - 6
+			{
+				global_param[FAST_FADE_SAMPLES] = 196;
+				global_param[SLOW_FADE_SAMPLES]  = 196; //about 8ms
+			}
+			else if (i_smoothed_potadc[TIME_POT*2] < 2719) //7 - 10
+			{
+				global_param[FAST_FADE_SAMPLES] = 196;
+				global_param[SLOW_FADE_SAMPLES]  = 1596; //about 66ms
+			}
+			else if (i_smoothed_potadc[TIME_POT*2] < 3586) //11 - 13
+			{
+				global_param[FAST_FADE_SAMPLES] = 196;
+				global_param[SLOW_FADE_SAMPLES]  = 4796; //about 200ms
+			}
+			else //14 - 16
+			{
+				global_param[FAST_FADE_SAMPLES] = 196;
+				global_param[SLOW_FADE_SAMPLES]  = 23996; //about 0.5s
+			}
+
+			global_param[FAST_FADE_INCREMENT] = set_fade_increment(global_param[FAST_FADE_SAMPLES]);
+			global_param[SLOW_FADE_INCREMENT] = set_fade_increment(global_param[SLOW_FADE_SAMPLES]);
+
+		}
+
 	}
 
 	//
 	// Switches: Up | Down
-	// Select Trig/Gate using INF/REV buttons
-	// Set LED brightness for loop LEDs using REGEN A pot
+	// Select Trig/Gate using INF A, REV A, and REV B buttons
+	// Set LED brightness for loop LEDs using REGEN A pot while holding down INF B
 	//
 	if (switch1==SWITCH_UP && switch2==SWITCH_DOWN)
 	{
@@ -215,8 +264,38 @@ void update_system_settings(void)
 	}
 
 	//
+	// Switches: Center | Down
+	// Select Inf and Reverse toggled by a gate toggling, or a trigger
+	//
+	if (switch1==SWITCH_CENTER && switch2==SWITCH_DOWN)
+	{
+		disable_mode_changes=1;
+
+		if (flag_rev_change[0])
+		{
+			if (global_mode[REV_GATETRIG] == TRIG_MODE)
+				global_mode[REV_GATETRIG] = GATE_MODE;
+			else
+				global_mode[REV_GATETRIG] = TRIG_MODE;
+
+			flag_rev_change[0]=0;
+
+		}
+
+		if (flag_inf_change[0])
+		{
+			if (global_mode[INF_GATETRIG] == TRIG_MODE)
+				global_mode[INF_GATETRIG] = GATE_MODE;
+			else
+				global_mode[INF_GATETRIG] = TRIG_MODE;
+
+			flag_inf_change[0]=0;
+		}
+
+	}
+	//
 	// Switches: Up | Center
-	// Set Auto-Mute and Soft Clipping
+	// Set Auto-Mute, Soft Clipping, and Level CV jack to Mix
 	//
 
 	if (switch1==SWITCH_UP && switch2==SWITCH_CENTER)
@@ -263,6 +342,8 @@ void update_system_settings(void)
 			flag_inf_change[1]=0;
 		}
 	}
+
+
 
 }
 
@@ -362,6 +443,27 @@ void update_system_settings_button_leds(void)
 			LED_INF1_OFF;
 			LED_INF2_OFF;
 		}
+
+		LED_REV1_OFF;
+		LED_REV2_OFF;
+
+	}
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_DOWN)
+	{
+		if (global_mode[REV_GATETRIG] == TRIG_MODE)
+			LED_REV1_OFF;
+		else
+			LED_REV1_ON;
+
+
+		if (global_mode[INF_GATETRIG] == TRIG_MODE)
+			LED_INF1_OFF;
+		else
+			LED_INF1_ON;
+
+		LED_REV2_OFF;
+		LED_INF2_OFF;
+
 	}
 	else if (global_mode[SYSTEM_SETTINGS])
 	{
@@ -383,6 +485,8 @@ void update_system_settings_leds(void)
 {
 	static uint32_t led_flasher=0;
 	uint8_t switch1, switch2;
+	static float old_val=0;
+	static uint32_t flicker_ctr;
 
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
@@ -426,6 +530,25 @@ void update_system_settings_leds(void)
 		}
 		else
 			led_flasher=0;
+	}
+	else if (switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
+	{
+		if (old_val != global_param[SLOW_FADE_SAMPLES])
+		{
+			old_val = global_param[SLOW_FADE_SAMPLES];
+			loop_led_state[0]=1;
+			flicker_ctr = 100;
+		}
+		else
+		{
+			if (flicker_ctr) flicker_ctr--;
+			if (!flicker_ctr)
+				loop_led_state[0]=0;
+		}
+
+		loop_led_state[1]=0;
+		LED_PINGBUT_OFF;
+
 	}
 	else
 	{

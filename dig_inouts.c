@@ -8,11 +8,14 @@
 #include "params.h"
 #include "looping_delay.h"
 #include "timekeeper.h"
+#include "audio_memory.h"
 
 
 extern volatile uint32_t ping_tmr;
 
 extern volatile uint32_t ping_time;
+extern uint8_t global_mode[NUM_GLOBAL_MODES];
+
 
 uint8_t flag_ping_was_changed[NUM_CHAN];
 
@@ -21,8 +24,6 @@ uint8_t flag_rev_change[2]={0,0};
 
 uint8_t flag_pot_changed_revdown[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
 uint8_t flag_pot_changed_infdown[NUM_POT_ADCS]={0,0,0,0,0,0,0,0};
-
-uint8_t inf_jack_high[2]={0,0};
 
 uint8_t ping_button_state=0;
 uint8_t ping_jack_state=0;
@@ -207,16 +208,16 @@ void init_inputread_timer(void){
 
 void TIM1_UP_TIM10_IRQHandler(void)
 {
-	static uint16_t ping_tracking=100;
 	static uint16_t State = 0; // Current debounce status
 	uint16_t t;
 	uint32_t t_ping_tmr;
 	float t_f;
 
+#if PING_METHOD==LINEAR_AVERAGE_4
 	static uint16_t ringbuff[4]={0,0,0,0};
 	static uint16_t a=0;
-	static ring_buffer_filled=0;
-
+	static uint32_t ring_buffer_filled=0;
+#endif
 
 	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET) {
 
@@ -326,7 +327,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 // runs at 27kHz
 void INF_REV_BUTTON_JACK_IRQHandler(void)
 {
-	static uint16_t State[10] = {0,0,0,0,0,0,0,0,0,0}; // Current debounce status
+	static uint16_t State[10] = {0,0,0,0xFFFF,0xFFFF,0,0,0xFFFF,0xFFFF,0}; // Current debounce status
 	uint16_t t;
 	static uint32_t ch1_clear_ctr=0,ch2_clear_ctr=0;
 
@@ -420,21 +421,21 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			flag_inf_change[1]=1;
 	}
 
+	if (INF2JACK) t=0xe000; else t=0xe001;
+	State[4]=(State[4]<<1) | t;
+	if (State[4]==0xfff8 || (State[4]==0xe007 && global_mode[INF_GATETRIG] == GATE_MODE))
+	{
+		flag_inf_change[1]=1;
+	}
+
 
 	if (INF1JACK) t=0xe000; else t=0xe001;
 	State[3]=(State[3]<<1) | t;
-	if (State[3]==0xfff8){					//1111 1111 1111 1000 = gate low for 13 cycles (5ms), followed by gate high for 3 cycles (1.1ms)
+	//1111 1111 1111 1000 = gate low for 13 cycles (5ms), followed by gate high for 3 cycles (1.1ms)
+	if (State[3]==0xfff8 || (State[3]==0xe007 && global_mode[INF_GATETRIG] == GATE_MODE))
+	{
 		flag_inf_change[0]=1;
 	}
-
-
-	if (INF2JACK) t=0xe000; else t=0xe001;
-	State[4]=(State[4]<<1) | t;
-	if (State[4]==0xfff8){
-		flag_inf_change[1]=1;
-		inf_jack_high[1]=1;
-	}
-
 
 	if (!REV1BUT) t=0xe000; else t=0xe001;
 	State[5]=(State[5]<<1) | t;
@@ -482,17 +483,23 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			flag_rev_change[1]=1;
 	}
 
-	if (REV1JACK) t=0xe000; else t=0xe001;
-	State[7]=(State[7]<<1) | t;
-	if (State[7]==0xfff8){
-		flag_rev_change[0]=1;
-	}
+
 
 	if (REV2JACK) t=0xe000; else t=0xe001;
 	State[8]=(State[8]<<1) | t;
-	if (State[8]==0xfff8){
+	if (State[8]==0xfff8 || (State[8]==0xe007 && global_mode[REV_GATETRIG] == GATE_MODE))
+	{
 		flag_rev_change[1]=1;
 	}
+
+
+	if (REV1JACK) t=0xe000; else t=0xe001;
+	State[7]=(State[7]<<1) | t;
+	if (State[7]==0xfff8 || (State[7]==0xe007 && global_mode[REV_GATETRIG] == GATE_MODE))
+	{
+		flag_rev_change[0]=1;
+	}
+
 
 
 	if (RAM_CLEAR_CH1_BUTTONS)

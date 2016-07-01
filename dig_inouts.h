@@ -17,11 +17,7 @@
 #define PINGJACK_pin GPIO_Pin_2
 #define PINGJACK_GPIO GPIOE
 #define PINGJACK (PINGJACK_GPIO->IDR & PINGJACK_pin)
-
-#define EXTI_PINGJACK_GPIO EXTI_PortSourceGPIOE
-#define EXTI_PINGJACK_pin EXTI_PinSource2
-#define EXTI_PINGJACK_line EXTI_Line2
-#define EXTI_PINGJACK_IRQ EXTI2_IRQn
+//#define PINGJACK 0
 
 //Same pin as WS clock of I2S2 (LRCLK), as defined in codec.h
 #define EXTI_CLOCK_GPIO EXTI_PortSourceGPIOB

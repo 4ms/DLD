@@ -22,5 +22,7 @@ void init_LED_PWM_IRQ(void);
 
 void blink_all_lights(uint32_t delaytime);
 void chase_all_lights(uint32_t delaytime);
+void update_channel_leds(void);
+
 
 #endif /* LEDS_H_ */

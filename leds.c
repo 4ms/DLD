@@ -16,7 +16,7 @@ extern volatile uint32_t ping_time;
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
-extern uint32_t flash_firmware_version;
+//extern uint32_t flash_firmware_version;
 
 uint16_t loop_led_brightness=2;
 
@@ -127,7 +127,8 @@ void update_channel_leds(void)
 
 	for (channel=0;channel<NUM_CHAN;channel++)
 	{
-		if (loopled_tmr[channel] >= divmult_time[channel]){
+		if (loopled_tmr[channel] >= divmult_time[channel] && (mode[channel][INF]==INF_OFF))
+		{
 			reset_loopled_tmr(channel);
 		}
 

@@ -48,6 +48,7 @@ extern float read_fade_pos[NUM_CHAN];
 
 
 float param[NUM_CHAN][NUM_PARAMS];
+float global_param[NUM_GLOBAL_PARAMS];
 uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 uint8_t global_mode[NUM_GLOBAL_MODES];
 
@@ -79,6 +80,17 @@ int16_t i_smoothed_rawcvadc[NUM_CV_ADCS];
 int32_t pot_delta[NUM_POT_ADCS];
 int32_t cv_delta[NUM_POT_ADCS];
 
+/*
+uint32_t set_fade_samples(float increment)
+{
+	return ((increment - 1.0) * (codec_BUFF_LEN>>3));
+}
+*/
+
+float set_fade_increment(uint32_t samples)
+{
+	return ( 1.0/((samples / (codec_BUFF_LEN>>3)) + 1.0) );
+}
 
 void init_params(void)
 {
@@ -95,6 +107,7 @@ void init_params(void)
 
 }
 
+//initializes modes that aren't read from flash ram
 void init_modes(void)
 {
 	uint8_t channel=0;
@@ -105,15 +118,15 @@ void init_modes(void)
 		mode[channel][TIMEMODE_POT] = MOD_READWRITE_TIME_Q;
 		mode[channel][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
 
-		mode[channel][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
-
-		mode[channel][LEVELCV_IS_MIX] = 0;
 	}
+	global_mode[DCINPUT] = 0;
+	global_mode[CALIBRATE] = 0;
+	global_mode[SYSTEM_SETTINGS] = 0;
 
-	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
+	global_mode[INF_GATETRIG] = TRIG_MODE;
+	global_mode[REV_GATETRIG] = TRIG_MODE;
 
-	global_mode[AUTO_UNQ] = 0;
-	global_mode[EXITINF_MODE]=PLAYTHROUGH;
+
 }
 
 
@@ -554,23 +567,26 @@ inline void process_mode_flags(void){
 
 					if (mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
 					{
+
 						//When reversing in INF mode, swap the loop start/end but offset them by the FADE_SAMPLES so the crossfade stays within already recorded audio
 						t=loop_start[channel];
 
-						loop_start[channel] = offset_samples(channel, loop_end[channel], FADE_SAMPLES, mode[channel][REV]);
-						loop_end[channel] = offset_samples(channel, t, FADE_SAMPLES, mode[channel][REV]);
+						loop_start[channel] = offset_samples(channel, loop_end[channel], global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
+						loop_end[channel] = offset_samples(channel, t, global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
 
 						//ToDo: Add a crossfade for read head reversing direction here
 						fade_dest_read_addr[channel] = read_addr[channel];
 
-						read_fade_pos[channel] = FADE_INCREMENT;
+						read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
 						doing_reverse_fade[channel]=1;
 
 						fade_queued_dest_divmult_time[channel] = 0;
 
 					}
 					else
+					{
 						swap_read_write(channel);
+					}
 				}
 			}
 
@@ -609,39 +625,39 @@ float adjust_time_by_switch(float val, uint8_t channel){
 float get_clk_div_nominal(uint16_t adc_val)
 {
 	if (adc_val<=40) //was 150
-		return(P_1);
+		return(P_1); //1
 	else if (adc_val<=176) //was 310
-		return(P_2);
+		return(P_2); //1.5
 	else if (adc_val<=471)
-		return(P_3);
+		return(P_3); //2
 	else if (adc_val<=780)
-		return(P_4);
+		return(P_4); //3
 	else if (adc_val<=1076)
-		return(P_5);
+		return(P_5); //4
 	else if (adc_val<=1368)
-		return(P_6);
+		return(P_6); //5
 	else if (adc_val<=1664)
-		return(P_7);
+		return(P_7); //6
 	else if (adc_val<=1925)
-		return(P_8);
+		return(P_8); //7
 	else if (adc_val<=2179) // Center
-		return(P_9);
+		return(P_9); //8
 	else if (adc_val<=2448)
-		return(P_10);
+		return(P_10); //9
 	else if (adc_val<=2714)
-		return(P_11);
+		return(P_11); //10
 	else if (adc_val<=2991)
-		return(P_12);
+		return(P_12); //11
 	else if (adc_val<=3276)
-		return(P_13);
+		return(P_13); //12
 	else if (adc_val<=3586)
-		return(P_14);
+		return(P_14); //13
 	else if (adc_val<=3879)
-		return(P_15);
+		return(P_15); //14
 	else if (adc_val<=4046)
-		return(P_16);
+		return(P_16); //15
 	else
-		return(P_17);
+		return(P_17); //16
 }
 
 float get_clk_div_exact(uint16_t adc_val)

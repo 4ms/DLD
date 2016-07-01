@@ -10,6 +10,8 @@
 #include "dig_inouts.h"
 #include "params.h"
 #include "calibration.h"
+#include "system_settings.h"
+#include "leds.h"
 
 
 volatile uint32_t ping_tmr;
@@ -71,7 +73,6 @@ inline void reset_loopled_tmr(uint8_t channel){
 
 
 void init_timekeeper(void){
-	TIM_TimeBaseInitTypeDef tim;
 	NVIC_InitTypeDef nvic;
 	EXTI_InitTypeDef   EXTI_InitStructure;
 
