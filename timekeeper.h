@@ -9,6 +9,8 @@
 #define TIMEKEEPER_H_
 #include <stm32f4xx.h>
 
+#define adc_param_update_IRQHandler TIM1_BRK_TIM9_IRQHandler
+
 void init_timekeeper(void);
 
 inline void inc_tmrs(void);

@@ -194,18 +194,20 @@ void init_inputread_timer(void){
 	TIM_Cmd(TIM10, ENABLE);
 }
 
+
+enum PingMethods{
+	LINEAR_AVERAGE_4,
+	LINEAR_AVERAGE_2,
+	EXPO_AVERAGE_4,
+	IGNORE_PERCENT_DEVIATION,
+	ONE_TO_ONE,
+	EXPO_AVERAGE_8
+};
+enum PingMethods PING_METHOD=IGNORE_PERCENT_DEVIATION;
+
+
 //Ping jack read
-//every 30us (33.3kHz)
-//takes 0.3us if no ping
-
-#define LINEAR_AVERAGE_4 0
-#define	LINEAR_AVERAGE_2 1
-#define	EXPO_AVERAGE_4 2
-#define	IGNORE_PERCENT_DEVIATION 3
-#define	ONE_TO_ONE 4
-
-#define PING_METHOD IGNORE_PERCENT_DEVIATION
-
+//every 30us (33.3kHz), takes 0.3us if no ping
 void TIM1_UP_TIM10_IRQHandler(void)
 {
 	static uint16_t State = 0; // Current debounce status
@@ -213,14 +215,14 @@ void TIM1_UP_TIM10_IRQHandler(void)
 	uint32_t t_ping_tmr;
 	float t_f;
 
-#if PING_METHOD==LINEAR_AVERAGE_4
+	static uint16_t last_ping = 0;
+
 	static uint16_t ringbuff[4]={0,0,0,0};
-	static uint16_t a=0;
-	static uint32_t ring_buffer_filled=0;
-#endif
+	static uint16_t ringbuff_pos=0;
+	static uint32_t ringbuff_filled=0;
 
-	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET) {
-
+	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET)
+	{
 
 		// Check Ping jack
 		// ping detection time is 60us typical, 100us max from incoming clock until this line
@@ -232,35 +234,18 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 		State=(State<<1) | t;
 		//if (State==0xfffffff0) //jack low for 27 times (0.810ms), then detected high 4 times (0.120ms)
-		if (State==0xfffe) //jack low for 12 times (1ms), then detected high 1 time
 		//if ((State & 0xff)==0xfe) //jack low for 7 times (250us), then detected high 1 time
 
+		if (State==0xfffe) //jack low for 12 times (1ms), then detected high 1 time
 		{
-
 			ping_button_state = 0;
 
 			ping_jack_state = 0;
 
-			t_ping_tmr=ping_tmr;
+			t_ping_tmr = ping_tmr;
 			reset_ping_tmr();
 
-#if PING_METHOD != IGNORE_PERCENT_DEVIATION
-			CLKOUT_ON;
-			reset_clkout_trigger_tmr();
-
-			LED_PINGBUT_ON;
-			reset_ping_ledbut_tmr();
-
-			//Flag to update the divmult parameters
-			flag_ping_was_changed[0]=1;
-			flag_ping_was_changed[1]=1;
-
-#endif
-
-#if (PING_METHOD==IGNORE_PERCENT_DEVIATION)
-//Only update if there is a variation >1%
-			t_f = (float)t_ping_tmr / (float)ping_time;
-			if (t_f>1.01 || t_f<0.99)
+			if (PING_METHOD != IGNORE_PERCENT_DEVIATION)
 			{
 				CLKOUT_ON;
 				reset_clkout_trigger_tmr();
@@ -271,52 +256,85 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				//Flag to update the divmult parameters
 				flag_ping_was_changed[0]=1;
 				flag_ping_was_changed[1]=1;
-
-				ping_time=t_ping_tmr;
-
 			}
 
-#elif PING_METHOD==LINEAR_AVERAGE_4
-// Ring buffer... hmm, kinda weird when the clock slows down: all sorts of double-hits
-// But, it averages out phasing nicely
-
-			ringbuff[a] = t_ping_tmr;
-
-			//Use the clock period the first four times we receive ping after boot
-			//After that, use an average of the previous 4 clock periods
-			if (ring_buffer_filled)
-				ping_time=(ringbuff[0] + ringbuff[1] + ringbuff[2] + ringbuff[3])/4;
-			else
-				ping_time=ringbuff[a];
-
-			if (a++>=4) {
-				a=0;
-				ring_buffer_filled=1;
+			if (PING_METHOD != LINEAR_AVERAGE_4)
+			{
+				ringbuff_pos=0;
+				ringbuff_filled=0;
 			}
 
-#elif (PING_METHOD==LINEAR_AVERAGE_2)
-//Simple linear average: the catchup is weird, and the phasing is not much different
-			ping_time = (t_ping_tmr + a)/2;
-			a=t_ping_tmr;
+			switch(PING_METHOD)
+			{
+				case (IGNORE_PERCENT_DEVIATION):
+					//Only update if there is a variation >1%
+					t_f = (float)t_ping_tmr / (float)ping_time;
+					if (t_f>1.01 || t_f<0.99)
+					{
+						CLKOUT_ON;
+						reset_clkout_trigger_tmr();
 
-#elif (PING_METHOD==EXPO_AVERAGE_4)
-//Exponential LPF: never really gets to the actual tempo, so there is always drift
-			ping_time=(float)t_ping_tmr*0.25 + (float)ping_time*0.75;
-			ping_time=ping_time & 0xFFFFFFF8;
+						LED_PINGBUT_ON;
+						reset_ping_ledbut_tmr();
 
-#elif (PING_METHOD==ONE_TO_ONE)
-//Track the clock 1:1
-			ping_time=t_ping_tmr;
-#endif
+						//Flag to update the divmult parameters
+						flag_ping_was_changed[0]=1;
+						flag_ping_was_changed[1]=1;
 
+						ping_time = t_ping_tmr;
+
+					}
+				break;
+
+				case(LINEAR_AVERAGE_4):
+				// Ring buffer... hmm, kinda weird when the clock slows down: all sorts of double-hits
+				// But, it averages out phasing nicely
+
+					ringbuff[ringbuff_pos] = t_ping_tmr;
+
+					//Use the clock period the first four times we receive ping after boot
+					//After that, use an average of the previous 4 clock periods
+					if (ringbuff_filled)
+						ping_time=(ringbuff[0] + ringbuff[1] + ringbuff[2] + ringbuff[3])/4;
+					else
+						ping_time=ringbuff[ringbuff_pos];
+
+					if (ringbuff_pos++>=4) {
+						ringbuff_pos=0;
+						ringbuff_filled=1;
+					}
+				break;
+
+				case(LINEAR_AVERAGE_2):
+				//Simple linear average: the catchup is weird, and the phasing is not much different
+					ping_time = (t_ping_tmr + last_ping)>>1;
+					last_ping = t_ping_tmr;
+				break;
+
+
+				case(EXPO_AVERAGE_4):
+				//Exponential LPF: slowly gets to the actual tempo, so there is always drift
+					ping_time=(float)t_ping_tmr*0.25 + (float)ping_time*0.75;
+					ping_time=ping_time & 0xFFFFFFF8;
+				break;
+
+				case(EXPO_AVERAGE_8):
+				//Exponential LPF: slowly gets to the actual tempo, so there is always drift
+					ping_time=(float)t_ping_tmr*0.125 + (float)ping_time*0.875;
+					ping_time=ping_time & 0xFFFFFFF8;
+				break;
+
+				case(ONE_TO_ONE):
+					//Track the clock 1:1
+					ping_time=t_ping_tmr;
+				break;
+			}
 
 		}
 
+
 		TIM_ClearITPendingBit(TIM10, TIM_IT_Update);
-
 	}
-
-
 }
 
 
@@ -345,17 +363,47 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	State[0]=(State[0]<<1) | t;
 	if (State[0]==0xff00){ 	//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
 
-		//Clear the ping jack state
-		ping_jack_state = 0;
-
-		//if (ping_button_state==1){ //second time we pressed the button
-			//ping_button_state = 0;
+		if (REV1BUT && INF2BUT)
+		{
+			PING_METHOD=EXPO_AVERAGE_4;
+			flag_ignore_infdown[1] = 1;
+			flag_ignore_revdown[0] = 1;
+		}
+		else if (REV1BUT && REV2BUT)
+		{
+			PING_METHOD=EXPO_AVERAGE_8;
+			flag_ignore_revdown[0] = 1;
+			flag_ignore_revdown[1] = 1;
+		}
+		else if (REV1BUT)
+		{
+			PING_METHOD=ONE_TO_ONE;
+			flag_ignore_revdown[0] = 1;
+		}
+		else if (INF1BUT)
+		{
+			PING_METHOD=IGNORE_PERCENT_DEVIATION;
+			flag_ignore_infdown[0] = 1;
+		}
+		else if (INF2BUT)
+		{
+			PING_METHOD=LINEAR_AVERAGE_2;
+			flag_ignore_infdown[1] = 1;
+		}
+		else if (REV2BUT)
+		{
+			PING_METHOD=LINEAR_AVERAGE_4;
+			flag_ignore_revdown[1] = 1;
+		}
+		else
+		{
+			//Clear the ping jack state
+			ping_jack_state = 0;
 
 			//Log how much time has elapsed since last ping
 			ping_time=ping_tmr & 0xFFFFFFF8; //multiple of 8
 
 			//Reset the timers
-			//ping_ledbut_tmr=0;
 			reset_ping_ledbut_tmr();
 			reset_clkout_trigger_tmr();
 
@@ -363,12 +411,8 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			flag_ping_was_changed[0]=1;
 			flag_ping_was_changed[1]=1;
 
-		//} else {
-
-			// This is the first button press, so start the ping timer
 			ping_tmr = 0;
-		//	ping_button_state = 1;
-		//}
+		}
 	}
 
 

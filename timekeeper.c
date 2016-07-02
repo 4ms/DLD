@@ -151,7 +151,7 @@ void init_adc_param_update_timer(void)
 	TIM_Cmd(TIM9, ENABLE);
 }
 
-void TIM1_BRK_TIM9_IRQHandler(void)
+void adc_param_update_IRQHandler(void)
 {
 
 	//Takes 7-8us
