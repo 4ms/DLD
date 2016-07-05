@@ -200,6 +200,9 @@ enum PingMethods{
 	LINEAR_AVERAGE_2,
 	EXPO_AVERAGE_4,
 	IGNORE_PERCENT_DEVIATION,
+	IGNORE_FLAT_DEVIATION_20,
+	IGNORE_FLAT_DEVIATION_10,
+	IGNORE_FLAT_DEVIATION_5,
 	ONE_TO_ONE,
 	EXPO_AVERAGE_8
 };
@@ -213,6 +216,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 	static uint16_t State = 0; // Current debounce status
 	uint16_t t;
 	uint32_t t_ping_tmr;
+	uint32_t diff;
 	float t_f;
 
 	static uint16_t last_ping = 0;
@@ -245,7 +249,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 			t_ping_tmr = ping_tmr;
 			reset_ping_tmr();
 
-			if (PING_METHOD != IGNORE_PERCENT_DEVIATION)
+			if (PING_METHOD != IGNORE_PERCENT_DEVIATION && PING_METHOD != IGNORE_FLAT_DEVIATION_5 && PING_METHOD != IGNORE_FLAT_DEVIATION_10 && PING_METHOD != IGNORE_FLAT_DEVIATION_20)
 			{
 				CLKOUT_ON;
 				reset_clkout_trigger_tmr();
@@ -270,6 +274,34 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					//Only update if there is a variation >1%
 					t_f = (float)t_ping_tmr / (float)ping_time;
 					if (t_f>1.01 || t_f<0.99)
+					{
+						CLKOUT_ON;
+						reset_clkout_trigger_tmr();
+
+						LED_PINGBUT_ON;
+						reset_ping_ledbut_tmr();
+
+						//Flag to update the divmult parameters
+						flag_ping_was_changed[0]=1;
+						flag_ping_was_changed[1]=1;
+
+						ping_time = t_ping_tmr;
+
+					}
+				break;
+
+				case (IGNORE_FLAT_DEVIATION_5):
+				case (IGNORE_FLAT_DEVIATION_10):
+				case (IGNORE_FLAT_DEVIATION_20):
+					//Only update if there is a variation > XXXX
+					if (t_ping_tmr > ping_time) diff = t_ping_tmr - ping_time;
+					else diff = ping_time - t_ping_tmr;
+
+					if (PING_METHOD==IGNORE_FLAT_DEVIATION_5) t=5;
+					if (PING_METHOD==IGNORE_FLAT_DEVIATION_20) t=20;
+					else t =10;
+
+					if (diff>t)
 					{
 						CLKOUT_ON;
 						reset_clkout_trigger_tmr();
@@ -375,6 +407,18 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			flag_ignore_revdown[0] = 1;
 			flag_ignore_revdown[1] = 1;
 		}
+		else if (INF1BUT && REV2BUT)
+		{
+			PING_METHOD=LINEAR_AVERAGE_4;
+			flag_ignore_infdown[0] = 1;
+			flag_ignore_revdown[1] = 1;
+		}
+		else if (INF1BUT & INF2BUT)
+		{
+			PING_METHOD=IGNORE_FLAT_DEVIATION_5;
+			flag_ignore_infdown[0] = 1;
+			flag_ignore_infdown[1] = 1;
+		}
 		else if (REV1BUT)
 		{
 			PING_METHOD=ONE_TO_ONE;
@@ -387,12 +431,12 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 		}
 		else if (INF2BUT)
 		{
-			PING_METHOD=LINEAR_AVERAGE_2;
+			PING_METHOD=IGNORE_FLAT_DEVIATION_10;
 			flag_ignore_infdown[1] = 1;
 		}
 		else if (REV2BUT)
 		{
-			PING_METHOD=LINEAR_AVERAGE_4;
+			PING_METHOD=LINEAR_AVERAGE_2;
 			flag_ignore_revdown[1] = 1;
 		}
 		else
