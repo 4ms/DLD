@@ -10,8 +10,6 @@
 #include "dig_inouts.h"
 #include "looping_delay.h"
 
-extern uint32_t g_error;
-
 
 DMA_InitTypeDef dma_ch1tx, dma_ch1rx;
 DMA_InitTypeDef dma_ch2tx, dma_ch2rx;
@@ -284,7 +282,7 @@ void DMA1_Stream3_IRQHandler(void)
 		src = (int16_t *)(ch2rx_buffer_start) +sz;
 		dst = (int16_t *)(ch2tx_buffer_start) +sz;
 
-		process_audio_block_codec(src, dst, sz, 1); //channel2
+		process_audio_block_codec(src, dst, sz/2, 1); //channel2
 
 		DMA_ClearFlag(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_TC);
 	}
@@ -297,7 +295,7 @@ void DMA1_Stream3_IRQHandler(void)
 		src = (int16_t *)(ch2rx_buffer_start);
 		dst = (int16_t *)(ch2tx_buffer_start);
 
-		process_audio_block_codec(src, dst, sz, 1); //channel2
+		process_audio_block_codec(src, dst, sz/2, 1); //channel2
 
 		DMA_ClearFlag(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_HT);
 	}
@@ -359,7 +357,7 @@ void DMA1_Stream2_IRQHandler(void)
 		src = (int16_t *)(ch1rx_buffer_start) + sz;
 		dst = (int16_t *)(ch1tx_buffer_start) + sz;
 
-		process_audio_block_codec(src, dst, sz, 0); //channel 1
+		process_audio_block_codec(src, dst, sz/2, 0); //channel 1
 
 		DMA_ClearFlag(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_TC);
 	}
@@ -372,7 +370,7 @@ void DMA1_Stream2_IRQHandler(void)
 		src = (int16_t *)(ch1rx_buffer_start);
 		dst = (int16_t *)(ch1tx_buffer_start);
 
-		process_audio_block_codec(src, dst, sz, 0); //channel 1
+		process_audio_block_codec(src, dst, sz/2, 0); //channel 1
 
 		DMA_ClearFlag(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_HT);
 	}

@@ -27,7 +27,7 @@ extern float global_param[NUM_GLOBAL_PARAMS];
 
 extern uint8_t flag_inf_change[2];
 
-extern uint8_t SAMPLESIZE;
+uint8_t SAMPLESIZE=2;
 
 extern uint8_t flag_pot_changed_revdown[NUM_POT_ADCS];
 
@@ -57,6 +57,12 @@ float write_fade_pos[NUM_CHAN];
 
 uint8_t doing_reverse_fade[NUM_CHAN] = {0,0};
 
+float lpf_coef;
+int32_t min_vol;
+float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
+
+float MAX_SAMPLEVAL;
+
 enum FadeStates{
 	NOT_FADING,
 	WRITE_FADE_DOWN,
@@ -65,7 +71,7 @@ enum FadeStates{
 };
 uint8_t write_fade_state[NUM_CHAN] = {NOT_FADING,NOT_FADING};
 
-uint8_t flag_reset_loopled_tmr_on_queueadvance[NUM_CHAN]={0,0};
+//uint8_t flag_reset_loopled_tmr_on_queueadvance[NUM_CHAN]={0,0};
 
 
 
@@ -73,11 +79,14 @@ void audio_buffer_init(void)
 {
 	uint32_t i;
 
+	if (MODE_24BIT_JUMPER)
+		SAMPLESIZE=4;
+	else
+		SAMPLESIZE=2;
 
 	if (!ping_time)
-		ping_time=0x00004000;
+		ping_time=0x00002000*SAMPLESIZE;
 
-	//ping_time=7376;
 
 	for(i=0;i<NUM_CHAN;i++){
 		memory_clear(i);
@@ -94,6 +103,23 @@ void audio_buffer_init(void)
 		loop_end[i] = LOOP_RAM_BASE[i] + LOOP_SIZE;
 		doing_reverse_fade[i]=0;
 	}
+
+	//debug: lpf_coef = 1.0 / ((i_smoothed_potadc[5]+1.0)*10.0);
+	lpf_coef = 0.0002;
+	//debug: min_vol = (i_smoothed_potadc[3])>>4;
+
+	if (SAMPLESIZE==2)
+	{
+		min_vol = 10;
+		MAX_SAMPLEVAL=(float)(1<<15);
+	}
+	else
+	{
+		min_vol = 10 << 16;
+		MAX_SAMPLEVAL=(float)(1<<31);
+	}
+
+
 }
 
 inline uint32_t offset_samples(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract)
@@ -256,8 +282,8 @@ inline void set_divmult_time(uint8_t channel){
 	//t_divmult_time = t_divmult_time & 0xFFFFFFFC; //force it to be a multiple of 4
 
 	// Check for valid divmult time range
-	if (t_divmult_time > LOOP_SIZE>>1)
-		t_divmult_time = LOOP_SIZE>>1;
+	if (t_divmult_time > LOOP_SIZE/SAMPLESIZE)
+		t_divmult_time = LOOP_SIZE/SAMPLESIZE;
 
 	if (mode[channel][INF] != INF_OFF)
 	{
@@ -293,8 +319,10 @@ inline void set_divmult_time(uint8_t channel){
 				}
 				else
 				{
+
+
 					fade_queued_dest_read_addr[channel]=loop_start[channel];
-					flag_reset_loopled_tmr_on_queueadvance[channel]=1;
+				//	flag_reset_loopled_tmr_on_queueadvance[channel]=1;
 				}
 			}
 		}
@@ -559,22 +587,13 @@ void change_inf_mode(uint8_t channel)
 }
 
 
-void process_audio(void){
 
-//Implement this function:
-	//Called from main loop when audio_is_queued_flag[channel] is set
-	//I2S DMA sets the flag
-	//Calls process_audio_block, and knows what src and dst are (perhaps audio_is_queued == 1 for first half, 2 for second half?)
-}
-
-
-// process_audio_block
+// process_audio_block()
 // This is called by the RX DMA interrupt for both codecs.
 // To do:
 // -optimize for writing in larger blocks (SDRAM burst mode may be faster than individual writes)
-// -run this via the main loop so we spend less time in the DMA interrupt, but make sure we don't under-buffer
 
-//parameter sz is 16 and immediately is divided by 2
+// parameter sz is codec_BUFF_LEN = 8
 
 //takes about 15us
 void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
@@ -591,17 +610,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float f_wr, f_rd;
 	float f_mix;
 
-	float lpf_coef;
-	int32_t min_vol;
-
-	static float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
-
 	uint16_t i,t;
+	uint16_t topbyte, bottombyte;
 
-	int16_t rd_buff[codec_BUFF_LEN/4];
-	int16_t rd_buff_dest[codec_BUFF_LEN/4];
-
-	int16_t wr_buff[codec_BUFF_LEN/4];
+	int32_t rd_buff[codec_BUFF_LEN/4];
+	int32_t rd_buff_dest[codec_BUFF_LEN/4];
+	int32_t wr_buff[codec_BUFF_LEN/4];
 
 	uint32_t crossed_start_fade_addr;
 	uint32_t start_fade_addr;
@@ -609,21 +623,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	int32_t dummy;
 
 	uint32_t t32;
-
-
-
-	sz=sz/2;
-
-//	if (doing_reverse_fade[0])
-//		DEBUG2_ON;
-//	else
-//		DEBUG2_OFF;
-
-
-//	if (read_fade_pos[1]<global_param[SLOW_FADE_INCREMENT])
-//		DEBUG0_OFF;
-//	else
-//		DEBUG0_ON;
 
 
 	//Sanity check to made sure the read_addr is inside the loop.
@@ -637,7 +636,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	if ((mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
 			&& (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
-//	if (mode[channel][INF] && (!in_between(fade_dest_read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV]))) //We don't use fade_dest because the crossfade from loop end to start involves fade_dest being not in_between
 	{
 		if (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT])
 		{
@@ -650,12 +648,10 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			reset_loopled_tmr(channel);
 
 		}
-		else
-		{
-			fade_queued_dest_read_addr[channel] = loop_start[channel];
 
-			flag_reset_loopled_tmr_on_queueadvance[channel]=1;
-		}
+		// When enabled, the following line causes INF mode to drift quickly out of sync with an external clock
+		//else
+		//	fade_queued_dest_read_addr[channel] = loop_start[channel];
 	}
 
 	/*
@@ -671,21 +667,19 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	}
 
-	//if (doing_reverse_fade[channel])
-	//	keep_reading_in_same_dir = 1;
-	//else
-	//	keep_reading_in_same_dir = 0;
-
 	//For short periods (audio rate), disble crossfading before the end of the loop
 	if (divmult_time[channel] < (global_param[SLOW_FADE_SAMPLES]))
 		start_fade_addr = loop_end[channel];
 	else
 		start_fade_addr = offset_samples(channel, loop_end[channel], global_param[SLOW_FADE_SAMPLES] / SAMPLESIZE, 1-mode[channel][REV]);
 
-	// crossed_start_fade_addr is true if read addr crosses the end of the loop, and then we will reset it to the beginning of the loop
-	// if doing_reverse_fade is true, then we should read in the opposite direction as mode[][REV] dictates (this is because we just
-	// made REV=!REV, and are doing a cross fade from rd_buff travelling in the direction of !REV to dest_rd_buff travelling REV)
-	//last_read_block_addr = read_addr[channel];
+	//
+	// crossed_start_fade_addr is true if read addr crosses the end of the loop, in which case we need to reset it to the beginning of the loop.
+	// If doing_reverse_fade is true, then we should read in the opposite direction as mode[][REV] dictates (this is because we just
+	// reversed direction, so we should continue reading from rd_buff in the same direction (which is now !REV),
+	// and cross fade towards dest_rd_buff being read in the direction of REV
+
+	// last_read_block_addr = read_addr[channel];
 
 	crossed_start_fade_addr = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, doing_reverse_fade[channel]);
 
@@ -698,7 +692,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		{
 			read_addr[channel]=loop_start[channel];
 			read_fade_pos[channel] = 0.0;
-			//ToDo: Why do we set this below?
+			//ToDo: Is it necessary to set this below?
 			fade_dest_read_addr[channel] = offset_samples(channel, read_addr[channel], sz/SAMPLESIZE, 1-mode[channel][REV]);
 
 			if (mode[channel][INF]==INF_TRANSITIONING_OFF)
@@ -741,12 +735,31 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 
+		if (SAMPLESIZE==2){
+			mainin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+0]*/;
+			dummy=*src++;
 
-		mainin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+0]*/;
-		dummy=*src++;
+			auxin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+2]*/;
+			dummy=*src++;
+		}
+		else
+		{
+			topbyte = (uint16_t)(*src++);
+			bottombyte = (uint16_t)(*src++);
+			mainin = (topbyte << 16) + (uint16_t)bottombyte;
 
-		auxin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+2]*/;
-		dummy=*src++;
+			//mainin = ((uint16_t)(*src++));
+			//mainin <<= 16;
+			//mainin += ((uint16_t)(*src++));
+
+			topbyte = (uint16_t)(*src++);
+			bottombyte = (uint16_t)(*src++);
+			auxin = (topbyte << 16) + (uint16_t)bottombyte;
+
+		//	auxin = ((uint16_t)(*src++));
+			//auxin <<= 16;
+			//auxin += ((uint16_t)(*src++));
+		}
 
 		if (mute_on_boot_ctr)
 		{
@@ -757,10 +770,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		if (global_mode[AUTO_MUTE]){
 
-			//debug: lpf_coef = 1.0 / ((i_smoothed_potadc[5]+1.0)*10.0);
-			lpf_coef = 0.0002;
-			//debug: min_vol = (i_smoothed_potadc[3])>>4;
-			min_vol = 10;
 
 			mainin_lpf[channel] = (mainin_lpf[channel]*(1.0-lpf_coef)) + (((mainin>0)?mainin:(-1*mainin))*lpf_coef);
 
@@ -785,12 +794,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		//ToDo: This could be optimized!
 		if (global_mode[SOFTCLIP]){
-			f_rd=(float)rd / 32768.0;
+			f_rd=(float)rd / MAX_SAMPLEVAL;
 			if(f_rd > 0.75)
 			{
 				f_rd = 0.75 / f_rd;
 				f_rd = (1.0f - f_rd) * (1.0f - 0.75) + 0.75;
-				f_rd = f_rd * 32768.0;
+				f_rd = f_rd * MAX_SAMPLEVAL;
 				rd = (int32_t)f_rd;
 			}
 			else if(f_rd < -0.75)
@@ -798,7 +807,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 				f_rd = -0.75 / f_rd;
 
 				f_rd = -((1.0f - f_rd) * (1.0f - 0.75) + 0.75);
-				f_rd = f_rd * 32768.0;
+				f_rd = f_rd * MAX_SAMPLEVAL;
 
 				rd = (int32_t)f_rd;
 			}
@@ -822,25 +831,28 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			// -T + T^2 = -0.16
 			//ToDo: This could be optimized!
 			if (global_mode[SOFTCLIP]){
-				f_wr=(float)wr / 32768.0;
+				f_wr=(float)wr / MAX_SAMPLEVAL;
 				if(f_wr > 0.75)
 				{
 					f_wr = 0.75 / f_wr;
 					f_wr = (1.0f - f_wr) * (1.0f - 0.75) + 0.75;
-					f_wr = f_wr * 32768.0;
+					f_wr = f_wr * MAX_SAMPLEVAL;
 					wr = (int32_t)f_wr;
 				}
 				else if(f_wr < -0.75)
 				{
 					f_wr = -0.75 / f_wr;
 					f_wr = -((1.0f - f_wr) * (1.0f - 0.75) + 0.75);
-					f_wr = f_wr * 32768.0;
+					f_wr = f_wr * MAX_SAMPLEVAL;
 
 					wr = (int32_t)f_wr;
 				}
 			}
 
-			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
+			if (SAMPLESIZE==2)
+				asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
+		//	else
+		//		asm("ssat %[dst], #32, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
 
 
 	//	} else {
@@ -853,27 +865,30 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 		//ToDo: This could be optimized!
 		if (global_mode[SOFTCLIP]){
-			f_mix=(float)mix / 32768.0;
+			f_mix=(float)mix / MAX_SAMPLEVAL;
 			if(f_mix > 0.75)
 			{
 				f_mix = 0.75 / f_mix;
 				f_mix = (1.0f - f_mix) * (1.0f - 0.75) + 0.75;
-				f_mix = f_mix * 32768.0;
+				f_mix = f_mix * MAX_SAMPLEVAL;
 				mix = (int32_t)f_mix;
 			}
 			else if(f_mix < -0.75)
 			{
 				f_mix = -0.75 / f_mix;
 				f_mix = -((1.0f - f_mix) * (1.0f - 0.75) + 0.75);
-				f_mix = f_mix * 32768.0;
-
+				f_mix = f_mix * MAX_SAMPLEVAL;
 				mix = (int32_t)f_mix;
 			}
 		}
 
-		asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
+		if (SAMPLESIZE==2)
+			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
+		//else
+		//	asm("ssat %[dst], #32, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
-		if (global_mode[CALIBRATE]){
+		if (global_mode[CALIBRATE])
+		{
 			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 			*dst++ = 0;
 
@@ -902,13 +917,23 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			*dst++ = 0;
 
 #else
-			//Main out
-			*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
-			*dst++ = 0;
+			if (SAMPLESIZE==2){
+				//Main out
+				*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
+				*dst++ = 0;
 
-			//Send out
-			*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-			*dst++ = 0;
+				//Send out
+				*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+				*dst++ = 0;
+			} else {
+				//Main out
+				*dst++ = (int16_t)(mix>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
+				*dst++ = (int16_t)(mix & 0x0000FF00);
+
+				//Send out
+				*dst++ = (int16_t)(rd>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+				*dst++ = (int16_t)(rd & 0x0000FF00);
+			}
 #endif
 #endif
 

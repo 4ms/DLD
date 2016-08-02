@@ -112,6 +112,8 @@
 */
 
 #define DCINPUT_JUMPER JUMPER_1
+#define MODE_24BIT_JUMPER JUMPER_2
+
 
 //RAM Test: On boot: Up/Down + Left three buttons
 #define RAMTEST_BUTTONS (\
@@ -309,6 +311,7 @@
 #define DEBUG4_ON DEBUG4_GPIO->BSRRL = DEBUG4
 #define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
 */
+
 
 #define INF_REV_BUTTON_JACK_TIM TIM4
 #define INF_REV_BUTTON_JACK_TIM_RCC RCC_APB1Periph_TIM4

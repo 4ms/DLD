@@ -109,7 +109,7 @@ void check_entering_system_mode(void)
 		}
 		else ctr++;
 
-		if (ctr>400000)
+		if (ctr>100000)
 		{
 			if (global_mode[SYSTEM_SETTINGS] == 0)
 			{
@@ -131,7 +131,7 @@ void check_entering_system_mode(void)
 	}
 	else
 	{
-		if ((ctr>1000) && (ctr<=400000) && (global_mode[SYSTEM_SETTINGS] == 1)) //released buttons too early ==> cancel (exit without save)
+		if ((ctr>1000) && (ctr<=100000) && (global_mode[SYSTEM_SETTINGS] == 1)) //released buttons too early ==> cancel (exit without save)
 		{
 			global_mode[SYSTEM_SETTINGS] = 0;
 		}

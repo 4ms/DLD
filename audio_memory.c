@@ -13,8 +13,7 @@
 
 extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 
-uint8_t SAMPLESIZE=2;
-//uint8_t SAMPLESIZE=4;
+extern uint8_t SAMPLESIZE;
 
 void memory_clear(uint8_t channel)
 {
@@ -28,7 +27,7 @@ void memory_clear(uint8_t channel)
 
 }
 
-uint32_t memory_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr, uint8_t decrement){
+uint32_t memory_read(uint32_t *addr, uint8_t channel, int32_t *rd_buff, uint8_t num_samples, uint32_t loop_addr, uint8_t decrement){
 	uint8_t i;
 	uint32_t heads_crossed=0;
 
@@ -45,7 +44,10 @@ uint32_t memory_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t 
 
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		rd_buff[i] = *((int16_t *)(addr[channel]));
+		if (SAMPLESIZE==2)
+			rd_buff[i] = *((int16_t *)(addr[channel]));
+		else
+			rd_buff[i] = *((int32_t *)(addr[channel]));
 
 		if (decrement)
 			addr[channel] = dec_addr(addr[channel], channel);
@@ -60,7 +62,7 @@ uint32_t memory_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t 
 }
 
 
-uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples, uint8_t decrement)
+uint32_t memory_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t num_samples, uint8_t decrement)
 {
 	uint8_t i;
 
@@ -75,7 +77,10 @@ uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t
 
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		*((int16_t *)addr[channel]) = wr_buff[i];
+		if (SAMPLESIZE==2)
+			*((int16_t *)addr[channel]) = wr_buff[i];
+		else
+			*((int32_t *)addr[channel]) = wr_buff[i];
 
 		if (decrement)
 			addr[channel] = dec_addr(addr[channel], channel);
@@ -96,10 +101,10 @@ uint32_t memory_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t
 // fade=0.5 means write 50% wr_buff and 50% read.
 // fade=0.0 means write 0% wr_buff and 100% read.
 //
-uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples, uint8_t decrement, float fade){
+uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t num_samples, uint8_t decrement, float fade){
 	uint8_t i;
-	int16_t rd;
-	int16_t mix;
+	int32_t rd;
+	int32_t mix;
 
 	for (i=0;i<num_samples;i++){
 
@@ -113,13 +118,19 @@ uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, ui
 		addr[channel] = (addr[channel] & 0xFFFFFFFE);
 
 		//read from address
-		rd = *((int16_t *)(addr[channel]));
+		if (SAMPLESIZE==2)
+			rd = *((int16_t *)(addr[channel]));
+		else
+			rd = *((int32_t *)(addr[channel]));
 
 		mix = ((float)wr_buff[i] * fade) + ((float)rd * (1.0-fade));
 
 		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
 
-		*((int16_t *)addr[channel]) = mix;
+		if (SAMPLESIZE==2)
+			*((int16_t *)addr[channel]) = mix;
+		else
+			*((int32_t *)addr[channel]) = mix;
 
 		if (decrement)
 			addr[channel] = dec_addr(addr[channel], channel);
