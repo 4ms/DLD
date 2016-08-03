@@ -157,7 +157,6 @@ void adc_param_update_IRQHandler(void)
 	//Takes 7-8us
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
-		DEBUG0_ON;
 		process_adc();
 
 		if (global_mode[CALIBRATE])
@@ -167,7 +166,6 @@ void adc_param_update_IRQHandler(void)
 		}
 		else
 			update_params();
-		DEBUG0_OFF;
 
 		if (global_mode[SYSTEM_SETTINGS])
 		{

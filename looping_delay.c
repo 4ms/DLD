@@ -10,6 +10,7 @@
 #include "params.h"
 #include "audio_memory.h"
 #include "timekeeper.h"
+#include "compressor.h"
 
 
 //debug:
@@ -61,8 +62,6 @@ float lpf_coef;
 int32_t min_vol;
 float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
 
-float MAX_SAMPLEVAL;
-
 enum FadeStates{
 	NOT_FADING,
 	WRITE_FADE_DOWN,
@@ -111,12 +110,12 @@ void audio_buffer_init(void)
 	if (SAMPLESIZE==2)
 	{
 		min_vol = 10;
-		MAX_SAMPLEVAL=(float)(1<<15);
+		init_compressor(1<<15, 0.75);
 	}
 	else
 	{
 		min_vol = 10 << 16;
-		MAX_SAMPLEVAL=(float)(1<<31);
+		init_compressor(1<<31, 0.75);
 	}
 
 
@@ -486,103 +485,40 @@ void change_inf_mode(uint8_t channel)
 	{
 		flag_inf_change[channel]=0;
 
-	//	if (global_mode[EXITINF_MODE]==PLAYTHROUGH){
-
-			//If INF is on, go to transition-off mode
-			//Initiate a write fade-up at the read_addr
-			if (mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_ON)
-			{
-				mode[channel][INF] = INF_TRANSITIONING_OFF;
-
-				write_fade_pos[channel] = global_param[FAST_FADE_INCREMENT];
-				write_fade_state[channel]=WRITE_FADE_UP;
-				fade_dest_write_addr[channel] = read_addr[channel];
-
-			}
-
-			//If INF is off or transitioning off, turn it on
-			//and initiate a write-fade-down at the present write_addr
-			else
-			{
-
-				//Don't change the loop start/end if we hit INF off recently (recent enough that we're still T_OFF)
-				//This is because the read and write pointers are in the same spot
-				if (mode[channel][INF] != INF_TRANSITIONING_OFF)
-				{
-					reset_loopled_tmr(channel);
-
-					loop_start[channel] = fade_dest_read_addr[channel]; //use the dest because if we happen to be fading the read head when we hit inf (e.g. changing divmult time) then we should loop between the new points since divmult_time (used in the next line) corresponds with the dest
-					loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
-				}
-				write_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
-				write_fade_state[channel]=WRITE_FADE_DOWN;
-				fade_dest_write_addr[channel] = write_addr[channel];
-
-				mode[channel][INF] = INF_TRANSITIONING_ON;
-
-			}
-	//	}
-/*
-		else if (global_mode[EXITINF_MODE]==IMMEDIATE_GLTICH)
+		//If INF is on, go to transition-off mode
+		//Initiate a write fade-up at the read_addr
+		if (mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_ON)
 		{
-			if (mode[channel][INF])
-			{
-				mode[channel][INF] = 0;
-				fade_dest_write_addr[channel] = offset_samples(channel, fade_dest_read_addr[channel], divmult_time[channel], mode[channel][REV]);
+			mode[channel][INF] = INF_TRANSITIONING_OFF;
 
-				write_fade_pos[channel] = FADE_INCREMENT;
-				write_fade_state[channel]=NOT_FADING;
-
-				//fade_queued_dest_divmult_time[channel] = 0;
-				queued_write_fade_state[channel] = NOT_FADING;
-
-				loop_start[channel] = LOOP_RAM_BASE[channel];
-				loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
-
-			} else {
-				mode[channel][INF] = 1;
-				reset_loopled_tmr(channel);
-
-				loop_start[channel]=read_addr[channel];
-				loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
-			}
+			write_fade_pos[channel] = global_param[FAST_FADE_INCREMENT];
+			write_fade_state[channel]=WRITE_FADE_UP;
+			fade_dest_write_addr[channel] = read_addr[channel];
 
 		}
-		else if (global_mode[EXITINF_MODE]==RESET_LOOPSTART)
+
+		//If INF is off or transitioning off, turn it on
+		//and initiate a write-fade-down at the present write_addr
+		else
 		{
-			//Exitting INF:
-			if (mode[channel][INF])
+
+			//Don't change the loop start/end if we hit INF off recently (recent enough that we're still T_OFF)
+			//This is because the read and write pointers are in the same spot
+			if (mode[channel][INF] != INF_TRANSITIONING_OFF)
 			{
-				mode[channel][INF] = 0;
-
-				//Fade read head back to the start of the loop (right before the start, so we can fade up to it as the current position fades down)
-				fade_dest_read_addr[channel] = offset_samples(channel, loop_start[channel], global_param[FAST_FADE_SAMPLES], 1-mode[channel][REV]);
-
-				//Fade in the writing over the last bit of the loop (right before the loop end, so we can fade out the last bit of the loop and fade in our new write data)
-				fade_dest_write_addr[channel] = offset_samples(channel, loop_end[channel], global_param[FAST_FADE_SAMPLES], 1-mode[channel][REV]);
-
-				write_fade_pos[channel] = global_param[FAST_FADE_INCREMENT];
-				write_fade_state[channel]=WRITE_FADE_UP;
-
-				//fade_queued_dest_divmult_time[channel] = 0;
-				queued_write_fade_state[channel] = NOT_FADING;
-
-				loop_start[channel] = LOOP_RAM_BASE[channel];
-				loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
-
-			}
-			else
-			//Entering INF:
-			{
-				mode[channel][INF] = 1;
 				reset_loopled_tmr(channel);
 
-				loop_start[channel] = fade_dest_read_addr[channel];
-
+				loop_start[channel] = fade_dest_read_addr[channel]; //use the dest because if we happen to be fading the read head when we hit inf (e.g. changing divmult time) then we should loop between the new points since divmult_time (used in the next line) corresponds with the dest
 				loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
-
 			}
-		}*/
+			write_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
+			write_fade_state[channel]=WRITE_FADE_DOWN;
+			fade_dest_write_addr[channel] = write_addr[channel];
+
+			mode[channel][INF] = INF_TRANSITIONING_ON;
+
+		}
+
 	}
 }
 
@@ -607,9 +543,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float mainin_atten;
 	int32_t auxin;
 
-	float f_wr, f_rd;
-	float f_mix;
-
 	uint16_t i,t;
 	uint16_t topbyte, bottombyte;
 
@@ -633,6 +566,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
 	//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
 	//one crossfade period, maybe 3ms or so. Acceptable??
+
 
 	DEBUG1_OFF;
 	if ((mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
@@ -751,17 +685,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			bottombyte = (uint16_t)(*src++);
 			mainin = (topbyte << 16) + (uint16_t)bottombyte;
 
-			//mainin = ((uint16_t)(*src++));
-			//mainin <<= 16;
-			//mainin += ((uint16_t)(*src++));
-
 			topbyte = (uint16_t)(*src++);
 			bottombyte = (uint16_t)(*src++);
 			auxin = (topbyte << 16) + (uint16_t)bottombyte;
-
-		//	auxin = ((uint16_t)(*src++));
-			//auxin <<= 16;
-			//auxin += ((uint16_t)(*src++));
 		}
 
 		if (mute_on_boot_ctr)
@@ -795,100 +721,36 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
 		rd=((float)rd_buff[i] * epp_lut[t]) + ((float)rd_buff_dest[i] * epp_lut[4095-t]);
 
-		//ToDo: This could be optimized!
-		if (global_mode[SOFTCLIP]){
-			f_rd=(float)rd / MAX_SAMPLEVAL;
-			if(f_rd > 0.75)
-			{
-				f_rd = 0.75 / f_rd;
-				f_rd = (1.0f - f_rd) * (1.0f - 0.75) + 0.75;
-				f_rd = f_rd * MAX_SAMPLEVAL;
-				rd = (int32_t)f_rd;
-			}
-			else if(f_rd < -0.75)
-			{
-				f_rd = -0.75 / f_rd;
-
-				f_rd = -((1.0f - f_rd) * (1.0f - 0.75) + 0.75);
-				f_rd = f_rd * MAX_SAMPLEVAL;
-
-				rd = (int32_t)f_rd;
-			}
-		}
+		if (global_mode[SOFTCLIP])
+			rd = compress(rd);
 
 
+		// Attenuate the delayed signal with REGEN
+		regen = ((float)rd) * param[channel][REGEN];
 
-	//	if (mode[channel][INF] == 0 || mode[channel][INF] == 2)
-	//	{
-			// Attenuate the delayed signal with REGEN
-			regen = ((float)rd) * param[channel][REGEN];
+		// Attenuate the clean signal by the LEVEL parameter
+		//t_f = param[channel][LEVEL];
+		mainin_atten = ((float)mainin) * param[channel][LEVEL];
 
-			// Attenuate the clean signal by the LEVEL parameter
-			//t_f = param[channel][LEVEL];
-			mainin_atten = ((float)mainin) * param[channel][LEVEL];
+		// Add the loop contents to the input signal, as well as the auxin signal
+		wr = (int32_t)(regen + mainin_atten + (float)auxin);
 
-			// Add the loop contents to the input signal, as well as the auxin signal
-			wr = (int32_t)(regen + mainin_atten + (float)auxin);
+		if (global_mode[SOFTCLIP])
+			wr = compress(wr);
 
-			// T = 0.8
-			// -T + T^2 = -0.16
-			//ToDo: This could be optimized!
-			if (global_mode[SOFTCLIP]){
-				f_wr=(float)wr / MAX_SAMPLEVAL;
-				if(f_wr > 0.75)
-				{
-					f_wr = 0.75 / f_wr;
-					f_wr = (1.0f - f_wr) * (1.0f - 0.75) + 0.75;
-					f_wr = f_wr * MAX_SAMPLEVAL;
-					wr = (int32_t)f_wr;
-				}
-				else if(f_wr < -0.75)
-				{
-					f_wr = -0.75 / f_wr;
-					f_wr = -((1.0f - f_wr) * (1.0f - 0.75) + 0.75);
-					f_wr = f_wr * MAX_SAMPLEVAL;
+		//if (SAMPLESIZE==2)
+		//	asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
 
-					wr = (int32_t)f_wr;
-				}
-			}
-
-			if (SAMPLESIZE==2)
-				asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
-		//	else
-		//		asm("ssat %[dst], #32, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
-
-
-	//	} else {
-	//		wr = rd;
-	//	}
 
 
 		// Wet/dry mix, as determined by the MIX parameter
 		mix = ( ((float)dry) * param[channel][MIX_DRY] ) + ( ((float)rd) * param[channel][MIX_WET] );
 
-		//ToDo: This could be optimized!
-		if (global_mode[SOFTCLIP]){
-			f_mix=(float)mix / MAX_SAMPLEVAL;
-			if(f_mix > 0.75)
-			{
-				f_mix = 0.75 / f_mix;
-				f_mix = (1.0f - f_mix) * (1.0f - 0.75) + 0.75;
-				f_mix = f_mix * MAX_SAMPLEVAL;
-				mix = (int32_t)f_mix;
-			}
-			else if(f_mix < -0.75)
-			{
-				f_mix = -0.75 / f_mix;
-				f_mix = -((1.0f - f_mix) * (1.0f - 0.75) + 0.75);
-				f_mix = f_mix * MAX_SAMPLEVAL;
-				mix = (int32_t)f_mix;
-			}
-		}
+		if (global_mode[SOFTCLIP])
+			mix = compress(mix);
 
-		if (SAMPLESIZE==2)
-			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
-		//else
-		//	asm("ssat %[dst], #32, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
+		//if (SAMPLESIZE==2)
+		//	asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
 		if (global_mode[CALIBRATE])
 		{
@@ -928,7 +790,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 				//Send out
 				*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
 				*dst++ = 0;
-			} else {
+			}
+			else
+			{
 				//Main out
 				*dst++ = (int16_t)(mix>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
 				*dst++ = (int16_t)(mix & 0x0000FF00);
@@ -939,10 +803,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			}
 #endif
 #endif
-
 		}
-
-
 
 		wr_buff[i]=wr;
 
@@ -983,10 +844,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	increment_read_fade(channel);
 	increment_write_fade(channel);
-
-
-//	DEBUG0_OFF;
-//	DEBUG2_OFF;
 
 }
 
