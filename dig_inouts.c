@@ -195,18 +195,7 @@ void init_inputread_timer(void){
 }
 
 
-enum PingMethods{
-	LINEAR_AVERAGE_4,
-	LINEAR_AVERAGE_2,
-	EXPO_AVERAGE_4,
-	IGNORE_PERCENT_DEVIATION,
-	IGNORE_FLAT_DEVIATION_20,
-	IGNORE_FLAT_DEVIATION_10,
-	IGNORE_FLAT_DEVIATION_5,
-	ONE_TO_ONE,
-	EXPO_AVERAGE_8
-};
-enum PingMethods PING_METHOD=IGNORE_PERCENT_DEVIATION;
+//enum PingMethods PING_METHOD=IGNORE_PERCENT_DEVIATION;
 
 
 //Ping jack read
@@ -249,7 +238,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 			t_ping_tmr = ping_tmr;
 			reset_ping_tmr();
 
-			if (PING_METHOD != IGNORE_PERCENT_DEVIATION && PING_METHOD != IGNORE_FLAT_DEVIATION_5 && PING_METHOD != IGNORE_FLAT_DEVIATION_10 && PING_METHOD != IGNORE_FLAT_DEVIATION_20)
+			if (global_mode[PING_METHOD] != IGNORE_PERCENT_DEVIATION && global_mode[PING_METHOD] != IGNORE_FLAT_DEVIATION_5 && global_mode[PING_METHOD] != IGNORE_FLAT_DEVIATION_10)
 			{
 				CLKOUT_ON;
 				reset_clkout_trigger_tmr();
@@ -262,13 +251,13 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				flag_ping_was_changed[1]=1;
 			}
 
-			if (PING_METHOD != LINEAR_AVERAGE_4)
+			if (global_mode[PING_METHOD] != LINEAR_AVERAGE_4)
 			{
 				ringbuff_pos=0;
 				ringbuff_filled=0;
 			}
 
-			switch(PING_METHOD)
+			switch(global_mode[PING_METHOD])
 			{
 				case (IGNORE_PERCENT_DEVIATION):
 					//Only update if there is a variation >1%
@@ -292,13 +281,11 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 				case (IGNORE_FLAT_DEVIATION_5):
 				case (IGNORE_FLAT_DEVIATION_10):
-				case (IGNORE_FLAT_DEVIATION_20):
 					//Only update if there is a variation > XXXX
 					if (t_ping_tmr > ping_time) diff = t_ping_tmr - ping_time;
 					else diff = ping_time - t_ping_tmr;
 
-					if (PING_METHOD==IGNORE_FLAT_DEVIATION_5) t=5;
-					if (PING_METHOD==IGNORE_FLAT_DEVIATION_20) t=20;
+					if (global_mode[PING_METHOD]==IGNORE_FLAT_DEVIATION_5) t=5;
 					else t =10;
 
 					if (diff>t)
@@ -397,46 +384,46 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 
 		if (REV1BUT && INF2BUT)
 		{
-			PING_METHOD=EXPO_AVERAGE_4;
+			global_mode[PING_METHOD]=EXPO_AVERAGE_4;
 			flag_ignore_infdown[1] = 1;
 			flag_ignore_revdown[0] = 1;
 		}
 		else if (REV1BUT && REV2BUT)
 		{
-			PING_METHOD=EXPO_AVERAGE_8;
+			global_mode[PING_METHOD]=EXPO_AVERAGE_8;
 			flag_ignore_revdown[0] = 1;
 			flag_ignore_revdown[1] = 1;
 		}
 		else if (INF1BUT && REV2BUT)
 		{
-			PING_METHOD=LINEAR_AVERAGE_4;
+			global_mode[PING_METHOD]=LINEAR_AVERAGE_4;
 			flag_ignore_infdown[0] = 1;
 			flag_ignore_revdown[1] = 1;
 		}
 		else if (INF1BUT & INF2BUT)
 		{
-			PING_METHOD=IGNORE_FLAT_DEVIATION_5;
+			global_mode[PING_METHOD]=IGNORE_FLAT_DEVIATION_5;
 			flag_ignore_infdown[0] = 1;
 			flag_ignore_infdown[1] = 1;
 		}
 		else if (REV1BUT)
 		{
-			PING_METHOD=ONE_TO_ONE;
+			global_mode[PING_METHOD]=ONE_TO_ONE;
 			flag_ignore_revdown[0] = 1;
 		}
 		else if (INF1BUT)
 		{
-			PING_METHOD=IGNORE_PERCENT_DEVIATION;
+			global_mode[PING_METHOD]=IGNORE_PERCENT_DEVIATION;
 			flag_ignore_infdown[0] = 1;
 		}
 		else if (INF2BUT)
 		{
-			PING_METHOD=IGNORE_FLAT_DEVIATION_10;
+			global_mode[PING_METHOD]=IGNORE_FLAT_DEVIATION_10;
 			flag_ignore_infdown[1] = 1;
 		}
 		else if (REV2BUT)
 		{
-			PING_METHOD=LINEAR_AVERAGE_2;
+			global_mode[PING_METHOD]=LINEAR_AVERAGE_2;
 			flag_ignore_revdown[1] = 1;
 		}
 		else

@@ -85,6 +85,12 @@ extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 #define FLASH_ADDR_INF_GATETRIG				(FLASH_ADDR_REV_GATETRIG				+ SZ_RGT)		/* 85 ..	*/
 #define SZ_IGT 1
 
+#define FLASH_ADDR_PING_METHOD				(FLASH_ADDR_INF_GATETRIG				+ SZ_IGT)		/* 86 ..	*/
+#define SZ_PM 1
+
+#define FLASH_ADDR_LOG_DELAY_FEED				(FLASH_ADDR_PING_METHOD				+ SZ_PM)		/* 87 ..	*/
+#define SZ_LDF 1
+
 
 #define FLASH_SYMBOL_bankfilled 0x01
 #define FLASH_SYMBOL_startupoffset 0xAA
@@ -117,6 +123,8 @@ uint8_t flash_global_mode_INF_GATETRIG;
 uint8_t flash_mode_LEVELCV_IS_MIX_0;
 uint8_t flash_mode_LEVELCV_IS_MIX_1;
 
+uint8_t flash_global_mode_PING_METHOD;
+uint8_t flash_global_mode_LOG_DELAY_FEED;
 
 void set_firmware_version(void)
 {
@@ -212,6 +220,9 @@ uint32_t load_flash_params(void)
 
 		global_mode[REV_GATETRIG] = flash_global_mode_REV_GATETRIG;
 		global_mode[INF_GATETRIG] = flash_global_mode_INF_GATETRIG;
+
+		global_mode[PING_METHOD] = flash_global_mode_PING_METHOD;
+		global_mode[LOG_DELAY_FEED] = flash_global_mode_LOG_DELAY_FEED;
 
 		mode[0][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_0==1) ? 1:0;
 		mode[1][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_1==1) ? 1:0;
@@ -313,6 +324,9 @@ void store_params_into_sram(void)
 	flash_global_mode_REV_GATETRIG = global_mode[REV_GATETRIG];
 	flash_global_mode_INF_GATETRIG = global_mode[INF_GATETRIG];
 
+	flash_global_mode_PING_METHOD = global_mode[PING_METHOD];
+	flash_global_mode_LOG_DELAY_FEED = global_mode[LOG_DELAY_FEED];
+
 	flash_mode_LEVELCV_IS_MIX_0 = mode[0][LEVELCV_IS_MIX];
 	flash_mode_LEVELCV_IS_MIX_1 = mode[1][LEVELCV_IS_MIX];
 
@@ -362,6 +376,9 @@ void write_all_params_to_FLASH(void)
 
 	flash_open_program_byte(flash_global_mode_REV_GATETRIG, FLASH_ADDR_REV_GATETRIG);
 	flash_open_program_byte(flash_global_mode_INF_GATETRIG, FLASH_ADDR_INF_GATETRIG);
+
+	flash_open_program_byte(flash_global_mode_PING_METHOD, FLASH_ADDR_PING_METHOD);
+	flash_open_program_byte(flash_global_mode_LOG_DELAY_FEED, FLASH_ADDR_LOG_DELAY_FEED);
 
 	flash_end_open_program();
 }
@@ -413,6 +430,12 @@ void read_all_params_from_FLASH(void)
 
 	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
 	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
+
+	flash_global_mode_PING_METHOD = flash_read_byte(FLASH_ADDR_PING_METHOD);
+	if (flash_global_mode_PING_METHOD > NUM_PING_METHODS || flash_global_mode_PING_METHOD < 0)
+		flash_global_mode_PING_METHOD = IGNORE_FLAT_DEVIATION_10;
+
+	flash_global_mode_LOG_DELAY_FEED = (flash_read_byte(FLASH_ADDR_LOG_DELAY_FEED)==1) ? 1 : 0;
 
 	flash_global_mode_REV_GATETRIG = flash_read_byte(FLASH_ADDR_REV_GATETRIG) ? 1 : 0;
 	flash_global_mode_INF_GATETRIG = flash_read_byte(FLASH_ADDR_INF_GATETRIG) ? 1 : 0;

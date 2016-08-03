@@ -126,6 +126,8 @@ void init_modes(void)
 	global_mode[INF_GATETRIG] = TRIG_MODE;
 	global_mode[REV_GATETRIG] = TRIG_MODE;
 
+	global_mode[LOG_DELAY_FEED] = 0;
+
 
 }
 
@@ -444,7 +446,20 @@ void update_params(void)
 				t_combined = i_smoothed_potadc[LEVEL_POT*2+channel];
 			}
 
-			param[channel][LEVEL] = log_taper[t_combined];
+			if (global_mode[LOG_DELAY_FEED])
+				param[channel][LEVEL] = log_taper[t_combined];
+
+			else {
+				if (t_combined<30.0)
+					param[channel][LEVEL] = 0.0;
+
+				else if (t_combined<4066.0)
+					param[channel][LEVEL] = (t_combined - 30.0)/4066.0;
+
+				else
+					param[channel][LEVEL] = 1.0;
+			}
+
 
 
 
@@ -544,9 +559,9 @@ inline void process_mode_flags(void){
 	uint8_t channel;
 	uint32_t t;
 
-	if (!disable_mode_changes)
+	for (channel=0;channel<2;channel++)
 	{
-		for (channel=0;channel<2;channel++)
+		if (!disable_mode_changes)
 		{
 
 			if (flag_inf_change[channel])
@@ -590,13 +605,13 @@ inline void process_mode_flags(void){
 				}
 			}
 
+		}
 
-			if (flag_time_param_changed[channel] || flag_ping_was_changed[channel])
-			{
-				flag_time_param_changed[channel]=0;
-				flag_ping_was_changed[channel]=0;
-				set_divmult_time(channel);
-			}
+		if (flag_time_param_changed[channel] || flag_ping_was_changed[channel])
+		{
+			flag_time_param_changed[channel]=0;
+			flag_ping_was_changed[channel]=0;
+			set_divmult_time(channel);
 		}
 	}
 }

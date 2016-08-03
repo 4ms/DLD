@@ -634,12 +634,13 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
 	//one crossfade period, maybe 3ms or so. Acceptable??
 
+	DEBUG1_OFF;
 	if ((mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
 			&& (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
 	{
 		if (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT])
 		{
-
+			DEBUG1_ON;
 			read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
 			fade_queued_dest_divmult_time[channel] = 0;
 
@@ -650,8 +651,10 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		}
 
 		// When enabled, the following line causes INF mode to drift quickly out of sync with an external clock
-		//else
+		//else {
+		//
 		//	fade_queued_dest_read_addr[channel] = loop_start[channel];
+		//}
 	}
 
 	/*

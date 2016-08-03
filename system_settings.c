@@ -87,6 +87,8 @@ void set_default_system_settings(void)
 	global_mode[AUTO_UNQ] = 0;
 	global_mode[EXITINF_MODE]=PLAYTHROUGH;
 
+	global_mode[PING_METHOD] = IGNORE_FLAT_DEVIATION_10;
+
 }
 
 
@@ -113,8 +115,8 @@ void check_entering_system_mode(void)
 		{
 			if (global_mode[SYSTEM_SETTINGS] == 0)
 			{
-				if (mode[0][INF]) flag_inf_change[0]=1;
-				if (mode[1][INF]) flag_inf_change[1]=1;
+				//if (mode[0][INF]) flag_inf_change[0]=1;
+				//if (mode[1][INF]) flag_inf_change[1]=1;
 
 
 				global_mode[SYSTEM_SETTINGS] = 1;
@@ -155,7 +157,7 @@ void update_system_settings(void)
 
 	if (switch1==SWITCH_UP && switch2==SWITCH_UP)
 	{
-		disable_mode_changes=0;
+		disable_mode_changes=1;
 	}
 
 	//
@@ -217,6 +219,34 @@ void update_system_settings(void)
 			global_param[SLOW_FADE_INCREMENT] = set_fade_increment(global_param[SLOW_FADE_SAMPLES]);
 
 		}
+
+		if (REV2BUT)
+		{
+
+			if (i_smoothed_potadc[TIME_POT*2+1] < 500) //1 - 2
+			{
+				global_mode[PING_METHOD] = IGNORE_FLAT_DEVIATION_10;
+			}
+			else if (i_smoothed_potadc[TIME_POT*2+1] < 1664) //3 - 6
+			{
+				global_mode[PING_METHOD] = IGNORE_PERCENT_DEVIATION;
+			}
+			else if (i_smoothed_potadc[TIME_POT*2+1] < 2719) //7 - 10
+			{
+				global_mode[PING_METHOD] = ONE_TO_ONE;
+			}
+			else if (i_smoothed_potadc[TIME_POT*2+1] < 3586) //11 - 13
+			{
+				global_mode[PING_METHOD] = LINEAR_AVERAGE_2;
+			}
+			else //14 - 16
+			{
+				global_mode[PING_METHOD] = EXPO_AVERAGE_8;
+			}
+
+
+		}
+
 
 	}
 
@@ -291,6 +321,17 @@ void update_system_settings(void)
 
 			flag_inf_change[0]=0;
 		}
+
+		if (flag_inf_change[1])
+		{
+			if (global_mode[LOG_DELAY_FEED] == 1)
+				global_mode[LOG_DELAY_FEED] = 0;
+			else
+				global_mode[LOG_DELAY_FEED] = 1;
+
+			flag_inf_change[1]=0;
+		}
+
 
 	}
 	//
@@ -437,15 +478,18 @@ void update_system_settings_button_leds(void)
 		{
 			LED_INF1_ON;
 			LED_INF2_ON;
+			LED_REV1_ON;
+			LED_REV2_ON;
+
 
 		} else
 		{
 			LED_INF1_OFF;
 			LED_INF2_OFF;
-		}
+			LED_REV1_OFF;
+			LED_REV2_OFF;
 
-		LED_REV1_OFF;
-		LED_REV2_OFF;
+		}
 
 	}
 	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_DOWN)
@@ -461,8 +505,13 @@ void update_system_settings_button_leds(void)
 		else
 			LED_INF1_ON;
 
+		if (global_mode[LOG_DELAY_FEED] == 1)
+			LED_INF2_ON;
+		else
+			LED_INF2_OFF;
+
+
 		LED_REV2_OFF;
-		LED_INF2_OFF;
 
 	}
 	else if (global_mode[SYSTEM_SETTINGS])
@@ -485,8 +534,9 @@ void update_system_settings_leds(void)
 {
 	static uint32_t led_flasher=0;
 	uint8_t switch1, switch2;
-	static float old_val=0;
-	static uint32_t flicker_ctr;
+	static float old_slow_fade;
+	static uint8_t old_ping_method;
+	static uint32_t pulse_ctr[2]={100,100}, flashes_ctr[2];
 
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
@@ -533,20 +583,71 @@ void update_system_settings_leds(void)
 	}
 	else if (switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
 	{
-		if (old_val != global_param[SLOW_FADE_SAMPLES])
+
+
+
+
+		if (old_slow_fade != global_param[SLOW_FADE_SAMPLES])
 		{
-			old_val = global_param[SLOW_FADE_SAMPLES];
-			loop_led_state[0]=1;
-			flicker_ctr = 100;
-		}
-		else
-		{
-			if (flicker_ctr) flicker_ctr--;
-			if (!flicker_ctr)
-				loop_led_state[0]=0;
+			old_slow_fade = global_param[SLOW_FADE_SAMPLES];
+			//force reset
+			loop_led_state[0] = 1;
+			pulse_ctr[0] = 0;
+			flashes_ctr[0] = 0;
 		}
 
-		loop_led_state[1]=0;
+		if (pulse_ctr[0])
+			pulse_ctr[0]--;
+		else
+		{
+			loop_led_state[0]=1-loop_led_state[0];
+
+			if (flashes_ctr[0])
+			{
+				pulse_ctr[0] = 250;
+				flashes_ctr[0]--;
+			}
+			else
+			{
+				loop_led_state[0] = 0;
+				pulse_ctr[0] = 1000;
+				if (global_param[SLOW_FADE_SAMPLES]==0) flashes_ctr[0] = 1;
+				else if (global_param[SLOW_FADE_SAMPLES]==196) flashes_ctr[0] = 3;
+				else if (global_param[SLOW_FADE_SAMPLES]==1596) flashes_ctr[0] = 5;
+				else if (global_param[SLOW_FADE_SAMPLES]==4796) flashes_ctr[0] = 7;
+				else if (global_param[SLOW_FADE_SAMPLES]==23996) flashes_ctr[0] = 9;
+			}
+		}
+
+
+		if (old_ping_method != global_mode[PING_METHOD])
+			{
+				old_ping_method = global_mode[PING_METHOD];
+				//force reset
+				loop_led_state[1] = 1;
+				pulse_ctr[1] = 0;
+				flashes_ctr[1] = 0;
+			}
+
+			if (pulse_ctr[1])
+				pulse_ctr[1]--;
+			else
+			{
+				loop_led_state[1]=1-loop_led_state[1];
+
+				if (flashes_ctr[1])
+				{
+					pulse_ctr[1] = 250;
+					flashes_ctr[1]--;
+				}
+				else
+				{
+					pulse_ctr[1] = 1000;
+					flashes_ctr[1] = global_mode[PING_METHOD]*2 + 1;
+				}
+			}
+
+
 		LED_PINGBUT_OFF;
 
 	}
