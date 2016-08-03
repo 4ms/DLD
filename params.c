@@ -26,14 +26,12 @@ extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 extern __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 
-extern volatile uint32_t write_addr[NUM_CHAN];
 extern volatile uint32_t read_addr[NUM_CHAN];
 
 extern volatile uint32_t divmult_time[NUM_CHAN];
 
 extern uint32_t loop_start[NUM_CHAN];
 extern uint32_t loop_end[NUM_CHAN];
-extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];
 
 extern uint8_t flag_ping_was_changed[NUM_CHAN];
 extern uint8_t flag_inf_change[NUM_CHAN];
@@ -43,7 +41,14 @@ extern uint8_t flag_pot_changed_infdown[NUM_POT_ADCS];
 
 extern uint8_t disable_mode_changes;
 
+extern uint8_t doing_reverse_fade[NUM_CHAN];
+extern uint32_t fade_dest_read_addr[NUM_CHAN];
+extern uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
+extern float read_fade_pos[NUM_CHAN];
+
+
 float param[NUM_CHAN][NUM_PARAMS];
+float global_param[NUM_GLOBAL_PARAMS];
 uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 uint8_t global_mode[NUM_GLOBAL_MODES];
 
@@ -75,6 +80,17 @@ int16_t i_smoothed_rawcvadc[NUM_CV_ADCS];
 int32_t pot_delta[NUM_POT_ADCS];
 int32_t cv_delta[NUM_POT_ADCS];
 
+/*
+uint32_t set_fade_samples(float increment)
+{
+	return ((increment - 1.0) * (codec_BUFF_LEN>>3));
+}
+*/
+
+float set_fade_increment(uint32_t samples)
+{
+	return ( 1.0/((samples / (codec_BUFF_LEN>>3)) + 1.0) );
+}
 
 void init_params(void)
 {
@@ -91,21 +107,28 @@ void init_params(void)
 
 }
 
+//initializes modes that aren't read from flash ram
 void init_modes(void)
 {
 	uint8_t channel=0;
 
 	for (channel=0;channel<NUM_CHAN;channel++){
-		mode[channel][INF] = 0;
+		mode[channel][INF] = INF_OFF;
 		mode[channel][REV] = 0;
 		mode[channel][TIMEMODE_POT] = MOD_READWRITE_TIME_Q;
 		mode[channel][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
 
-		mode[channel][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	}
+	global_mode[DCINPUT] = 0;
+	global_mode[CALIBRATE] = 0;
+	global_mode[SYSTEM_SETTINGS] = 0;
 
-	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
-	global_mode[AUTO_UNQ] = 0;
+	global_mode[INF_GATETRIG] = TRIG_MODE;
+	global_mode[REV_GATETRIG] = TRIG_MODE;
+
+	global_mode[LOG_DELAY_FEED] = 0;
+
+
 }
 
 
@@ -214,22 +237,32 @@ void process_adc(void)
 		//	track_moving_pot[i]--;
 
 		if ((t>MIN_POT_ADC_CHANGE[i]) || (t<-MIN_POT_ADC_CHANGE[i]))
-			track_moving_pot[i]=500;
+			track_moving_pot[i]=250;
 
 		if (track_moving_pot[i])
 		{
-			track_moving_pot[i]--;//
+			track_moving_pot[i]--;
 
 			flag_pot_changed[i]=1;
 
 			pot_delta[i] = t;
 
 			//Todo: We could clean up the use of flag_pot_changed_XXXdown, instead change the mode right here
-			if (!(i&1) && REV1BUT) flag_pot_changed_revdown[i]=1;
-			else if ((i&1) && REV2BUT) flag_pot_changed_revdown[i]=1;
 
-			if (!(i&1) && INF1BUT) flag_pot_changed_infdown[i]=1;
-			else if ((i&1) && INF2BUT) flag_pot_changed_infdown[i]=1;
+			//REV + TIME (in INF mode) is change loop end ---> disallow toggling Reverse
+			if (REV1BUT && (i==TIME1_POT && mode[0][INF]==INF_ON))
+				flag_pot_changed_revdown[i]=1;
+
+			else if (REV2BUT && (i==TIME2_POT && mode[1][INF]==INF_ON))
+				flag_pot_changed_revdown[i]=1;
+
+			//INF + TIME is UNQ mode, INF + REGEN (in INF mode) is windowing ---> disallow toggling INF
+			if (INF1BUT && (i==TIME1_POT || (i==REGEN1_POT && mode[0][INF])==INF_ON))
+				flag_pot_changed_infdown[i]=1;
+
+			if (INF2BUT && (i==TIME2_POT || (i==REGEN2_POT && mode[1][INF])==INF_ON))
+				flag_pot_changed_infdown[i]=1;
+
 
 			old_i_smoothed_potadc[i] = i_smoothed_potadc[i];
 		}
@@ -305,6 +338,7 @@ void update_params(void)
 	int32_t t;
 
 	int32_t t_combined;
+	float temp_f;
 
 	float abs_amt;
 	uint8_t subtract;
@@ -397,49 +431,75 @@ void update_params(void)
 
 
 
-		if (mode[channel][INF] == 0)
+		if (mode[channel][INF]!=INF_ON)
 		{
-
+// *******  INF OFF **********
 // ******* LEVEL **********
 
-			t_combined = i_smoothed_potadc[LEVEL_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
-			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+			if (mode[channel][LEVELCV_IS_MIX]==0)
+			{
+				t_combined = i_smoothed_potadc[LEVEL_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
+				asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+			}
+			else
+			{
+				t_combined = i_smoothed_potadc[LEVEL_POT*2+channel];
+			}
 
-			//if (t_combined>4095) t_combined = 4095;
-			//if (t_combined<0) t_combined = 0;
+			if (global_mode[LOG_DELAY_FEED])
+				param[channel][LEVEL] = log_taper[t_combined];
 
-			param[channel][LEVEL] = log_taper[t_combined];
+			else {
+				if (t_combined<30.0)
+					param[channel][LEVEL] = 0.0;
+
+				else if (t_combined<4066.0)
+					param[channel][LEVEL] = (t_combined - 30.0)/4066.0;
+
+				else
+					param[channel][LEVEL] = 1.0;
+			}
+
 
 
 
 // ******* REGEN **********
 
-			t_combined = i_smoothed_potadc[REGEN_POT*2+channel] + i_smoothed_cvadc[REGEN*2+channel];
-			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
-			//if (t_combined>4095) t_combined = 4095;
-			//if (t_combined<0) t_combined = 0;
 
-			// From 0 to 85% of rotation, Regen goes from 0% to 100%
-			// From 85% to 97% of rotation, Regen is set at 100%
-			// From 97% to 100% of rotation, Regen goes from 100% to 110%
-			if (t_combined<3500.0)
-				param[channel][REGEN]=t_combined/3500.0;
+			if (i_smoothed_potadc[REGEN_POT*2+channel]<3500.0)
+				temp_f = i_smoothed_potadc[REGEN_POT*2+channel] / 3500.0;
 
-			else if (t_combined<=4000.0)
-				param[channel][REGEN]=1.0;
+			else if (i_smoothed_potadc[REGEN_POT*2+channel]<=4000.0)
+				temp_f=1.0;
 
 			else
-				param[channel][REGEN]=(t_combined-3050)/950.0; // (4095-3050)/950 = 110% regeneration... (4000-3050)/950 = 100%
+				temp_f=(i_smoothed_potadc[REGEN_POT*2+channel]-3050)/950.0; // (4095-3050)/950 = 110% regeneration... (4000-3050)/950 = 100%
+
+			if (i_smoothed_cvadc[REGEN*2+channel] > 30)
+				temp_f = temp_f + (i_smoothed_cvadc[REGEN*2+channel] / 4096.0);
+
+			else if (i_smoothed_cvadc[REGEN*2+channel] > 4080)
+				temp_f = temp_f + 1.0;
+
+			if (temp_f > 1.1)
+				temp_f = 1.1;
+
+			else if ((temp_f<1.003) && (temp_f>0.997))
+				temp_f = 1.0;
+
+			param[channel][REGEN] = temp_f;
+
 
 		}
 		else
 		{
 
-// *******  INF  **********
+// *******  INF ON **********
 
 			param[channel][LEVEL]=0.0;
 			param[channel][REGEN]=1.0;
 
+// ********* WINDOW *********
 			//
 			// If REGEN was wiggled while INF is held down, then scroll the loop
 			//
@@ -475,9 +535,18 @@ void update_params(void)
 		// Each MIX pot sets two parameters: wet and dry
 		//
 
-		param[channel][MIX_DRY]=epp_lut[i_smoothed_potadc[MIX_POT*2+channel]];
+		if (mode[channel][LEVELCV_IS_MIX])
+		{
+			t_combined = i_smoothed_potadc[MIX_POT*2+channel] + i_smoothed_cvadc[LEVEL*2+channel];
+			asm("usat %[dst], #12, %[src]" : [dst] "=r" (t_combined) : [src] "r" (t_combined));
+		}
+		else
+		{
+			t_combined = i_smoothed_potadc[MIX_POT*2+channel];
+		}
 
-		param[channel][MIX_WET]=epp_lut[4095 - i_smoothed_potadc[MIX_POT*2+channel]];
+		param[channel][MIX_DRY]=epp_lut[t_combined];
+		param[channel][MIX_WET]=epp_lut[4095 - t_combined];
 
 	}
 }
@@ -490,67 +559,59 @@ inline void process_mode_flags(void){
 	uint8_t channel;
 	uint32_t t;
 
-	if (!disable_mode_changes)
+	for (channel=0;channel<2;channel++)
 	{
-		for (channel=0;channel<2;channel++){
+		if (!disable_mode_changes)
+		{
 
 			if (flag_inf_change[channel])
 			{
-				flag_inf_change[channel]=0;
-
-				if (mode[channel][INF])
-				{
-					mode[channel][INF] = 0;
-
-					//need to reset the read_addr to a good place
-					write_addr[channel]=loop_end[channel];
-					set_divmult_time(channel);
-
-					//set the write pointer ahead of the read addr
-					//this way is weird, when we exit INF, it plays the rest of the loop and then silence for the duration of the period
-					//write_addr[channel]=calculate_write_addr(channel, divmult_time[channel], mode[channel][REV]);
-
-
-					loop_start[channel] = LOOP_RAM_BASE[channel];
-					loop_end[channel] = LOOP_RAM_BASE[channel] + LOOP_SIZE;
-
-				} else {
-					mode[channel][INF] = 1;
-					reset_loopled_tmr(channel);
-
-					loop_start[channel]=read_addr[channel];
-					loop_end[channel] = calculate_addr_offset(channel, loop_start[channel], divmult_time[channel]*2, mode[channel][REV]);
-
-//					loop_end[channel]=write_addr[channel];
-//					loop_start[channel] = calculate_addr_offset(channel, loop_end[channel], divmult_time[channel]*2, 1-mode[channel][REV]);
-				}
-
+				change_inf_mode(channel);
 			}
+
 
 
 			if (flag_rev_change[channel])
 			{
-				flag_rev_change[channel]=0;
 
-				mode[channel][REV] = 1- mode[channel][REV];
-
-				if (mode[channel][INF])
+				if (!doing_reverse_fade[channel])
 				{
-					t=loop_start[channel];
-					loop_start[channel]=loop_end[channel];
-					loop_end[channel]=t;
+					flag_rev_change[channel]=0;
+
+					mode[channel][REV] = 1- mode[channel][REV];
+
+					if (mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
+					{
+
+						//When reversing in INF mode, swap the loop start/end but offset them by the FADE_SAMPLES so the crossfade stays within already recorded audio
+						t=loop_start[channel];
+
+						loop_start[channel] = offset_samples(channel, loop_end[channel], global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
+						loop_end[channel] = offset_samples(channel, t, global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
+
+						//ToDo: Add a crossfade for read head reversing direction here
+						fade_dest_read_addr[channel] = read_addr[channel];
+
+						read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
+						doing_reverse_fade[channel]=1;
+
+						fade_queued_dest_divmult_time[channel] = 0;
+
+					}
+					else
+					{
+						swap_read_write(channel);
+					}
 				}
-				else
-					swap_read_write(channel);
 			}
 
+		}
 
-			if (flag_time_param_changed[channel] || flag_ping_was_changed[channel])
-			{
-				flag_time_param_changed[channel]=0;
-				flag_ping_was_changed[channel]=0;
-				set_divmult_time(channel);
-			}
+		if (flag_time_param_changed[channel] || flag_ping_was_changed[channel])
+		{
+			flag_time_param_changed[channel]=0;
+			flag_ping_was_changed[channel]=0;
+			set_divmult_time(channel);
 		}
 	}
 }
@@ -579,39 +640,39 @@ float adjust_time_by_switch(float val, uint8_t channel){
 float get_clk_div_nominal(uint16_t adc_val)
 {
 	if (adc_val<=40) //was 150
-		return(P_1);
+		return(P_1); //1
 	else if (adc_val<=176) //was 310
-		return(P_2);
+		return(P_2); //1.5
 	else if (adc_val<=471)
-		return(P_3);
+		return(P_3); //2
 	else if (adc_val<=780)
-		return(P_4);
+		return(P_4); //3
 	else if (adc_val<=1076)
-		return(P_5);
+		return(P_5); //4
 	else if (adc_val<=1368)
-		return(P_6);
+		return(P_6); //5
 	else if (adc_val<=1664)
-		return(P_7);
+		return(P_7); //6
 	else if (adc_val<=1925)
-		return(P_8);
+		return(P_8); //7
 	else if (adc_val<=2179) // Center
-		return(P_9);
+		return(P_9); //8
 	else if (adc_val<=2448)
-		return(P_10);
+		return(P_10); //9
 	else if (adc_val<=2714)
-		return(P_11);
+		return(P_11); //10
 	else if (adc_val<=2991)
-		return(P_12);
+		return(P_12); //11
 	else if (adc_val<=3276)
-		return(P_13);
+		return(P_13); //12
 	else if (adc_val<=3586)
-		return(P_14);
+		return(P_14); //13
 	else if (adc_val<=3879)
-		return(P_15);
+		return(P_15); //14
 	else if (adc_val<=4046)
-		return(P_16);
+		return(P_16); //15
 	else
-		return(P_17);
+		return(P_17); //16
 }
 
 float get_clk_div_exact(uint16_t adc_val)

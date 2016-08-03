@@ -10,6 +10,8 @@
 #include "dig_inouts.h"
 #include "params.h"
 #include "calibration.h"
+#include "system_settings.h"
+#include "leds.h"
 
 
 volatile uint32_t ping_tmr;
@@ -71,7 +73,6 @@ inline void reset_loopled_tmr(uint8_t channel){
 
 
 void init_timekeeper(void){
-	TIM_TimeBaseInitTypeDef tim;
 	NVIC_InitTypeDef nvic;
 	EXTI_InitTypeDef   EXTI_InitStructure;
 
@@ -150,13 +151,13 @@ void init_adc_param_update_timer(void)
 	TIM_Cmd(TIM9, ENABLE);
 }
 
-void TIM1_BRK_TIM9_IRQHandler(void)
+void adc_param_update_IRQHandler(void)
 {
 
 	//Takes 7-8us
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 
-		//DEBUG3_ON;
+		DEBUG0_ON;
 		process_adc();
 
 		if (global_mode[CALIBRATE])
@@ -166,7 +167,7 @@ void TIM1_BRK_TIM9_IRQHandler(void)
 		}
 		else
 			update_params();
-		//DEBUG3_OFF;
+		DEBUG0_OFF;
 
 		if (global_mode[SYSTEM_SETTINGS])
 		{

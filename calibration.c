@@ -14,14 +14,8 @@ int16_t CV_CALIBRATION_OFFSET[NUM_CV_ADCS];
 int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];
 int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
 
-extern uint32_t flash_firmware_version;
-extern int32_t flash_CV_CALIBRATION_OFFSET[6];
-extern int32_t flash_CODEC_DAC_CALIBRATION_DCOFFSET[4];
-extern int32_t flash_CODEC_ADC_CALIBRATION_DCOFFSET[4];
-
 
 extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
-extern int16_t i_smoothed_cvadc[NUM_CV_ADCS];
 extern int16_t i_smoothed_rawcvadc[NUM_CV_ADCS];
 
 extern volatile int16_t ch1rx_buffer[codec_BUFF_LEN];
@@ -87,7 +81,6 @@ void update_calibration(void)
 	CV_CALIBRATION_OFFSET[4] = -1*(i_smoothed_rawcvadc[4] & 0x0FFF);
 	CV_CALIBRATION_OFFSET[5] = -1*(i_smoothed_rawcvadc[5] & 0x0FFF);
 
-
 	switch1=TIMESW_CH1;
 	switch2=TIMESW_CH2;
 
@@ -150,5 +143,26 @@ void update_calibrate_leds(void)
 
 }
 
+void update_calibration_button_leds(void)
+{
+	static uint32_t led_flasher=0;
 
+	//Flash button LEDs to indicate we're in Calibrate mode
+	led_flasher+=10000;
+	if (led_flasher<UINT32_MAX/20)
+	{
+		LED_INF1_OFF;
+		LED_INF2_OFF;
+		LED_REV1_OFF;
+		LED_REV2_OFF;
+	}
+	else
+	{
+		LED_INF1_ON;
+		LED_INF2_ON;
+		LED_REV1_ON;
+		LED_REV2_ON;
+	}
+
+}
 

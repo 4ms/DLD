@@ -46,7 +46,15 @@ enum ChannelModes{
 	MAIN_CLOCK_GATETRIG,
 	WINDOWMODE_POT,
 	WINDOWMODE_JACK,
+	LEVELCV_IS_MIX,
 	NUM_CHAN_MODES
+};
+
+enum InfStates {
+	INF_OFF,
+	INF_ON,
+	INF_TRANSITIONING_OFF,
+	INF_TRANSITIONING_ON
 };
 
 enum TimeModes {
@@ -70,7 +78,7 @@ enum WindowModes{
 
 //
 //Global Modes
-//Global Modes represent global settings or states of functionality
+//Global Modes represent global states of functionality
 //
 enum Global_Modes{
 	AUTO_MUTE,
@@ -79,8 +87,41 @@ enum Global_Modes{
 	CALIBRATE,
 	SYSTEM_SETTINGS,
 	AUTO_UNQ,
+	EXITINF_MODE,
+	REV_GATETRIG,
+	INF_GATETRIG,
+	PING_METHOD,
+	LOG_DELAY_FEED,
 	NUM_GLOBAL_MODES
 };
+
+enum PingMethods{
+	IGNORE_FLAT_DEVIATION_10,
+	IGNORE_PERCENT_DEVIATION,
+	ONE_TO_ONE,
+	LINEAR_AVERAGE_2,
+	EXPO_AVERAGE_8,
+	IGNORE_FLAT_DEVIATION_5,
+	LINEAR_AVERAGE_4,
+	EXPO_AVERAGE_4,
+	NUM_PING_METHODS
+};
+
+enum ExitINFModes{
+	PLAYTHROUGH,
+	IMMEDIATE_GLTICH,
+	RESET_LOOPSTART
+};
+
+enum Global_Params{
+	FAST_FADE_SAMPLES,
+	SLOW_FADE_SAMPLES,
+	FAST_FADE_INCREMENT,
+	SLOW_FADE_INCREMENT,
+	NUM_GLOBAL_PARAMS
+};
+
+
 
 #define P_1 1.0
 #define P_2 1.5
@@ -113,5 +154,7 @@ float adjust_time_by_switch(float val, uint8_t channel);
 void init_LowPassCoefs(void);
 void init_params(void);
 void init_modes(void);
+
+float set_fade_increment(uint32_t samples);
 
 #endif /* PARAMS_H_ */

@@ -16,7 +16,7 @@ extern volatile uint32_t ping_time;
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
-extern uint32_t flash_firmware_version;
+//extern uint32_t flash_firmware_version;
 
 uint16_t loop_led_brightness=2;
 
@@ -127,7 +127,8 @@ void update_channel_leds(void)
 
 	for (channel=0;channel<NUM_CHAN;channel++)
 	{
-		if (loopled_tmr[channel] >= divmult_time[channel]){
+		if (loopled_tmr[channel] >= divmult_time[channel] && (mode[channel][INF]==INF_OFF))
+		{
 			reset_loopled_tmr(channel);
 		}
 
@@ -156,113 +157,15 @@ void update_channel_leds(void)
 }
 
 void update_INF_REV_ledbut(uint8_t channel){
-	static uint32_t led_flasher=0;
-	uint8_t switch1, switch2;
-
-	switch1=TIMESW_CH1;
-	switch2=TIMESW_CH2;
 
 	if (global_mode[CALIBRATE])
 	{
-		//Flash button LEDs to indicate we're in Calibrate mode
-		led_flasher+=10000;
-		if (led_flasher<UINT32_MAX/20)
-		{
-			LED_INF1_OFF;
-			LED_INF2_OFF;
-			LED_REV1_OFF;
-			LED_REV2_OFF;
-		}
-		else
-		{
-			LED_INF1_ON;
-			LED_INF2_ON;
-			LED_REV1_ON;
-			LED_REV2_ON;
-		}
+		update_calibration_button_leds();
 	}
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_UP)
+	else if (global_mode[SYSTEM_SETTINGS])
 	{
-		//Display firmware version
-
-			if (flash_firmware_version & 0b0001)
-				LED_REV1_ON;
-			else
-				LED_REV1_OFF;
-
-			if (flash_firmware_version & 0b0010)
-				LED_INF1_ON;
-			else
-				LED_INF1_OFF;
-
-			if (flash_firmware_version & 0b0100)
-				LED_INF2_ON;
-			else
-				LED_INF2_OFF;
-
-			if (flash_firmware_version & 0b1000)
-				LED_REV2_ON;
-			else
-				LED_REV2_OFF;
+		update_system_settings_button_leds();
 	}
-
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_UP && switch2==SWITCH_DOWN)
-	{
-		//Display Trig/Gate settings
-
-			if (mode[0][LOOP_CLOCK_GATETRIG] == GATE_MODE)
-				LED_REV1_ON;
-			else
-				LED_REV1_OFF;
-
-			if (mode[0][MAIN_CLOCK_GATETRIG] == GATE_MODE)
-				LED_INF1_ON;
-			else
-				LED_INF1_OFF;
-
-			if (mode[1][LOOP_CLOCK_GATETRIG] == GATE_MODE)
-				LED_REV2_ON;
-			else
-				LED_REV2_OFF;
-
-			LED_INF2_OFF;
-	}
-
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_DOWN && switch2==SWITCH_UP)
-	{
-		// Display Auto-Mute and Soft Clip settings
-
-		if (global_mode[AUTO_MUTE])
-			LED_REV1_ON;
-		else
-			LED_REV1_OFF;
-
-		if (global_mode[SOFTCLIP])
-			LED_REV2_ON;
-		else
-			LED_REV2_OFF;
-
-		LED_INF1_OFF;
-		LED_INF2_OFF;
-	}
-	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
-	{
-		// Blink INF buttons to indicate Tracking adjust mode
-
-
-		led_flasher+=10000;
-		if (led_flasher<UINT32_MAX/20)
-		{
-			LED_INF1_ON;
-			LED_INF2_ON;
-
-		} else
-		{
-			LED_INF1_OFF;
-			LED_INF2_OFF;
-		}
-	}
-
 	else
 	{
 		//Display Reverse and Infinite settings
@@ -278,7 +181,7 @@ void update_INF_REV_ledbut(uint8_t channel){
 			else 			LED_REV2_ON;
 		}
 
-		if (!mode[channel][INF])
+		if (mode[channel][INF]!=1)
 		{
 			if (channel==0)	LED_INF1_OFF;
 			else			LED_INF2_OFF;
@@ -306,7 +209,8 @@ void init_LED_PWM_IRQ(void)
 	NVIC_Init(&nvic);
 
 	TIM_TimeBaseStructInit(&tim);
-	tim.TIM_Period = 17500; //168MHz / 2 / 17500 = 4.8kHz (208.3us) ... / 32 =
+//	tim.TIM_Period = 17500; //168MHz / 2 / 17500 = 4.8kHz (208.3us) ... / 32 =
+	tim.TIM_Period = 4375; //168MHz / 2 / 4375 = 19.2kHz
 	tim.TIM_Prescaler = 0;
 	tim.TIM_ClockDivision = 0;
 	tim.TIM_CounterMode = TIM_CounterMode_Up;

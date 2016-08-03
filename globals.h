@@ -18,7 +18,7 @@
 
 #define PCB_PROTO_VERSION 8
 
-#define FW_VERSION 3
+#define FW_VERSION 4
 
 //Error codes for g_error
 #define OUT_OF_MEM 1
@@ -35,8 +35,27 @@
 //Number of channels
 #define NUM_CHAN 2
 
-//#define TRIG_TIME 196
-#define TRIG_TIME 1000
+#define TRIG_TIME 400
+//#define TRIG_TIME 1000
+
+
+//.01 is a xfade time of 12ms or max hold period of 83Hz = divmult_time of 420
+//#define FADE_INCREMENT 0.0025 ==> global_param[SLOW_FADE_INCREMENT]
+
+//#define WRITE_FADEUP_INCREMENT 0.02 ==> global_param[FAST_FADE_INCREMENT]
+//#define WRITE_FADEDOWN_INCREMENT 0.0025 ==> global_param[SLOW_FADE_INCREMENT]
+
+//FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
+//#define FADE_ADDRESSES 792
+//#define FADE_ADDRESSES 7992
+//#define FADE_ADDRESSES 3192
+
+//FADE_SAMPLES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/4
+//#define FADE_SAMPLES 1596
+
+//#define EXITINF_FADE_SAMPLES 196
+//#define ENTERINF_FADE_SAMPLES 1596
+
 
 //#define USE_VCXO
 
