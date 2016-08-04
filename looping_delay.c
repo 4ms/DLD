@@ -60,7 +60,7 @@ uint8_t doing_reverse_fade[NUM_CHAN] = {0,0};
 
 float lpf_coef;
 int32_t min_vol;
-float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0};
+float mainin_lpf[2]={0.0,0.0}, auxin_lpf[2]={0.0,0.0}, dcblock_lpf[2]={0.0,0.0};
 
 enum FadeStates{
 	NOT_FADING,
@@ -69,9 +69,6 @@ enum FadeStates{
 	WRITE_FADE_WRDOWN_DESTUP
 };
 uint8_t write_fade_state[NUM_CHAN] = {NOT_FADING,NOT_FADING};
-
-//uint8_t flag_reset_loopled_tmr_on_queueadvance[NUM_CHAN]={0,0};
-
 
 
 void audio_buffer_init(void)
@@ -291,14 +288,6 @@ inline void set_divmult_time(uint8_t channel){
 			old_divmult_time[channel] = t_divmult_time;
 			divmult_time[channel] = t_divmult_time;
 
-			/*
-			t=flag_pot_changed_revdown[TIME*2+channel];
-			if (mode[REVTIME_POLARITY]==NORMAL_LOOPEND) t=1-t;
-			if (t)
-				loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
-			else
-				loop_start[channel] = offset_samples(channel, loop_end[channel], divmult_time[channel], 1-mode[channel][REV]);
-			 */
 			if (flag_pot_changed_revdown[TIME*2+channel])
 				loop_end[channel] = offset_samples(channel, loop_start[channel], divmult_time[channel], mode[channel][REV]);
 			else
@@ -318,10 +307,7 @@ inline void set_divmult_time(uint8_t channel){
 				}
 				else
 				{
-
-
 					fade_queued_dest_read_addr[channel]=loop_start[channel];
-				//	flag_reset_loopled_tmr_on_queueadvance[channel]=1;
 				}
 			}
 		}
@@ -339,7 +325,6 @@ inline void set_divmult_time(uint8_t channel){
 
 			if (fade_dest_read_addr[channel] != read_addr[channel])
 				read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
-
 
 		} else
 			fade_queued_dest_divmult_time[channel]=t_divmult_time;
@@ -721,26 +706,36 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		asm("usat %[dst], #12, %[src]" : [dst] "=r" (t) : [src] "r" (t));
 		rd=((float)rd_buff[i] * epp_lut[t]) + ((float)rd_buff_dest[i] * epp_lut[4095-t]);
 
+
+
 		if (global_mode[SOFTCLIP])
 			rd = compress(rd);
+
+		if (SAMPLESIZE==2)
+			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (rd) : [src] "r" (rd));
 
 
 		// Attenuate the delayed signal with REGEN
 		regen = ((float)rd) * param[channel][REGEN];
 
 		// Attenuate the clean signal by the LEVEL parameter
-		//t_f = param[channel][LEVEL];
 		mainin_atten = ((float)mainin) * param[channel][LEVEL];
 
 		// Add the loop contents to the input signal, as well as the auxin signal
 		wr = (int32_t)(regen + mainin_atten + (float)auxin);
 
+		//High-pass filter on wr
+		if (global_mode[RUNAWAYDC_BLOCK])
+		{
+			dcblock_lpf[channel] = (dcblock_lpf[channel]*(1.0-(1.0/4800.0))) + (wr*(1.0/4800.0));
+			wr = wr - dcblock_lpf[channel];
+		}
+
 		if (global_mode[SOFTCLIP])
 			wr = compress(wr);
 
-		//if (SAMPLESIZE==2)
-		//	asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
-
+		else if (SAMPLESIZE==2)
+			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (wr) : [src] "r" (wr));
 
 
 		// Wet/dry mix, as determined by the MIX parameter
@@ -749,8 +744,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		if (global_mode[SOFTCLIP])
 			mix = compress(mix);
 
-		//if (SAMPLESIZE==2)
-		//	asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
+		else if (SAMPLESIZE==2)
+			asm("ssat %[dst], #16, %[src]" : [dst] "=r" (mix) : [src] "r" (mix));
 
 		if (global_mode[CALIBRATE])
 		{
@@ -782,6 +777,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			*dst++ = 0;
 
 #else
+
+
 			if (SAMPLESIZE==2){
 				//Main out
 				*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];

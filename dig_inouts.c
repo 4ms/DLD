@@ -15,6 +15,8 @@ extern volatile uint32_t ping_tmr;
 
 extern volatile uint32_t ping_time;
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
+extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
+
 
 
 uint8_t flag_ping_was_changed[NUM_CHAN];
@@ -247,8 +249,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				reset_ping_ledbut_tmr();
 
 				//Flag to update the divmult parameters
-				flag_ping_was_changed[0]=1;
-				flag_ping_was_changed[1]=1;
+				if (mode[0][PING_LOCKED]==0) flag_ping_was_changed[0]=1;
+				if (mode[1][PING_LOCKED]==0) flag_ping_was_changed[1]=1;
 			}
 
 			if (global_mode[PING_METHOD] != LINEAR_AVERAGE_4)
@@ -271,8 +273,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
 						reset_ping_ledbut_tmr();
 
 						//Flag to update the divmult parameters
-						flag_ping_was_changed[0]=1;
-						flag_ping_was_changed[1]=1;
+						if (mode[0][PING_LOCKED]==0) flag_ping_was_changed[0]=1;
+						if (mode[1][PING_LOCKED]==0) flag_ping_was_changed[1]=1;
 
 						ping_time = t_ping_tmr;
 
@@ -297,8 +299,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
 						reset_ping_ledbut_tmr();
 
 						//Flag to update the divmult parameters
-						flag_ping_was_changed[0]=1;
-						flag_ping_was_changed[1]=1;
+						if (mode[0][PING_LOCKED]==0) flag_ping_was_changed[0]=1;
+						if (mode[1][PING_LOCKED]==0) flag_ping_was_changed[1]=1;
 
 						ping_time = t_ping_tmr;
 
@@ -384,48 +386,59 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 
 		if (REV1BUT && INF2BUT)
 		{
-			global_mode[PING_METHOD]=EXPO_AVERAGE_4;
+			global_mode[PING_METHOD]=IGNORE_PERCENT_DEVIATION;
 			flag_ignore_infdown[1] = 1;
 			flag_ignore_revdown[0] = 1;
 		}
 		else if (REV1BUT && REV2BUT)
 		{
-			global_mode[PING_METHOD]=EXPO_AVERAGE_8;
+			global_mode[PING_METHOD]=IGNORE_FLAT_DEVIATION_10;
 			flag_ignore_revdown[0] = 1;
 			flag_ignore_revdown[1] = 1;
 		}
 		else if (INF1BUT && REV2BUT)
 		{
-			global_mode[PING_METHOD]=LINEAR_AVERAGE_4;
+			global_mode[PING_METHOD]=EXPO_AVERAGE_8;
 			flag_ignore_infdown[0] = 1;
 			flag_ignore_revdown[1] = 1;
-		}
-		else if (INF1BUT & INF2BUT)
-		{
-			global_mode[PING_METHOD]=IGNORE_FLAT_DEVIATION_5;
-			flag_ignore_infdown[0] = 1;
-			flag_ignore_infdown[1] = 1;
 		}
 		else if (REV1BUT)
 		{
 			global_mode[PING_METHOD]=ONE_TO_ONE;
 			flag_ignore_revdown[0] = 1;
 		}
-		else if (INF1BUT)
-		{
-			global_mode[PING_METHOD]=IGNORE_PERCENT_DEVIATION;
-			flag_ignore_infdown[0] = 1;
-		}
-		else if (INF2BUT)
-		{
-			global_mode[PING_METHOD]=IGNORE_FLAT_DEVIATION_10;
-			flag_ignore_infdown[1] = 1;
-		}
 		else if (REV2BUT)
 		{
 			global_mode[PING_METHOD]=LINEAR_AVERAGE_2;
 			flag_ignore_revdown[1] = 1;
 		}
+
+		else if (INF1BUT)
+		{
+			if (mode[0][PING_LOCKED]==0)
+				mode[0][PING_LOCKED] = 1;
+			else
+			{
+				mode[0][PING_LOCKED] = 0;
+				set_divmult_time(0);
+			}
+
+			flag_ignore_infdown[0] = 1;
+		}
+
+		else if (INF2BUT)
+		{
+			if (mode[1][PING_LOCKED]==0)
+				mode[1][PING_LOCKED] = 1;
+			else
+			{
+				mode[1][PING_LOCKED] = 0;
+				set_divmult_time(1);
+			}
+
+			flag_ignore_infdown[1] = 1;
+		}
+
 		else
 		{
 			//Clear the ping jack state
@@ -439,8 +452,8 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			reset_clkout_trigger_tmr();
 
 			//Flag to update the divmult parameters
-			flag_ping_was_changed[0]=1;
-			flag_ping_was_changed[1]=1;
+			if (mode[0][PING_LOCKED]==0) flag_ping_was_changed[0]=1;
+			if (mode[1][PING_LOCKED]==0) flag_ping_was_changed[1]=1;
 
 			ping_tmr = 0;
 		}

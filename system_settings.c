@@ -48,8 +48,8 @@ extern uint8_t loop_led_state[NUM_CHAN];
 
 extern uint8_t flag_inf_change[2];
 extern uint8_t flag_rev_change[2];
-//extern uint8_t flag_ignore_infdown[2];
-//extern uint8_t flag_ignore_revdown[2];
+extern uint8_t flag_ignore_infdown[2];
+extern uint8_t flag_ignore_revdown[2];
 
 
 extern uint32_t flash_firmware_version;
@@ -75,6 +75,7 @@ void set_default_system_settings(void)
 	global_mode[INF_GATETRIG] = TRIG_MODE;
 	global_mode[REV_GATETRIG] = TRIG_MODE;
 
+	global_mode[RUNAWAYDC_BLOCK] = 1;
 
 	mode[0][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[1][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
@@ -115,13 +116,20 @@ void check_entering_system_mode(void)
 		{
 			if (global_mode[SYSTEM_SETTINGS] == 0)
 			{
-				//if (mode[0][INF]) flag_inf_change[0]=1;
-				//if (mode[1][INF]) flag_inf_change[1]=1;
-
-
 				global_mode[SYSTEM_SETTINGS] = 1;
 				global_mode[CALIBRATE] = 0;
 				ctr=-1;
+
+				flag_rev_change[0] = 0;
+				flag_rev_change[1] = 0;
+				flag_inf_change[0] = 0;
+				flag_inf_change[1] = 0;
+
+				flag_ignore_infdown[0]=1;
+				flag_ignore_infdown[1]=1;
+				flag_ignore_revdown[0]=1;
+				flag_ignore_revdown[1]=1;
+
 			}
 			else
 			{
@@ -309,7 +317,6 @@ void update_system_settings(void)
 				global_mode[REV_GATETRIG] = TRIG_MODE;
 
 			flag_rev_change[0]=0;
-
 		}
 
 		if (flag_inf_change[0])
@@ -330,6 +337,17 @@ void update_system_settings(void)
 				global_mode[LOG_DELAY_FEED] = 1;
 
 			flag_inf_change[1]=0;
+		}
+
+		if (flag_rev_change[1])
+		{
+			if (global_mode[RUNAWAYDC_BLOCK] == 1)
+				global_mode[RUNAWAYDC_BLOCK] = 0;
+			else
+				global_mode[RUNAWAYDC_BLOCK] = 1;
+
+			flag_rev_change[1]=0;
+
 		}
 
 
@@ -510,8 +528,10 @@ void update_system_settings_button_leds(void)
 		else
 			LED_INF2_OFF;
 
-
-		LED_REV2_OFF;
+		if (global_mode[RUNAWAYDC_BLOCK] == 1)
+			LED_REV2_ON;
+		else
+			LED_REV2_OFF;
 
 	}
 	else if (global_mode[SYSTEM_SETTINGS])

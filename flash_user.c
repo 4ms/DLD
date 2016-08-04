@@ -91,6 +91,9 @@ extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 #define FLASH_ADDR_LOG_DELAY_FEED				(FLASH_ADDR_PING_METHOD				+ SZ_PM)		/* 87 ..	*/
 #define SZ_LDF 1
 
+#define FLASH_ADDR_RUNAWAYDC_BLOCK				(FLASH_ADDR_LOG_DELAY_FEED			+ SZ_LDF)		/* 88 ..	*/
+#define SZ_RDCB 1
+
 
 #define FLASH_SYMBOL_bankfilled 0x01
 #define FLASH_SYMBOL_startupoffset 0xAA
@@ -125,11 +128,12 @@ uint8_t flash_mode_LEVELCV_IS_MIX_1;
 
 uint8_t flash_global_mode_PING_METHOD;
 uint8_t flash_global_mode_LOG_DELAY_FEED;
+uint8_t flash_global_mode_RUNAWAYDC_BLOCK;
+
 
 void set_firmware_version(void)
 {
 	flash_firmware_version = FW_VERSION;
-
 }
 
 
@@ -223,10 +227,10 @@ uint32_t load_flash_params(void)
 
 		global_mode[PING_METHOD] = flash_global_mode_PING_METHOD;
 		global_mode[LOG_DELAY_FEED] = flash_global_mode_LOG_DELAY_FEED;
+		global_mode[RUNAWAYDC_BLOCK] = flash_global_mode_RUNAWAYDC_BLOCK;
 
 		mode[0][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_0==1) ? 1:0;
 		mode[1][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_1==1) ? 1:0;
-
 
 		global_param[FAST_FADE_SAMPLES] = (float)flash_global_param_FAST_FADE_SAMPLES;
 		global_param[SLOW_FADE_SAMPLES] = (float)flash_global_param_SLOW_FADE_SAMPLES;
@@ -285,7 +289,6 @@ void save_flash_params(void)
 
 void store_params_into_sram(void)
 {
-
 	flash_CV_CALIBRATION_OFFSET[0]=CV_CALIBRATION_OFFSET[0];
 	flash_CV_CALIBRATION_OFFSET[1]=CV_CALIBRATION_OFFSET[1];
 	flash_CV_CALIBRATION_OFFSET[2]=CV_CALIBRATION_OFFSET[2];
@@ -304,13 +307,11 @@ void store_params_into_sram(void)
 	flash_CODEC_ADC_CALIBRATION_DCOFFSET[2]=CODEC_ADC_CALIBRATION_DCOFFSET[2];
 	flash_CODEC_ADC_CALIBRATION_DCOFFSET[3]=CODEC_ADC_CALIBRATION_DCOFFSET[3];
 
-
 	flash_param_TRACKING_COMP_0 = param[0][TRACKING_COMP];
 	flash_param_TRACKING_COMP_1 = param[1][TRACKING_COMP];
 
 	flash_global_param_FAST_FADE_SAMPLES = global_param[FAST_FADE_SAMPLES];
 	flash_global_param_SLOW_FADE_SAMPLES = global_param[SLOW_FADE_SAMPLES];
-
 
 	flash_loop_led_brightness = loop_led_brightness;
 
@@ -326,6 +327,8 @@ void store_params_into_sram(void)
 
 	flash_global_mode_PING_METHOD = global_mode[PING_METHOD];
 	flash_global_mode_LOG_DELAY_FEED = global_mode[LOG_DELAY_FEED];
+
+	flash_global_mode_RUNAWAYDC_BLOCK = global_mode[RUNAWAYDC_BLOCK];
 
 	flash_mode_LEVELCV_IS_MIX_0 = mode[0][LEVELCV_IS_MIX];
 	flash_mode_LEVELCV_IS_MIX_1 = mode[1][LEVELCV_IS_MIX];
@@ -379,6 +382,8 @@ void write_all_params_to_FLASH(void)
 
 	flash_open_program_byte(flash_global_mode_PING_METHOD, FLASH_ADDR_PING_METHOD);
 	flash_open_program_byte(flash_global_mode_LOG_DELAY_FEED, FLASH_ADDR_LOG_DELAY_FEED);
+	flash_open_program_byte(flash_global_mode_RUNAWAYDC_BLOCK, FLASH_ADDR_RUNAWAYDC_BLOCK);
+
 
 	flash_end_open_program();
 }
@@ -428,6 +433,7 @@ void read_all_params_from_FLASH(void)
 	flash_global_mode_AUTO_MUTE = flash_read_byte(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;
 	flash_global_mode_SOFTCLIP = flash_read_byte(FLASH_ADDR_SOFTCLIP) ? 1 : 0;
 
+
 	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
 	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
 
@@ -436,6 +442,8 @@ void read_all_params_from_FLASH(void)
 		flash_global_mode_PING_METHOD = IGNORE_FLAT_DEVIATION_10;
 
 	flash_global_mode_LOG_DELAY_FEED = (flash_read_byte(FLASH_ADDR_LOG_DELAY_FEED)==1) ? 1 : 0;
+
+	flash_global_mode_RUNAWAYDC_BLOCK = (flash_read_byte(FLASH_ADDR_RUNAWAYDC_BLOCK)==0) ? 0 : 1;
 
 	flash_global_mode_REV_GATETRIG = flash_read_byte(FLASH_ADDR_REV_GATETRIG) ? 1 : 0;
 	flash_global_mode_INF_GATETRIG = flash_read_byte(FLASH_ADDR_INF_GATETRIG) ? 1 : 0;

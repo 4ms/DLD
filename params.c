@@ -118,15 +118,18 @@ void init_modes(void)
 		mode[channel][TIMEMODE_POT] = MOD_READWRITE_TIME_Q;
 		mode[channel][TIMEMODE_JACK] = MOD_READWRITE_TIME_Q;
 
+		mode[channel][PING_LOCKED] = 0;
+
 	}
 	global_mode[DCINPUT] = 0;
 	global_mode[CALIBRATE] = 0;
 	global_mode[SYSTEM_SETTINGS] = 0;
 
-	global_mode[INF_GATETRIG] = TRIG_MODE;
-	global_mode[REV_GATETRIG] = TRIG_MODE;
+//	global_mode[INF_GATETRIG] = TRIG_MODE;
+//	global_mode[REV_GATETRIG] = TRIG_MODE;
 
-	global_mode[LOG_DELAY_FEED] = 0;
+//	global_mode[LOG_DELAY_FEED] = 0;
+//	global_mode[RUNAWAYDC_BLOCK] = 1;
 
 
 }

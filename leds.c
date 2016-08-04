@@ -156,7 +156,11 @@ void update_channel_leds(void)
 	}
 }
 
-void update_INF_REV_ledbut(uint8_t channel){
+void update_INF_REV_ledbut(uint8_t channel)
+{
+	static uint32_t flicker_ctr=0;
+
+	flicker_ctr-=(1<<18);
 
 	if (global_mode[CALIBRATE])
 	{
@@ -181,15 +185,30 @@ void update_INF_REV_ledbut(uint8_t channel){
 			else 			LED_REV2_ON;
 		}
 
+
 		if (mode[channel][INF]!=1)
 		{
-			if (channel==0)	LED_INF1_OFF;
-			else			LED_INF2_OFF;
+			if (mode[channel][PING_LOCKED] && (flicker_ctr<(1<<28)))
+			{
+				if (channel==0)	LED_INF1_ON;
+				else 			LED_INF2_ON;
+			} else
+			{
+				if (channel==0) LED_INF1_OFF;
+				else			LED_INF2_OFF;
+			}
 		}
 		else
 		{
-			if (channel==0)	LED_INF1_ON;
-			else 			LED_INF2_ON;
+			if (mode[channel][PING_LOCKED] && (flicker_ctr<(1<<28)))
+			{
+				if (channel==0) LED_INF1_OFF;
+				else			LED_INF2_OFF;
+			} else
+			{
+				if (channel==0)	LED_INF1_ON;
+				else 			LED_INF2_ON;
+			}
 		}
 	}
 
