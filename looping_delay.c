@@ -174,6 +174,25 @@ void swap_read_write(uint8_t channel){
 
 }
 
+void reverse_loop(uint8_t channel)
+{
+	uint32_t t;
+
+	//When reversing in INF mode, swap the loop start/end but offset them by the FADE_SAMPLES so the crossfade stays within already recorded audio
+	t=loop_start[channel];
+
+	loop_start[channel] = offset_samples(channel, loop_end[channel], global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
+	loop_end[channel] = offset_samples(channel, t, global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
+
+	//ToDo: Add a crossfade for read head reversing direction here
+	fade_dest_read_addr[channel] = read_addr[channel];
+
+	read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
+	doing_reverse_fade[channel]=1;
+
+	fade_queued_dest_divmult_time[channel] = 0;
+
+}
 
 inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 {
@@ -394,7 +413,9 @@ inline void increment_read_fade(uint8_t channel){
 		if (read_fade_pos[channel] > 1.0)
 		{
 			read_fade_pos[channel] = 0.0;
+
 			doing_reverse_fade[channel] = 0;
+
 			read_addr[channel] = fade_dest_read_addr[channel];
 
 			if (fade_queued_dest_divmult_time[channel])
@@ -468,7 +489,6 @@ void change_inf_mode(uint8_t channel)
 {
 	if(write_fade_state[channel]==NOT_FADING)
 	{
-		DEBUG0_OFF;
 
 		flag_inf_change[channel]=0;
 
@@ -555,13 +575,11 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	//one crossfade period, maybe 3ms or so. Acceptable??
 
 
-	DEBUG1_OFF;
 	if ((mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
 			&& (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
 	{
 		if (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT])
 		{
-			DEBUG1_ON;
 			read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
 			fade_queued_dest_divmult_time[channel] = 0;
 
@@ -570,18 +588,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			reset_loopled_tmr(channel);
 
 		}
-
-		// When enabled, the following line causes INF mode to drift quickly out of sync with an external clock
-		//else {
-		//
-		//	fade_queued_dest_read_addr[channel] = loop_start[channel];
-		//}
 	}
 
 	/*
 	 * Sanity check: make sure read_addr and write_addr are spaced properly
 	 */
-	if ((mode[channel][INF]==INF_OFF) && (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT]))
+	if ((mode[channel][INF]==INF_OFF) && (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT]) && !mode[channel][CONTINUOUS_REVERSE])
 	{
 		t32 = calculate_read_addr(channel, divmult_time[channel]);
 		if (t32 != read_addr[channel])
@@ -597,7 +609,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	else
 		start_fade_addr = offset_samples(channel, loop_end[channel], global_param[SLOW_FADE_SAMPLES] / SAMPLESIZE, 1-mode[channel][REV]);
 
-	//
+	// Read from memory into the main read buffer:
+	// This in/decrements the read_addr based on the REV mode,
+	// and also based on doing_reverse_fade (in which case the read_addr goes the opposite direction as REV mode would indicate)
 	// crossed_start_fade_addr is true if read addr crosses the end of the loop, in which case we need to reset it to the beginning of the loop.
 	// If doing_reverse_fade is true, then we should read in the opposite direction as mode[][REV] dictates (this is because we just
 	// reversed direction, so we should continue reading from rd_buff in the same direction (which is now !REV),
@@ -605,7 +619,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	// last_read_block_addr = read_addr[channel];
 
-	crossed_start_fade_addr = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, doing_reverse_fade[channel]);
+	crossed_start_fade_addr = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, doing_reverse_fade[channel] | mode[channel][CONTINUOUS_REVERSE]);
 
 
 	if (mode[channel][INF]!=INF_OFF && crossed_start_fade_addr)
@@ -653,7 +667,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	}
 
-	memory_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0, 0);
+	memory_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0, mode[channel][CONTINUOUS_REVERSE]);
 
 	for (i=0;i<(sz/2);i++){
 

@@ -15,10 +15,7 @@
 //16 is 12kHz
 //8 is 24kHz but seems glitchy...
 
-
-#define PCB_PROTO_VERSION 8
-
-#define FW_VERSION 4
+#define FW_VERSION 5
 
 //Error codes for g_error
 #define OUT_OF_MEM 1

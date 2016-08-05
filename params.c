@@ -26,12 +26,9 @@ extern __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 extern __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 
-extern volatile uint32_t read_addr[NUM_CHAN];
 
 extern volatile uint32_t divmult_time[NUM_CHAN];
 
-extern uint32_t loop_start[NUM_CHAN];
-extern uint32_t loop_end[NUM_CHAN];
 
 extern uint8_t flag_ping_was_changed[NUM_CHAN];
 extern uint8_t flag_inf_change[NUM_CHAN];
@@ -42,9 +39,6 @@ extern uint8_t flag_pot_changed_infdown[NUM_POT_ADCS];
 extern uint8_t disable_mode_changes;
 
 extern uint8_t doing_reverse_fade[NUM_CHAN];
-extern uint32_t fade_dest_read_addr[NUM_CHAN];
-extern uint32_t fade_queued_dest_divmult_time[NUM_CHAN];
-extern float read_fade_pos[NUM_CHAN];
 
 
 float param[NUM_CHAN][NUM_PARAMS];
@@ -121,7 +115,7 @@ void init_modes(void)
 		mode[channel][PING_LOCKED] = 0;
 
 		mode[channel][QUANTIZE_MODE_CHANGES] = 0;
-
+		mode[channel][CONTINUOUS_REVERSE] = 0;
 	}
 	global_mode[DCINPUT] = 0;
 	global_mode[CALIBRATE] = 0;
@@ -562,20 +556,15 @@ void update_params(void)
 //
 void process_mode_flags(uint8_t channel)
 {
-	uint32_t t;
-
 	if (!disable_mode_changes)
 	{
-
 		if (flag_inf_change[channel])
-		{
 			change_inf_mode(channel);
-		}
-
-
 
 		if (flag_rev_change[channel])
 		{
+
+			mode[channel][CONTINUOUS_REVERSE] = 0;
 
 			if (!doing_reverse_fade[channel])
 			{
@@ -584,30 +573,12 @@ void process_mode_flags(uint8_t channel)
 				mode[channel][REV] = 1- mode[channel][REV];
 
 				if (mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
-				{
+					reverse_loop(channel);
 
-					//When reversing in INF mode, swap the loop start/end but offset them by the FADE_SAMPLES so the crossfade stays within already recorded audio
-					t=loop_start[channel];
-
-					loop_start[channel] = offset_samples(channel, loop_end[channel], global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
-					loop_end[channel] = offset_samples(channel, t, global_param[SLOW_FADE_SAMPLES], mode[channel][REV]);
-
-					//ToDo: Add a crossfade for read head reversing direction here
-					fade_dest_read_addr[channel] = read_addr[channel];
-
-					read_fade_pos[channel] = global_param[SLOW_FADE_INCREMENT];
-					doing_reverse_fade[channel]=1;
-
-					fade_queued_dest_divmult_time[channel] = 0;
-
-				}
 				else
-				{
 					swap_read_write(channel);
-				}
 			}
 		}
-
 	}
 
 	if (flag_time_param_changed[channel] || flag_ping_was_changed[channel])
@@ -616,16 +587,20 @@ void process_mode_flags(uint8_t channel)
 		flag_ping_was_changed[channel]=0;
 		set_divmult_time(channel);
 	}
+
 }
+
 
 void process_ping_changed(uint8_t channel)
 {
+
 	if (flag_ping_was_changed[channel])
 	{
 		flag_time_param_changed[channel]=0;
 		flag_ping_was_changed[channel]=0;
 		set_divmult_time(channel);
 	}
+
 }
 
 

@@ -368,7 +368,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 {
 	static uint16_t State[10] = {0,0,0,0xFFFF,0xFFFF,0,0,0xFFFF,0xFFFF,0}; // Current debounce status
 	uint16_t t;
-	static uint32_t ch1_clear_ctr=0,ch2_clear_ctr=0;
+	static uint32_t ch1_clear_ctr=0,ch2_clear_ctr=0, ch1_contrev_ctr=0, ch2_contrev_ctr=0;
 
 	// Clear TIM update interrupt
 	TIM_ClearITPendingBit(INF_REV_BUTTON_JACK_TIM, TIM_IT_Update);
@@ -384,7 +384,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	State[0]=(State[0]<<1) | t;
 	if (State[0]==0xff00){ 	//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
 
-		if (INF1BUT && INF2BUT)
+		if (INF1BUT && INF2BUT && 	!REV1BUT && !REV2BUT)
 		{
 			if (mode[0][QUANTIZE_MODE_CHANGES]==0)
 				mode[0][QUANTIZE_MODE_CHANGES] = 1;
@@ -399,16 +399,16 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			flag_ignore_infdown[0] = 1;
 			flag_ignore_infdown[1] = 1;
 		}
-		else if (REV1BUT)
+		else if (REV1BUT && 	!INF1BUT && !INF2BUT && !REV2BUT)
 		{
 			flag_ignore_revdown[0] = 1;
 		}
-		else if (REV2BUT)
+		else if (REV2BUT && 	!INF1BUT && !INF2BUT && !REV1BUT)
 		{
 			flag_ignore_revdown[1] = 1;
 		}
 
-		else if (INF1BUT)
+		else if (INF1BUT && 	!INF2BUT && !REV1BUT && !REV2BUT)
 		{
 			if (mode[0][PING_LOCKED]==0)
 				mode[0][PING_LOCKED] = 1;
@@ -421,7 +421,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			flag_ignore_infdown[0] = 1;
 		}
 
-		else if (INF2BUT)
+		else if (INF2BUT && 	!INF1BUT && !REV1BUT && !REV2BUT)
 		{
 			if (mode[1][PING_LOCKED]==0)
 				mode[1][PING_LOCKED] = 1;
@@ -483,7 +483,6 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 
 		else
 			flag_inf_change[0]=1;
-		DEBUG0_ON;
 
 	}
 
@@ -589,7 +588,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 		flag_rev_change[0]=1;
 	}
 
-
+//check continuously held down buttons:
 
 	if (RAM_CLEAR_CH1_BUTTONS)
 	{
@@ -635,6 +634,45 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	}
 	else
 		ch2_clear_ctr=0;
+
+	if (CONTINUOUS_REV1_BUTTONS)
+	{
+		if (ch1_contrev_ctr++>54000) {
+			flag_ignore_revdown[0]=1;
+
+			if (mode[0][CONTINUOUS_REVERSE])
+			{
+				mode[0][CONTINUOUS_REVERSE] = 0;
+			} else
+			{
+				mode[0][CONTINUOUS_REVERSE] = 1;
+				//mode[0][REV] = 0;
+			}
+
+			ch1_contrev_ctr = 0;
+		}
+	}
+	else
+		ch1_contrev_ctr = 0;
+
+	if (CONTINUOUS_REV2_BUTTONS)
+	{
+		if (ch2_contrev_ctr++>54000) {
+			flag_ignore_revdown[1]=1;
+
+			if (mode[1][CONTINUOUS_REVERSE])
+			{
+				mode[1][CONTINUOUS_REVERSE] = 0;
+			} else
+			{
+				mode[1][CONTINUOUS_REVERSE] = 1;
+				//mode[1][REV] = 0;
+			}
+			ch2_contrev_ctr = 0;
+		}
+	}
+	else
+		ch2_contrev_ctr = 0;
 
 
 }

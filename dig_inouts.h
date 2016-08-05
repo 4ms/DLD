@@ -203,6 +203,21 @@
 		REV2BUT &&\
 		INF2BUT)
 
+#define CONTINUOUS_REV1_BUTTONS (\
+		!PINGBUT &&\
+		REV1BUT &&\
+		!INF1BUT &&\
+		!REV2BUT &&\
+		!INF2BUT)
+
+#define CONTINUOUS_REV2_BUTTONS (\
+		!PINGBUT &&\
+		!REV1BUT &&\
+		!INF1BUT &&\
+		REV2BUT &&\
+		!INF2BUT)
+
+
 //OUTPUTS
 
 //CLK OUT
@@ -219,9 +234,6 @@
 #define CLKOUT1_ON CLKOUT1_GPIO->BSRRL = CLKOUT1_pin
 #define CLKOUT1_OFF CLKOUT1_GPIO->BSRRH = CLKOUT1_pin
 
-
-//p3 board has this wired to PC9, manually cut and moved to PA5
-//should be PC5 in p4
 #define CLKOUT2_pin GPIO_Pin_5
 #define CLKOUT2_GPIO GPIOC
 #define CLKOUT2_ON CLKOUT2_GPIO->BSRRL = CLKOUT2_pin
@@ -248,17 +260,9 @@
 #define LED_INF2_ON LED_INF2_GPIO->BSRRL = LED_INF2_pin
 #define LED_INF2_OFF LED_INF2_GPIO->BSRRH = LED_INF2_pin
 
-//p4 board: REV1_LED is PB4
-#if PCB_PROTO_VERSION == 4
-	#define REV1_BUTLED_RCC RCC_AHB1Periph_GPIOB
-	#define LED_REV1_pin GPIO_Pin_4
-	#define LED_REV1_GPIO GPIOB
-#else
-//p5 and later board: REV1_LED is PA15
-	#define REV1_BUTLED_RCC RCC_AHB1Periph_GPIOA
-	#define LED_REV1_pin GPIO_Pin_15
-	#define LED_REV1_GPIO GPIOA
-#endif
+#define REV1_BUTLED_RCC RCC_AHB1Periph_GPIOA
+#define LED_REV1_pin GPIO_Pin_15
+#define LED_REV1_GPIO GPIOA
 
 #define LED_REV1_ON LED_REV1_GPIO->BSRRL = LED_REV1_pin
 #define LED_REV1_OFF LED_REV1_GPIO->BSRRH = LED_REV1_pin
