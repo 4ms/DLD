@@ -468,6 +468,8 @@ void change_inf_mode(uint8_t channel)
 {
 	if(write_fade_state[channel]==NOT_FADING)
 	{
+		DEBUG0_OFF;
+
 		flag_inf_change[channel]=0;
 
 		//If INF is on, go to transition-off mode

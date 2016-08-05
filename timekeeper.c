@@ -35,7 +35,7 @@ inline void inc_tmrs(void){
 	if (clkout_trigger_tmr>=ping_time)
 	{
 		CLKOUT_ON;
-		clkout_trigger_tmr=0;
+		reset_clkout_trigger_tmr();
 	}
 	else if (clkout_trigger_tmr >= (ping_time>>1))
 	{
@@ -48,6 +48,8 @@ inline void inc_tmrs(void){
 
 inline void reset_ping_ledbut_tmr(void){
 	ping_ledbut_tmr=0;
+
+
 }
 
 inline void reset_ping_tmr(void){
@@ -56,6 +58,12 @@ inline void reset_ping_tmr(void){
 
 inline void reset_clkout_trigger_tmr(void){
 	clkout_trigger_tmr=0;
+	if (mode[0][QUANTIZE_MODE_CHANGES]!=0)
+		process_mode_flags(0);
+	if (mode[1][QUANTIZE_MODE_CHANGES]!=0)
+		process_mode_flags(1);
+
+
 }
 
 inline void reset_loopled_tmr(uint8_t channel){
@@ -69,6 +77,8 @@ inline void reset_loopled_tmr(uint8_t channel){
 	} else {
 		CLKOUT2_ON;
 	}
+
+
 }
 
 

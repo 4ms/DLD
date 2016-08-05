@@ -1,18 +1,6 @@
 /*
  * System Settings
  *
- * Loop A/B/Main Clock Out jacks:
- * -Gate
- * -Trigger
- *
- * LED Brightness for loop LEDs
- *
- * 1V/oct tracking compensation
- *
- * Level A/B CV jacks:
- * -Delay Level (default)
- * -Dry/Wet amount
- *
  * ????Time A/B knob:
  * -Quantized normally, unquantized when turned with Reverse held down (default)
  * -Unquantized normally, quantized when turned with Reverse held down
@@ -21,10 +9,6 @@
  * -Quantized (default)
  * -Always unquantized (...try this?)
  * -Follows mode of knob (quantized until Time knob is wiggled with Reverse held down)
- *
- *
- * Noisegate on/off
- * Soft clipping on/off
  *
  */
 
@@ -136,6 +120,13 @@ void check_entering_system_mode(void)
 				save_flash_params();
 				global_mode[SYSTEM_SETTINGS] = 0;
 				ctr=-1;
+				disable_mode_changes=0;
+
+				flag_ignore_infdown[0]=1;
+				flag_ignore_infdown[1]=1;
+				flag_ignore_revdown[0]=1;
+				flag_ignore_revdown[1]=1;
+
 			}
 		}
 	}
@@ -144,6 +135,12 @@ void check_entering_system_mode(void)
 		if ((ctr>1000) && (ctr<=100000) && (global_mode[SYSTEM_SETTINGS] == 1)) //released buttons too early ==> cancel (exit without save)
 		{
 			global_mode[SYSTEM_SETTINGS] = 0;
+			disable_mode_changes=0;
+			flag_ignore_infdown[0]=1;
+			flag_ignore_infdown[1]=1;
+			flag_ignore_revdown[0]=1;
+			flag_ignore_revdown[1]=1;
+
 		}
 		ctr=0;
 	}

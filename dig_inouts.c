@@ -384,32 +384,27 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	State[0]=(State[0]<<1) | t;
 	if (State[0]==0xff00){ 	//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
 
-		if (REV1BUT && INF2BUT)
+		if (INF1BUT && INF2BUT)
 		{
-			global_mode[PING_METHOD]=IGNORE_PERCENT_DEVIATION;
-			flag_ignore_infdown[1] = 1;
-			flag_ignore_revdown[0] = 1;
-		}
-		else if (REV1BUT && REV2BUT)
-		{
-			global_mode[PING_METHOD]=IGNORE_FLAT_DEVIATION_10;
-			flag_ignore_revdown[0] = 1;
-			flag_ignore_revdown[1] = 1;
-		}
-		else if (INF1BUT && REV2BUT)
-		{
-			global_mode[PING_METHOD]=EXPO_AVERAGE_8;
+			if (mode[0][QUANTIZE_MODE_CHANGES]==0)
+				mode[0][QUANTIZE_MODE_CHANGES] = 1;
+			else
+				mode[0][QUANTIZE_MODE_CHANGES] = 0;
+
+			if (mode[1][QUANTIZE_MODE_CHANGES]==0)
+				mode[1][QUANTIZE_MODE_CHANGES] = 1;
+			else
+				mode[1][QUANTIZE_MODE_CHANGES] = 0;
+
 			flag_ignore_infdown[0] = 1;
-			flag_ignore_revdown[1] = 1;
+			flag_ignore_infdown[1] = 1;
 		}
 		else if (REV1BUT)
 		{
-			global_mode[PING_METHOD]=ONE_TO_ONE;
 			flag_ignore_revdown[0] = 1;
 		}
 		else if (REV2BUT)
 		{
-			global_mode[PING_METHOD]=LINEAR_AVERAGE_2;
 			flag_ignore_revdown[1] = 1;
 		}
 
@@ -448,14 +443,18 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			ping_time=ping_tmr & 0xFFFFFFF8; //multiple of 8
 
 			//Reset the timers
-			reset_ping_ledbut_tmr();
+			CLKOUT_ON;
 			reset_clkout_trigger_tmr();
+
+			LED_PINGBUT_ON;
+			reset_ping_ledbut_tmr();
+
+			ping_tmr = 0;
 
 			//Flag to update the divmult parameters
 			if (mode[0][PING_LOCKED]==0) flag_ping_was_changed[0]=1;
 			if (mode[1][PING_LOCKED]==0) flag_ping_was_changed[1]=1;
 
-			ping_tmr = 0;
 		}
 	}
 
@@ -484,6 +483,8 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 
 		else
 			flag_inf_change[0]=1;
+		DEBUG0_ON;
+
 	}
 
 	if (!INF2BUT) t=0xe000; else t=0xe001;

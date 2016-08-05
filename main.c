@@ -55,6 +55,8 @@ __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
+extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
+
 extern uint32_t flash_firmware_version;
 
 void check_errors(void){
@@ -205,7 +207,17 @@ int main(void)
 
 		check_entering_system_mode();
 
-		process_mode_flags();
+		if (mode[0][QUANTIZE_MODE_CHANGES]==0)
+			process_mode_flags(0);
+		else
+			process_ping_changed(0);
+
+
+		if (mode[1][QUANTIZE_MODE_CHANGES]==0)
+			process_mode_flags(1);
+		else
+			process_ping_changed(1);
+
 
 		check_errors();
 		

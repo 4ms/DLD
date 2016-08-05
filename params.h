@@ -48,6 +48,7 @@ enum ChannelModes{
 	WINDOWMODE_JACK,
 	LEVELCV_IS_MIX,
 	PING_LOCKED,
+	QUANTIZE_MODE_CHANGES,
 	NUM_CHAN_MODES
 };
 
@@ -147,7 +148,8 @@ enum Global_Params{
 void update_params(void);
 void process_adc(void);
 
-inline void process_mode_flags(void);
+void process_mode_flags(uint8_t channel);
+void process_ping_changed(uint8_t channel);
 
 float get_clk_div_nominal(uint16_t adc_val);
 float get_clk_div_exact(uint16_t adc_val);
