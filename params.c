@@ -559,11 +559,13 @@ void process_mode_flags(uint8_t channel)
 	if (!disable_mode_changes)
 	{
 		if (flag_inf_change[channel])
+		{
 			change_inf_mode(channel);
+			mode[0][CONTINUOUS_REVERSE] = 0;
+		}
 
 		if (flag_rev_change[channel])
 		{
-
 			mode[channel][CONTINUOUS_REVERSE] = 0;
 
 			if (!doing_reverse_fade[channel])

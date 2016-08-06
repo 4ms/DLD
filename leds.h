@@ -16,7 +16,6 @@
 
 
 void update_ping_ledbut(void);
-void update_channel_leds(void);
 void update_INF_REV_ledbut(uint8_t channel);
 void init_LED_PWM_IRQ(void);
 

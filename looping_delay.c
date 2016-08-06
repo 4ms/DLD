@@ -24,6 +24,7 @@ extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern float global_param[NUM_GLOBAL_PARAMS];
+extern uint8_t loop_led_state[NUM_CHAN];
 
 
 extern uint8_t flag_inf_change[2];
@@ -529,6 +530,12 @@ void change_inf_mode(uint8_t channel)
 	}
 }
 
+//returns the absolute difference between the values
+uint32_t abs_diff(uint32_t a1, uint32_t a2)
+{
+	if (a1>a2) return (a1-a2);
+	else return (a2-a1);
+}
 
 
 // process_audio_block()
@@ -854,6 +861,21 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	}
 
 
+	if (mode[channel][CONTINUOUS_REVERSE])
+	{
+		if (abs_diff(write_addr[channel], read_addr[channel]) < 960) //10ms pulse
+		{
+			loop_led_state[channel]=1;
+			if (channel==0) CLKOUT1_ON;
+			else CLKOUT2_ON;
+		}
+		else
+		{
+			loop_led_state[channel]=0;
+			if (channel==0) CLKOUT1_OFF;
+			else CLKOUT2_OFF;
+		}
+	}
 
 	increment_read_fade(channel);
 	increment_write_fade(channel);

@@ -24,7 +24,8 @@ extern uint8_t loop_led_state[NUM_CHAN];
 
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
-inline void inc_tmrs(void){
+inline void inc_tmrs(void)
+{
 	ping_tmr++;
 	ping_ledbut_tmr++;
 	clkout_trigger_tmr++;
@@ -46,39 +47,44 @@ inline void inc_tmrs(void){
 	}
 }
 
-inline void reset_ping_ledbut_tmr(void){
+inline void reset_ping_ledbut_tmr(void)
+{
 	ping_ledbut_tmr=0;
 
 
 }
 
-inline void reset_ping_tmr(void){
+inline void reset_ping_tmr(void)
+{
 	ping_tmr=0;
 }
 
-inline void reset_clkout_trigger_tmr(void){
+inline void reset_clkout_trigger_tmr(void)
+{
 	clkout_trigger_tmr=0;
+
 	if (mode[0][QUANTIZE_MODE_CHANGES]!=0)
 		process_mode_flags(0);
 	if (mode[1][QUANTIZE_MODE_CHANGES]!=0)
 		process_mode_flags(1);
 
-
 }
 
-inline void reset_loopled_tmr(uint8_t channel){
+inline void reset_loopled_tmr(uint8_t channel)
+{
 	loopled_tmr[channel]=0;
 
-	if (!global_mode[CALIBRATE] && !global_mode[SYSTEM_SETTINGS])
-		loop_led_state[channel]=1;
+	if (!mode[channel][CONTINUOUS_REVERSE])
+	{
+		if (!global_mode[CALIBRATE] && !global_mode[SYSTEM_SETTINGS])
+			loop_led_state[channel]=1;
 
-	if (channel==0) {
-		CLKOUT1_ON;
-	} else {
-		CLKOUT2_ON;
+		if (channel==0) {
+			CLKOUT1_ON;
+		} else {
+			CLKOUT2_ON;
+		}
 	}
-
-
 }
 
 

@@ -127,32 +127,34 @@ void update_channel_leds(void)
 
 	for (channel=0;channel<NUM_CHAN;channel++)
 	{
-		if (loopled_tmr[channel] >= divmult_time[channel] && (mode[channel][INF]==INF_OFF))
+		if (!mode[channel][CONTINUOUS_REVERSE])
 		{
-			reset_loopled_tmr(channel);
-		}
+			if (loopled_tmr[channel] >= divmult_time[channel] && (mode[channel][INF]==INF_OFF))
+			{
+				reset_loopled_tmr(channel);
+			}
 
-		else if (loopled_tmr[channel] >= (divmult_time[channel]>>1))
-		{
+			else if (loopled_tmr[channel] >= (divmult_time[channel]>>1))
+			{
 
-			loop_led_state[channel]=0;
+				loop_led_state[channel]=0;
 
-			if (channel==0) {
-				CLKOUT1_OFF;
-			} else {
-				CLKOUT2_OFF;
+				if (channel==0) {
+					CLKOUT1_OFF;
+				} else {
+					CLKOUT2_OFF;
+				}
+			}
+
+			else if (mode[channel][LOOP_CLOCK_GATETRIG] == TRIG_MODE && loopled_tmr[channel] >= TRIG_TIME)
+			{
+				if (channel==0)
+					CLKOUT1_OFF;
+				 else
+					CLKOUT2_OFF;
+
 			}
 		}
-
-		else if (mode[channel][LOOP_CLOCK_GATETRIG] == TRIG_MODE && loopled_tmr[channel] >= TRIG_TIME)
-		{
-			if (channel==0)
-				CLKOUT1_OFF;
-			 else
-				CLKOUT2_OFF;
-
-		}
-
 	}
 }
 
