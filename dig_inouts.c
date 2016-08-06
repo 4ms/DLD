@@ -635,7 +635,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	else
 		ch2_clear_ctr=0;
 
-	if (CONTINUOUS_REV1_BUTTONS)
+	if (mode[0][INF]==INF_OFF && CONTINUOUS_REV1_BUTTONS)
 	{
 		if (ch1_contrev_ctr++>54000) {
 			flag_ignore_revdown[0]=1;
@@ -655,7 +655,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	else
 		ch1_contrev_ctr = 0;
 
-	if (CONTINUOUS_REV2_BUTTONS)
+	if (mode[1][INF]==INF_OFF && CONTINUOUS_REV2_BUTTONS)
 	{
 		if (ch2_contrev_ctr++>54000) {
 			flag_ignore_revdown[1]=1;
