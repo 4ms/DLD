@@ -546,9 +546,20 @@ uint32_t abs_diff(uint32_t a1, uint32_t a2)
 // parameter sz is codec_BUFF_LEN = 8
 
 //takes about 15us
+enum AutoMute_States{
+	MUTED,
+	FADING_DOWN,
+	FADING_UP,
+	UNMUTED
+};
+
 void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
 {
 	static uint32_t mute_on_boot_ctr=96000;
+	static uint8_t auto_muting_main_state[NUM_CHAN]={0,0};
+	static float auto_muting_main_fade[NUM_CHAN]={0,0};
+	static uint8_t auto_muting_aux_state[NUM_CHAN]={0,0};
+	static float auto_muting_aux_fade[NUM_CHAN]={0,0};
 
 	uint32_t last_read_block_addr;
 
@@ -706,17 +717,80 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		}
 
 		if (global_mode[AUTO_MUTE]){
-
+			//minimum 830ns, mean 2us
 
 			mainin_lpf[channel] = (mainin_lpf[channel]*(1.0-lpf_coef)) + (((mainin>0)?mainin:(-1*mainin))*lpf_coef);
 
-			if (mainin_lpf[channel]<min_vol)
-				mainin=0;
+			//Initiate a fade-down
+			if (mainin_lpf[channel]<min_vol && (auto_muting_main_state[channel] == FADING_UP || auto_muting_main_state[channel]==UNMUTED))
+				auto_muting_main_state[channel] =  FADING_DOWN;
+
+			//Initiate a fade-up
+			if (mainin_lpf[channel]>=min_vol && (auto_muting_main_state[channel] == FADING_DOWN || auto_muting_main_state[channel]==MUTED))
+				auto_muting_main_state[channel] =  FADING_UP;
+
+			//Continue fades
+			if (auto_muting_main_state[channel] == FADING_DOWN)
+				auto_muting_main_fade[channel] -= AUTO_MUTE_DECAY;
+
+			else if (auto_muting_main_state[channel] == FADING_UP)
+				auto_muting_main_fade[channel] += AUTO_MUTE_ATTACK;
+
+			//Terminate fades
+			if (auto_muting_main_fade[channel] <= 0.0)
+			{
+				auto_muting_main_fade[channel] = 0.0;
+				auto_muting_main_state[channel] = MUTED;
+			}
+			else if (auto_muting_main_fade[channel] >= 1.0)
+			{
+				auto_muting_main_fade[channel] = 1.0;
+				auto_muting_main_state[channel] = UNMUTED;
+			}
+
+			//Apply mute or fade
+			if (auto_muting_main_state[channel] == MUTED)
+				mainin = 0;
+
+			else if (auto_muting_main_state[channel] != UNMUTED)
+				mainin = (float)mainin * auto_muting_main_fade[channel];
+
 
 			auxin_lpf[channel] = (auxin_lpf[channel]*(1.0-lpf_coef)) + (((auxin>0)?auxin:(-1*auxin))*lpf_coef);
 
-			if (auxin_lpf[channel]<min_vol)
-				auxin=0;
+			//Initiate a fade-down
+			if (auxin_lpf[channel]<min_vol && (auto_muting_aux_state[channel] == FADING_UP || auto_muting_aux_state[channel]==UNMUTED))
+				auto_muting_aux_state[channel] =  FADING_DOWN;
+
+			//Initiate a fade-up
+			if (auxin_lpf[channel]>=min_vol && (auto_muting_aux_state[channel] == FADING_DOWN || auto_muting_aux_state[channel]==MUTED))
+				auto_muting_aux_state[channel] =  FADING_UP;
+
+			//Continue fades
+			if (auto_muting_aux_state[channel] == FADING_DOWN)
+				auto_muting_aux_fade[channel] -= AUTO_MUTE_DECAY;
+
+			else if (auto_muting_aux_state[channel] == FADING_UP)
+				auto_muting_aux_fade[channel] += AUTO_MUTE_ATTACK;
+
+			//Terminate fades
+			if (auto_muting_aux_fade[channel] <= 0.0)
+			{
+				auto_muting_aux_fade[channel] = 0.0;
+				auto_muting_aux_state[channel] = MUTED;
+			}
+			else if (auto_muting_aux_fade[channel] >= 1.0)
+			{
+				auto_muting_aux_fade[channel] = 1.0;
+				auto_muting_aux_state[channel] = UNMUTED;
+			}
+
+			//Apply mute or fade
+			if (auto_muting_aux_state[channel] == MUTED)
+				auxin = 0;
+
+			else if (auto_muting_aux_state[channel] != UNMUTED)
+				auxin = (float)auxin * auto_muting_aux_fade[channel];
 		}
 
 
