@@ -36,8 +36,12 @@
 //#define TRIG_TIME 1000
 
 //Attack/decay time in seconds: (1/AUTO_MUTE_ATTACK) / 48000
-#define AUTO_MUTE_ATTACK .01
-#define AUTO_MUTE_DECAY .01
+//0.01 = 2.08ms
+//0.02 = 1.04ms
+//0.04 = 520ns
+
+#define AUTO_MUTE_ATTACK .02
+#define AUTO_MUTE_DECAY .02
 
 
 //.01 is a xfade time of 12ms or max hold period of 83Hz = divmult_time of 420
