@@ -189,6 +189,10 @@ void adc_param_update_IRQHandler(void)
 			update_system_settings_leds();
 		}
 
+		update_ping_ledbut();
+		update_INF_REV_ledbut(0);
+		update_INF_REV_ledbut(1);
+
 
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
 

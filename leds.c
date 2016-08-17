@@ -37,19 +37,17 @@ void update_ping_ledbut(void)
 	{
 		flag_acknowlegde_qcm--;
 		if (
-				(flag_acknowlegde_qcm & (1<<15))
-				|| (!mode[0][QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<13)))
+				(flag_acknowlegde_qcm & (1<<8))
+				|| (!mode[0][QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<6)))
 				)
 		{
 			LED_PINGBUT_ON;
 			LED_REV1_ON;
 			LED_REV2_ON;
-			DEBUG0_ON;
 		}else{
 			LED_PINGBUT_OFF;
 			LED_REV1_OFF;
 			LED_REV2_OFF;
-			DEBUG0_OFF;
 		}
 
 	}
@@ -144,7 +142,6 @@ void blink_all_lights(uint32_t delaytime)
 
 void update_channel_leds(void)
 {
-	static uint32_t led_flasher=0;
 	uint8_t channel;
 
 	for (channel=0;channel<NUM_CHAN;channel++)
@@ -185,7 +182,7 @@ void update_INF_REV_ledbut(uint8_t channel)
 	static uint32_t flicker_ctr=0;
 	uint8_t t;
 
-	flicker_ctr-=(1<<18);
+	flicker_ctr-=(1<<25);
 
 	if (global_mode[CALIBRATE])
 	{
@@ -203,7 +200,7 @@ void update_INF_REV_ledbut(uint8_t channel)
 		{
 
 			//create a flicker by inverting the led state
-			t = mode[channel][CONTINUOUS_REVERSE] && (flicker_ctr<(1<<28));
+			t = mode[channel][CONTINUOUS_REVERSE] && (flicker_ctr<(1<<23));
 
 			if (mode[channel][REV] == t)
 			{

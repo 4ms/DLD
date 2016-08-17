@@ -390,7 +390,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 
 		if (!INF1BUT && !INF2BUT && 	REV1BUT && REV2BUT)
 		{
-			flag_acknowlegde_qcm = (6<<15);
+			flag_acknowlegde_qcm = (6<<8);
 
 			if (mode[0][QUANTIZE_MODE_CHANGES]==0)
 				mode[0][QUANTIZE_MODE_CHANGES] = 1;

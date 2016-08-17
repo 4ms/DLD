@@ -212,7 +212,6 @@ int main(void)
 		else
 			process_ping_changed(0);
 
-
 		if (mode[1][QUANTIZE_MODE_CHANGES]==0)
 			process_mode_flags(1);
 		else
@@ -221,9 +220,6 @@ int main(void)
 
 		check_errors();
 		
-		update_ping_ledbut();
-		update_INF_REV_ledbut(0);
-		update_INF_REV_ledbut(1);
 
     	if (do_factory_reset)
     		if (!(--do_factory_reset))
