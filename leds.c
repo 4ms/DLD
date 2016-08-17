@@ -201,7 +201,8 @@ void update_INF_REV_ledbut(uint8_t channel)
 		//let the ping button function handle the rev lights blinking in ack_qcm state
 		if (!flag_acknowlegde_qcm)
 		{
-			//For CR mode, create a flicker by inverting the led state
+
+			//create a flicker by inverting the led state
 			t = mode[channel][CONTINUOUS_REVERSE] && (flicker_ctr<(1<<28));
 
 			if (mode[channel][REV] == t)
@@ -217,6 +218,8 @@ void update_INF_REV_ledbut(uint8_t channel)
 		}
 		//create a flicker by inverting the state
 		t = mode[channel][PING_LOCKED] && (flicker_ctr<(1<<28));
+		//		if ((mode[channel][INF]!=INF_ON && mode[channel][INF]!=INF_TRANSITIONING_ON) == t)
+
 		if ((mode[channel][INF]!=1) == t)
 		{
 			if (channel==0)	LED_INF1_ON;

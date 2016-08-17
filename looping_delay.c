@@ -37,6 +37,7 @@ extern int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];
 //extern int16_t CODEC_ADC_CALIBRATION_DCOFFSET[4];
 
 volatile uint32_t ping_time;
+uint32_t locked_ping_time[NUM_CHAN];
 volatile uint32_t divmult_time[NUM_CHAN];
 
 uint32_t write_addr[NUM_CHAN];
@@ -293,7 +294,10 @@ inline void set_divmult_time(uint8_t channel){
 	static uint32_t old_divmult_time[2]={0,0};
 
 
-	t_divmult_time = ping_time * param[channel][TIME];
+	if (mode[channel][PING_LOCKED])
+		t_divmult_time = locked_ping_time[channel] * param[channel][TIME];
+	else
+		t_divmult_time = ping_time * param[channel][TIME];
 
 	//t_divmult_time = t_divmult_time & 0xFFFFFFFC; //force it to be a multiple of 4
 

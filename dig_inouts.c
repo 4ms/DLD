@@ -14,6 +14,8 @@
 extern volatile uint32_t ping_tmr;
 
 extern volatile uint32_t ping_time;
+extern uint32_t locked_ping_time[NUM_CHAN];
+
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
@@ -415,7 +417,10 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 		else if (INF1BUT && 	!INF2BUT && !REV1BUT && !REV2BUT)
 		{
 			if (mode[0][PING_LOCKED]==0)
+			{
+				locked_ping_time[0] = ping_time;
 				mode[0][PING_LOCKED] = 1;
+			}
 			else
 			{
 				mode[0][PING_LOCKED] = 0;
@@ -428,7 +433,10 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 		else if (INF2BUT && 	!INF1BUT && !REV1BUT && !REV2BUT)
 		{
 			if (mode[1][PING_LOCKED]==0)
+			{
+				locked_ping_time[1] = ping_time;
 				mode[1][PING_LOCKED] = 1;
+			}
 			else
 			{
 				mode[1][PING_LOCKED] = 0;
