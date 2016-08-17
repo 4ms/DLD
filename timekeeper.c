@@ -63,10 +63,11 @@ inline void reset_clkout_trigger_tmr(void)
 {
 	clkout_trigger_tmr=0;
 
-	if (mode[0][QUANTIZE_MODE_CHANGES]!=0)
+	if (global_mode[QUANTIZE_MODE_CHANGES]!=0)
+	{
 		process_mode_flags(0);
-	if (mode[1][QUANTIZE_MODE_CHANGES]!=0)
 		process_mode_flags(1);
+	}
 
 }
 
@@ -74,8 +75,8 @@ inline void reset_loopled_tmr(uint8_t channel)
 {
 	loopled_tmr[channel]=0;
 
-	if (!mode[channel][CONTINUOUS_REVERSE])
-	{
+//	if (!mode[channel][CONTINUOUS_REVERSE])
+//	{
 		if (!global_mode[CALIBRATE] && !global_mode[SYSTEM_SETTINGS])
 			loop_led_state[channel]=1;
 
@@ -84,7 +85,7 @@ inline void reset_loopled_tmr(uint8_t channel)
 		} else {
 			CLKOUT2_ON;
 		}
-	}
+//	}
 }
 
 
@@ -188,6 +189,9 @@ void adc_param_update_IRQHandler(void)
 			update_system_settings();
 			update_system_settings_leds();
 		}
+
+
+		check_entering_system_mode();
 
 		update_ping_ledbut();
 		update_INF_REV_ledbut(0);

@@ -205,17 +205,17 @@ int main(void)
 
 	while(1){
 
-		check_entering_system_mode();
 
-		if (mode[0][QUANTIZE_MODE_CHANGES]==0)
+		if (global_mode[QUANTIZE_MODE_CHANGES]==0)
+		{
 			process_mode_flags(0);
-		else
-			process_ping_changed(0);
-
-		if (mode[1][QUANTIZE_MODE_CHANGES]==0)
 			process_mode_flags(1);
+		}
 		else
+		{
+			process_ping_changed(0);
 			process_ping_changed(1);
+		}
 
 
 		check_errors();

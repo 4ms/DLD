@@ -15,12 +15,11 @@ extern volatile uint32_t divmult_time[2];
 extern volatile uint32_t ping_time;
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
+extern float global_param[NUM_GLOBAL_PARAMS];
 
 extern uint32_t flag_acknowlegde_qcm;
 
 //extern uint32_t flash_firmware_version;
-
-uint16_t loop_led_brightness=2;
 
 uint8_t loop_led_state[NUM_CHAN]={0,0};
 
@@ -38,7 +37,7 @@ void update_ping_ledbut(void)
 		flag_acknowlegde_qcm--;
 		if (
 				(flag_acknowlegde_qcm & (1<<8))
-				|| (!mode[0][QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<6)))
+				|| (!global_mode[QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<6)))
 				)
 		{
 			LED_PINGBUT_ON;
@@ -146,8 +145,8 @@ void update_channel_leds(void)
 
 	for (channel=0;channel<NUM_CHAN;channel++)
 	{
-		if (!mode[channel][CONTINUOUS_REVERSE])
-		{
+		//if (!mode[channel][CONTINUOUS_REVERSE])
+		//{
 			if (loopled_tmr[channel] >= divmult_time[channel] && (mode[channel][INF]==INF_OFF))
 			{
 				reset_loopled_tmr(channel);
@@ -173,7 +172,7 @@ void update_channel_leds(void)
 					CLKOUT2_OFF;
 
 			}
-		}
+		//}
 	}
 }
 
@@ -265,12 +264,12 @@ void LED_PWM_IRQHandler(void)
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
 		 //begin1: 300ns - 450ns
 
-		if (loop_led_state[0] && (loop_led_PWM_ctr<loop_led_brightness))
+		if (loop_led_state[0] && (loop_led_PWM_ctr<global_param[LOOP_LED_BRIGHTNESS]))
 			LED_LOOP1_ON;
 		else
 			LED_LOOP1_OFF;
 
-		if (loop_led_state[1] && (loop_led_PWM_ctr<loop_led_brightness))
+		if (loop_led_state[1] && (loop_led_PWM_ctr<global_param[LOOP_LED_BRIGHTNESS]))
 			LED_LOOP2_ON;
 		else
 			LED_LOOP2_OFF;

@@ -392,15 +392,10 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 		{
 			flag_acknowlegde_qcm = (6<<8);
 
-			if (mode[0][QUANTIZE_MODE_CHANGES]==0)
-				mode[0][QUANTIZE_MODE_CHANGES] = 1;
+			if (global_mode[QUANTIZE_MODE_CHANGES]==0)
+				global_mode[QUANTIZE_MODE_CHANGES] = 1;
 			else
-				mode[0][QUANTIZE_MODE_CHANGES] = 0;
-
-			if (mode[1][QUANTIZE_MODE_CHANGES]==0)
-				mode[1][QUANTIZE_MODE_CHANGES] = 1;
-			else
-				mode[1][QUANTIZE_MODE_CHANGES] = 0;
+				global_mode[QUANTIZE_MODE_CHANGES] = 0;
 
 			flag_ignore_revdown[0] = 1;
 			flag_ignore_revdown[1] = 1;

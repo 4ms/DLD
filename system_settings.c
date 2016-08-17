@@ -27,7 +27,6 @@ extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern float global_param[NUM_GLOBAL_PARAMS];
 
 
-extern uint16_t loop_led_brightness;
 extern uint8_t loop_led_state[NUM_CHAN];
 
 extern uint8_t flag_inf_change[2];
@@ -46,7 +45,6 @@ void set_default_system_settings(void)
 	param[0][TRACKING_COMP]=1.0;
 	param[1][TRACKING_COMP]=1.0;
 
-	loop_led_brightness = 4;
 	mode[0][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[1][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
@@ -60,6 +58,7 @@ void set_default_system_settings(void)
 	global_mode[REV_GATETRIG] = TRIG_MODE;
 
 	global_mode[RUNAWAYDC_BLOCK] = 1;
+	global_mode[QUANTIZE_MODE_CHANGES] = 0;
 
 	mode[0][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[1][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
@@ -73,6 +72,14 @@ void set_default_system_settings(void)
 	global_mode[EXITINF_MODE]=PLAYTHROUGH;
 
 	global_mode[PING_METHOD] = IGNORE_FLAT_DEVIATION_10;
+
+	global_mode[LOG_DELAY_FEED] = 0;
+
+	global_param[FAST_FADE_SAMPLES] = 196;
+	global_param[SLOW_FADE_SAMPLES]  = 196; //about 8ms
+	global_param[FAST_FADE_INCREMENT] = set_fade_increment(global_param[FAST_FADE_SAMPLES]);
+	global_param[SLOW_FADE_INCREMENT] = set_fade_increment(global_param[SLOW_FADE_SAMPLES]);
+	global_param[LOOP_LED_BRIGHTNESS] = 4;
 
 }
 
@@ -94,7 +101,7 @@ void check_entering_system_mode(void)
 			LED_INF1_ON;
 			LED_INF2_ON;
 		}
-		else ctr++;
+		else ctr+=40;
 
 		if (ctr>100000)
 		{
@@ -265,7 +272,7 @@ void update_system_settings(void)
 		disable_mode_changes=1;
 
 		if (INF2BUT)
-			loop_led_brightness=((i_smoothed_potadc[REGEN_POT*2]/137) + 1);
+			global_param[LOOP_LED_BRIGHTNESS] = ((i_smoothed_potadc[REGEN_POT*2]/137) + 1);
 
 		if (flag_rev_change[0])
 		{
@@ -487,8 +494,7 @@ void update_system_settings_button_leds(void)
 	{
 		// Blink INF buttons to indicate Tracking adjust mode
 
-
-		led_flasher+=10000;
+		led_flasher+=1280000;
 		if (led_flasher<UINT32_MAX/20)
 		{
 			LED_INF1_ON;
@@ -560,7 +566,7 @@ void update_system_settings_leds(void)
 
 	if (switch1==SWITCH_UP && switch2==SWITCH_DOWN)
 	{
-		led_flasher++;
+		led_flasher+=8;
 
 		if (led_flasher < TRIG_CNTS)
 		{
@@ -600,9 +606,6 @@ void update_system_settings_leds(void)
 	}
 	else if (switch1==SWITCH_CENTER && switch2==SWITCH_CENTER)
 	{
-
-
-
 
 		if (old_slow_fade != global_param[SLOW_FADE_SAMPLES])
 		{

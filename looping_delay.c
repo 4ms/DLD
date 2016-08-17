@@ -615,7 +615,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	/*
 	 * Sanity check: make sure read_addr and write_addr are spaced properly
 	 */
-	if ((mode[channel][INF]==INF_OFF) && (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT]) && !mode[channel][CONTINUOUS_REVERSE])
+	if ((mode[channel][INF]==INF_OFF) && (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT]) /*&& !mode[channel][CONTINUOUS_REVERSE]*/)
 	{
 		t32 = calculate_read_addr(channel, divmult_time[channel]);
 		if (t32 != read_addr[channel])
@@ -641,7 +641,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	// last_read_block_addr = read_addr[channel];
 
-	crossed_start_fade_addr = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, doing_reverse_fade[channel] | mode[channel][CONTINUOUS_REVERSE]);
+	crossed_start_fade_addr = memory_read(read_addr, channel, rd_buff, sz/2, start_fade_addr, doing_reverse_fade[channel] /*| mode[channel][CONTINUOUS_REVERSE]*/);
 
 
 	if (mode[channel][INF]!=INF_OFF && crossed_start_fade_addr)
@@ -689,7 +689,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 
 	}
 
-	memory_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0, mode[channel][CONTINUOUS_REVERSE]);
+	memory_read(fade_dest_read_addr, channel, rd_buff_dest, sz/2, 0, 0 /* + mode[channel][CONTINUOUS_REVERSE]*/);
 
 	for (i=0;i<(sz/2);i++){
 
@@ -939,6 +939,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	}
 
 
+#ifdef ALLOW_CONT_REVERSE
+
 	if (mode[channel][CONTINUOUS_REVERSE])
 	{
 		if (abs_diff(write_addr[channel], read_addr[channel]) < 960) //10ms pulse
@@ -954,6 +956,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 			else CLKOUT2_OFF;
 		}
 	}
+#endif
+
 
 	increment_read_fade(channel);
 	increment_write_fade(channel);

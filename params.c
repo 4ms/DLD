@@ -114,12 +114,12 @@ void init_modes(void)
 
 		mode[channel][PING_LOCKED] = 0;
 
-		mode[channel][QUANTIZE_MODE_CHANGES] = 0;
 		mode[channel][CONTINUOUS_REVERSE] = 0;
 	}
 	global_mode[DCINPUT] = 0;
 	global_mode[CALIBRATE] = 0;
 	global_mode[SYSTEM_SETTINGS] = 0;
+	global_mode[QUANTIZE_MODE_CHANGES] = 0;
 
 //	global_mode[INF_GATETRIG] = TRIG_MODE;
 //	global_mode[REV_GATETRIG] = TRIG_MODE;
@@ -561,12 +561,12 @@ void process_mode_flags(uint8_t channel)
 		if (flag_inf_change[channel])
 		{
 			change_inf_mode(channel);
-			mode[channel][CONTINUOUS_REVERSE] = 0;
+			//mode[channel][CONTINUOUS_REVERSE] = 0;
 		}
 
 		if (flag_rev_change[channel])
 		{
-			mode[channel][CONTINUOUS_REVERSE] = 0;
+			//mode[channel][CONTINUOUS_REVERSE] = 0;
 
 			if (!doing_reverse_fade[channel])
 			{

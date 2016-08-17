@@ -24,7 +24,6 @@ extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern float global_param[NUM_GLOBAL_PARAMS];
-extern uint16_t loop_led_brightness;
 
 extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 
@@ -94,6 +93,9 @@ extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 #define FLASH_ADDR_RUNAWAYDC_BLOCK				(FLASH_ADDR_LOG_DELAY_FEED			+ SZ_LDF)		/* 88 ..	*/
 #define SZ_RDCB 1
 
+#define FLASH_ADDR_QUANTIZE_MODE_CHANGES				(FLASH_ADDR_RUNAWAYDC_BLOCK		+ SZ_RDCB)		/* 89 ..	*/
+#define SZ_QCM 1
+
 
 #define FLASH_SYMBOL_bankfilled 0x01
 #define FLASH_SYMBOL_startupoffset 0xAA
@@ -129,6 +131,7 @@ uint8_t flash_mode_LEVELCV_IS_MIX_1;
 uint8_t flash_global_mode_PING_METHOD;
 uint8_t flash_global_mode_LOG_DELAY_FEED;
 uint8_t flash_global_mode_RUNAWAYDC_BLOCK;
+uint8_t flash_global_mode_QUANTIZE_MODE_CHANGES;
 
 
 void set_firmware_version(void)
@@ -181,7 +184,7 @@ void factory_reset(uint8_t loop_afterwards)
 			if (fail)
 				blink_all_lights(200); //error: did not auto-calibrate!
 			else
-				chase_all_lights(20); //All good!
+				chase_all_lights(1); //All good!
 		}
 	}
 }
@@ -213,7 +216,7 @@ uint32_t load_flash_params(void)
 		param[0][TRACKING_COMP] = flash_param_TRACKING_COMP_0;
 		param[1][TRACKING_COMP] = flash_param_TRACKING_COMP_1;
 
-		loop_led_brightness = flash_loop_led_brightness;
+		global_param[LOOP_LED_BRIGHTNESS] = flash_loop_led_brightness;
 
 		mode[0][LOOP_CLOCK_GATETRIG] = flash_mode_LOOP_CLOCK_GATETRIG_0;
 		mode[1][LOOP_CLOCK_GATETRIG] = flash_mode_LOOP_CLOCK_GATETRIG_1;
@@ -228,6 +231,8 @@ uint32_t load_flash_params(void)
 		global_mode[PING_METHOD] = flash_global_mode_PING_METHOD;
 		global_mode[LOG_DELAY_FEED] = flash_global_mode_LOG_DELAY_FEED;
 		global_mode[RUNAWAYDC_BLOCK] = flash_global_mode_RUNAWAYDC_BLOCK;
+		global_mode[QUANTIZE_MODE_CHANGES] = flash_global_mode_QUANTIZE_MODE_CHANGES;
+
 
 		mode[0][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_0==1) ? 1:0;
 		mode[1][LEVELCV_IS_MIX] = (flash_mode_LEVELCV_IS_MIX_1==1) ? 1:0;
@@ -273,7 +278,7 @@ void save_flash_params(void)
 		LED_LOOP2_OFF;
 		LED_INF1_OFF;
 		LED_INF2_OFF;
-		delay();
+		delay_ms(10);
 
 		LED_PINGBUT_ON;
 		LED_REV1_ON;
@@ -282,7 +287,7 @@ void save_flash_params(void)
 		LED_LOOP2_ON;
 		LED_INF1_ON;
 		LED_INF2_ON;
-		delay();
+		delay_ms(10);
 	}
 }
 
@@ -313,7 +318,7 @@ void store_params_into_sram(void)
 	flash_global_param_FAST_FADE_SAMPLES = global_param[FAST_FADE_SAMPLES];
 	flash_global_param_SLOW_FADE_SAMPLES = global_param[SLOW_FADE_SAMPLES];
 
-	flash_loop_led_brightness = loop_led_brightness;
+	flash_loop_led_brightness = global_param[LOOP_LED_BRIGHTNESS];
 
 	flash_mode_LOOP_CLOCK_GATETRIG_0 = mode[0][LOOP_CLOCK_GATETRIG];
 	flash_mode_LOOP_CLOCK_GATETRIG_1 = mode[1][LOOP_CLOCK_GATETRIG];
@@ -329,6 +334,7 @@ void store_params_into_sram(void)
 	flash_global_mode_LOG_DELAY_FEED = global_mode[LOG_DELAY_FEED];
 
 	flash_global_mode_RUNAWAYDC_BLOCK = global_mode[RUNAWAYDC_BLOCK];
+	flash_global_mode_QUANTIZE_MODE_CHANGES = global_mode[QUANTIZE_MODE_CHANGES];
 
 	flash_mode_LEVELCV_IS_MIX_0 = mode[0][LEVELCV_IS_MIX];
 	flash_mode_LEVELCV_IS_MIX_1 = mode[1][LEVELCV_IS_MIX];
@@ -383,6 +389,7 @@ void write_all_params_to_FLASH(void)
 	flash_open_program_byte(flash_global_mode_PING_METHOD, FLASH_ADDR_PING_METHOD);
 	flash_open_program_byte(flash_global_mode_LOG_DELAY_FEED, FLASH_ADDR_LOG_DELAY_FEED);
 	flash_open_program_byte(flash_global_mode_RUNAWAYDC_BLOCK, FLASH_ADDR_RUNAWAYDC_BLOCK);
+	flash_open_program_byte(flash_global_mode_QUANTIZE_MODE_CHANGES, FLASH_ADDR_QUANTIZE_MODE_CHANGES);
 
 
 	flash_end_open_program();
@@ -426,27 +433,29 @@ void read_all_params_from_FLASH(void)
 	if (flash_loop_led_brightness > 31 || flash_loop_led_brightness < 2)
 		flash_loop_led_brightness = 4;
 
-	flash_mode_LOOP_CLOCK_GATETRIG_0 = flash_read_byte(FLASH_ADDR_LOOP_CLOCK_GATETRIG_0) ? 1 : 0;
-	flash_mode_LOOP_CLOCK_GATETRIG_1 = flash_read_byte(FLASH_ADDR_LOOP_CLOCK_GATETRIG_1) ? 1 : 0;
-	flash_mode_MAIN_CLOCK_GATETRIG = flash_read_byte(FLASH_ADDR_MAIN_CLOCK_GATETRIG) ? 1 : 0;
+	flash_mode_LOOP_CLOCK_GATETRIG_0 = flash_read_byte(FLASH_ADDR_LOOP_CLOCK_GATETRIG_0) ? 1 : 0; //default trig
+	flash_mode_LOOP_CLOCK_GATETRIG_1 = flash_read_byte(FLASH_ADDR_LOOP_CLOCK_GATETRIG_1) ? 1 : 0; //default trig
+	flash_mode_MAIN_CLOCK_GATETRIG = flash_read_byte(FLASH_ADDR_MAIN_CLOCK_GATETRIG) ? 1 : 0; //default trig
 
-	flash_global_mode_AUTO_MUTE = flash_read_byte(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;
-	flash_global_mode_SOFTCLIP = flash_read_byte(FLASH_ADDR_SOFTCLIP) ? 1 : 0;
+	flash_global_mode_AUTO_MUTE = flash_read_byte(FLASH_ADDR_AUTO_MUTE) ? 1 : 0;  //default ON
+	flash_global_mode_SOFTCLIP = flash_read_byte(FLASH_ADDR_SOFTCLIP) ? 1 : 0; //default ON
 
 
-	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0;
-	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0;
+	flash_mode_LEVELCV_IS_MIX_0 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_0)==1) ? 1 : 0; //default OFF
+	flash_mode_LEVELCV_IS_MIX_1 = (flash_read_byte(FLASH_ADDR_LEVELCV_IS_MIX_1)==1) ? 1 : 0; //default OFF
 
 	flash_global_mode_PING_METHOD = flash_read_byte(FLASH_ADDR_PING_METHOD);
 	if (flash_global_mode_PING_METHOD > NUM_PING_METHODS || flash_global_mode_PING_METHOD < 0)
 		flash_global_mode_PING_METHOD = IGNORE_FLAT_DEVIATION_10;
 
-	flash_global_mode_LOG_DELAY_FEED = (flash_read_byte(FLASH_ADDR_LOG_DELAY_FEED)==1) ? 1 : 0;
+	flash_global_mode_LOG_DELAY_FEED = (flash_read_byte(FLASH_ADDR_LOG_DELAY_FEED)==1) ? 1 : 0; //default OFF
 
-	flash_global_mode_RUNAWAYDC_BLOCK = (flash_read_byte(FLASH_ADDR_RUNAWAYDC_BLOCK)==0) ? 0 : 1;
+	flash_global_mode_RUNAWAYDC_BLOCK = (flash_read_byte(FLASH_ADDR_RUNAWAYDC_BLOCK)==0) ? 0 : 1; //default ON
 
-	flash_global_mode_REV_GATETRIG = flash_read_byte(FLASH_ADDR_REV_GATETRIG) ? 1 : 0;
-	flash_global_mode_INF_GATETRIG = flash_read_byte(FLASH_ADDR_INF_GATETRIG) ? 1 : 0;
+	flash_global_mode_QUANTIZE_MODE_CHANGES = (flash_read_byte(FLASH_ADDR_QUANTIZE_MODE_CHANGES)==1) ? 1 : 0; //default OFF
+
+	flash_global_mode_REV_GATETRIG = flash_read_byte(FLASH_ADDR_REV_GATETRIG) ? 1 : 0; //default trig
+	flash_global_mode_INF_GATETRIG = flash_read_byte(FLASH_ADDR_INF_GATETRIG) ? 1 : 0; //default trig
 
 }
 
