@@ -561,7 +561,7 @@ void process_mode_flags(uint8_t channel)
 		if (flag_inf_change[channel])
 		{
 			change_inf_mode(channel);
-			mode[0][CONTINUOUS_REVERSE] = 0;
+			mode[channel][CONTINUOUS_REVERSE] = 0;
 		}
 
 		if (flag_rev_change[channel])

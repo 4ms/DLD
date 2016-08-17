@@ -33,6 +33,8 @@ uint8_t ping_jack_state=0;
 uint8_t flag_ignore_infdown[2]={0,0};
 uint8_t flag_ignore_revdown[2]={0,0};
 
+uint32_t flag_acknowlegde_qcm=0;
+
 void init_dig_inouts(void){
 	GPIO_InitTypeDef gpio;
 	GPIO_StructInit(&gpio);
@@ -384,8 +386,10 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	State[0]=(State[0]<<1) | t;
 	if (State[0]==0xff00){ 	//1111 1111 0000 0000 = not pressed for 8 cycles , then pressed for 8 cycles
 
-		if (INF1BUT && INF2BUT && 	!REV1BUT && !REV2BUT)
+		if (!INF1BUT && !INF2BUT && 	REV1BUT && REV2BUT)
 		{
+			flag_acknowlegde_qcm = (6<<15);
+
 			if (mode[0][QUANTIZE_MODE_CHANGES]==0)
 				mode[0][QUANTIZE_MODE_CHANGES] = 1;
 			else
@@ -396,8 +400,8 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 			else
 				mode[1][QUANTIZE_MODE_CHANGES] = 0;
 
-			flag_ignore_infdown[0] = 1;
-			flag_ignore_infdown[1] = 1;
+			flag_ignore_revdown[0] = 1;
+			flag_ignore_revdown[1] = 1;
 		}
 		else if (REV1BUT && 	!INF1BUT && !INF2BUT && !REV2BUT)
 		{
@@ -635,6 +639,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	else
 		ch2_clear_ctr=0;
 
+#ifdef ALLOW_CONT_REVERSE
 	if (mode[0][INF]==INF_OFF && CONTINUOUS_REV1_BUTTONS)
 	{
 		if (ch1_contrev_ctr++>54000) {
@@ -673,7 +678,7 @@ void INF_REV_BUTTON_JACK_IRQHandler(void)
 	}
 	else
 		ch2_contrev_ctr = 0;
-
+#endif
 
 }
 

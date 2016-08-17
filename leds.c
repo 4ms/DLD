@@ -16,6 +16,8 @@ extern volatile uint32_t ping_time;
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
+extern uint32_t flag_acknowlegde_qcm;
+
 //extern uint32_t flash_firmware_version;
 
 uint16_t loop_led_brightness=2;
@@ -30,6 +32,26 @@ void update_ping_ledbut(void)
 	else if (global_mode[SYSTEM_SETTINGS])
 	{
 		//LED_PINGBUT_OFF;
+	}
+	else if (flag_acknowlegde_qcm)
+	{
+		flag_acknowlegde_qcm--;
+		if (
+				(flag_acknowlegde_qcm & (1<<15))
+				|| (!mode[0][QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<13)))
+				)
+		{
+			LED_PINGBUT_ON;
+			LED_REV1_ON;
+			LED_REV2_ON;
+			DEBUG0_ON;
+		}else{
+			LED_PINGBUT_OFF;
+			LED_REV1_OFF;
+			LED_REV2_OFF;
+			DEBUG0_OFF;
+		}
+
 	}
 	else
 	{
@@ -175,21 +197,24 @@ void update_INF_REV_ledbut(uint8_t channel)
 	}
 	else
 	{
-		//Display Reverse and Infinite settings
 
-		//create a flicker by inverting the led state
-		t = mode[channel][CONTINUOUS_REVERSE] && (flicker_ctr<(1<<28));
+		//let the ping button function handle the rev lights blinking in ack_qcm state
+		if (!flag_acknowlegde_qcm)
+		{
+			//For CR mode, create a flicker by inverting the led state
+			t = mode[channel][CONTINUOUS_REVERSE] && (flicker_ctr<(1<<28));
 
-		if (mode[channel][REV] == t)
-		{
-			if (channel==0)	LED_REV1_OFF;
-			else 			LED_REV2_OFF;
-		} else
-		{
-			if (channel==0)	LED_REV1_ON;
-			else			LED_REV2_ON;
+			if (mode[channel][REV] == t)
+			{
+				if (channel==0)	LED_REV1_OFF;
+				else 			LED_REV2_OFF;
+			} else
+			{
+				if (channel==0)	LED_REV1_ON;
+				else			LED_REV2_ON;
+			}
+
 		}
-
 		//create a flicker by inverting the state
 		t = mode[channel][PING_LOCKED] && (flicker_ctr<(1<<28));
 		if ((mode[channel][INF]!=1) == t)
