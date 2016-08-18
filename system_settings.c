@@ -16,8 +16,9 @@
 #include "system_settings.h"
 #include "adc.h"
 #include "params.h"
-#include "dig_inouts.h"
 #include "flash_user.h"
+#include "buttons.h"
+#include "dig_pins.h"
 
 extern int16_t i_smoothed_potadc[NUM_POT_ADCS];
 

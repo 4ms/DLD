@@ -4,13 +4,13 @@
  */
 #include "globals.h"
 #include "looping_delay.h"
-#include "dig_inouts.h"
 #include "sdram.h"
 #include "adc.h"
 #include "params.h"
 #include "audio_memory.h"
 #include "timekeeper.h"
 #include "compressor.h"
+#include "dig_pins.h"
 
 
 //debug:
@@ -24,7 +24,6 @@ extern float param[NUM_CHAN][NUM_PARAMS];
 extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 extern float global_param[NUM_GLOBAL_PARAMS];
-extern uint8_t loop_led_state[NUM_CHAN];
 
 
 extern uint8_t flag_inf_change[2];

@@ -10,7 +10,7 @@
 
 #include "globals.h"
 #include "adc.h"
-#include "dig_inouts.h"
+#include "dig_pins.h"
 #include "params.h"
 #include "equal_pow_pan_padded.h"
 #include "exp_1voct.h"

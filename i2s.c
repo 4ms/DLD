@@ -7,7 +7,6 @@
 #include "i2s.h"
 #include "timekeeper.h"
 #include "codec.h"
-#include "dig_inouts.h"
 #include "looping_delay.h"
 
 

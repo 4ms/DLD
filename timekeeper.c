@@ -7,11 +7,11 @@
 
 #include "globals.h"
 #include "timekeeper.h"
-#include "dig_inouts.h"
 #include "params.h"
 #include "calibration.h"
 #include "system_settings.h"
 #include "leds.h"
+#include "dig_pins.h"
 
 
 volatile uint32_t ping_tmr;

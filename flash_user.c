@@ -6,7 +6,6 @@
 //Store and recall the entire flash_setting array in one read/write operation (so we don't have to spell out the address of each element etc)
 
 #include "globals.h"
-#include "dig_inouts.h"
 #include "flash.h"
 #include "flash_user.h"
 #include "calibration.h"
@@ -14,6 +13,7 @@
 #include "params.h"
 #include "adc.h"
 #include "leds.h"
+#include "dig_pins.h"
 
 extern int16_t CV_CALIBRATION_OFFSET[6];
 extern int16_t CODEC_DAC_CALIBRATION_DCOFFSET[4];

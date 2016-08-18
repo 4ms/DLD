@@ -1,5 +1,5 @@
 /*
- * flash.c - DSP bandpass resonant filter
+ * flash.c -
  *
  * Author: Dan Green (danngreen1@gmail.com)
  *
@@ -27,7 +27,6 @@
  */
 
 #include "globals.h"
-#include "dig_inouts.h"
 #include "flash.h"
 
 static uint32_t kSectorBaseAddress[] = {

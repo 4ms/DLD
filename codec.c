@@ -5,7 +5,6 @@
 #include "globals.h"
 #include "codec.h"
 #include "i2s.h"
-#include "dig_inouts.h"
 
 #define CODEC_IS_SLAVE 0
 #define CODEC_IS_MASTER 1

@@ -2,9 +2,9 @@
  * leds.c
  */
 
+#include <dig_pins.h>
 #include "globals.h"
 #include "leds.h"
-#include "dig_inouts.h"
 #include "timekeeper.h"
 #include "params.h"
 

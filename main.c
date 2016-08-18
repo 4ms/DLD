@@ -37,7 +37,6 @@
 #include "i2s.h"
 #include "adc.h"
 #include "looping_delay.h"
-#include "dig_inouts.h"
 #include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"
@@ -46,6 +45,8 @@
 #include "flash_user.h"
 #include "leds.h"
 #include "system_settings.h"
+#include "buttons.h"
+#include "dig_pins.h"
 
 #include "ITM.h"
 
@@ -55,7 +56,6 @@ __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
-extern uint8_t mode[NUM_CHAN][NUM_CHAN_MODES];
 
 extern uint32_t flash_firmware_version;
 

@@ -8,7 +8,6 @@
 #include "globals.h"
 #include "audio_memory.h"
 #include "looping_delay.h"
-#include "dig_inouts.h"
 #include "params.h"
 
 extern const uint32_t LOOP_RAM_BASE[NUM_CHAN];

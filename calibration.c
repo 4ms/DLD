@@ -3,11 +3,12 @@
  *
  */
 
+#include "dig_pins.h"
+#include "buttons.h"
 #include "globals.h"
 #include "calibration.h"
 #include "adc.h"
 #include "params.h"
-#include "dig_inouts.h"
 #include "flash_user.h"
 
 int16_t CV_CALIBRATION_OFFSET[NUM_CV_ADCS];

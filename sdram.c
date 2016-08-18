@@ -1,8 +1,8 @@
 #include "globals.h"
 #include "gpiof4.h"
 #include "sdram.h"
-#include "dig_inouts.h"
 #include "leds.h"
+#include "dig_pins.h"
 
 uint32_t RAM_test(void){
 
@@ -206,7 +206,7 @@ void SDRAM_Init(void)
 
 	// Initialization step 5
 	while(FMC_Bank5_6->SDSR & FMC_SDSR_BUSY);
-	// 2 = PALL (“All Bank Precharge”) command
+	// 2 = PALL (All Bank Precharge) command
 	// SDRAM bank 2
 	// 1<<5 = 2 Auto-refresh cycles
 	FMC_Bank5_6->SDCMR 	 = 2 | FMC_SDCMR_CTB2 | (1 << 5);
