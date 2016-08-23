@@ -250,11 +250,11 @@ void update_system_settings(void)
 			}
 			else if (i_smoothed_potadc[TIME_POT*2+1] < 3586) //11 - 13
 			{
-				global_mode[PING_METHOD] = LINEAR_AVERAGE_2;
+				global_mode[PING_METHOD] = MOVING_AVERAGE_2;
 			}
 			else //14 - 16
 			{
-				global_mode[PING_METHOD] = EXPO_AVERAGE_8;
+				global_mode[PING_METHOD] = LINEAR_AVERAGE_4;
 			}
 
 

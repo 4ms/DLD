@@ -96,7 +96,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
 	static uint16_t last_ping = 0;
 
-	static uint16_t ringbuff[4]={0,0,0,0};
+	static uint16_t ringbuff[8]={0,0,0,0,0,0,0,0};
 	static uint16_t ringbuff_pos=0;
 	static uint32_t ringbuff_filled=0;
 
@@ -137,7 +137,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 				if (mode[1][PING_LOCKED]==0) flag_ping_was_changed[1]=1;
 			}
 
-			if (global_mode[PING_METHOD] != LINEAR_AVERAGE_4)
+			if (global_mode[PING_METHOD] != MOVING_AVERAGE_4 && global_mode[PING_METHOD] != LINEAR_AVERAGE_8 && global_mode[PING_METHOD] != LINEAR_AVERAGE_4)
 			{
 				ringbuff_pos=0;
 				ringbuff_filled=0;
@@ -191,7 +191,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					}
 				break;
 
-				case(LINEAR_AVERAGE_4):
+				case(MOVING_AVERAGE_4):
 				// Ring buffer... hmm, kinda weird when the clock slows down: all sorts of double-hits
 				// But, it averages out phasing nicely
 
@@ -210,7 +210,30 @@ void TIM1_UP_TIM10_IRQHandler(void)
 					}
 				break;
 
-				case(LINEAR_AVERAGE_2):
+				case(LINEAR_AVERAGE_8):
+
+					ringbuff[ringbuff_pos] = t_ping_tmr;
+
+					//Update the ping time every 8 clocks
+					if (++ringbuff_pos>=8) {
+						ringbuff_pos=0;
+						ping_time=(ringbuff[0] + ringbuff[1] + ringbuff[2] + ringbuff[3] + ringbuff[4] + ringbuff[5] + ringbuff[6] + ringbuff[7])/8;
+					}
+				break;
+
+				case(LINEAR_AVERAGE_4):
+
+					ringbuff[ringbuff_pos] = t_ping_tmr;
+
+					//Update the ping time every 4 clocks
+					if (++ringbuff_pos>=4) {
+						ringbuff_pos=0;
+						ping_time=(ringbuff[0] + ringbuff[1] + ringbuff[2] + ringbuff[3])/4;
+					}
+				break;
+
+
+				case(MOVING_AVERAGE_2):
 				//Simple linear average: the catchup is weird, and the phasing is not much different
 					ping_time = (t_ping_tmr + last_ping)>>1;
 					last_ping = t_ping_tmr;
