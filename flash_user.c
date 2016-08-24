@@ -427,7 +427,7 @@ void read_all_params_from_FLASH(void)
 
 	flash_global_param_SLOW_FADE_SAMPLES = flash_read_word(FLASH_ADDR_SLOW_FADE_SAMPLES);
 	if (flash_global_param_SLOW_FADE_SAMPLES < 1 || flash_global_param_SLOW_FADE_SAMPLES > 48000)
-		flash_global_param_SLOW_FADE_SAMPLES = 1596;
+		flash_global_param_SLOW_FADE_SAMPLES = 196;
 
 	flash_loop_led_brightness = flash_read_byte(FLASH_ADDR_loop_led_brightness);
 	if (flash_loop_led_brightness > 31 || flash_loop_led_brightness < 2)
