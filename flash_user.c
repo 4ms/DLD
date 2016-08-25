@@ -184,7 +184,7 @@ void factory_reset(uint8_t loop_afterwards)
 			if (fail)
 				blink_all_lights(200); //error: did not auto-calibrate!
 			else
-				chase_all_lights(1); //All good!
+				chase_all_lights(10); //All good!
 		}
 	}
 }
