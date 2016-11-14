@@ -1,6 +1,3 @@
-#Based on https://github.com/nitsky/stm32-example 
-#Modified by Dan Green http://github.com/4ms
-
 BINARYNAME = main
 
 STARTUP = startup_stm32f427_437xx.s
@@ -37,8 +34,6 @@ OBJCPY = $(ARCH)-objcopy
 OBJDMP = $(ARCH)-objdump
 GDB = $(ARCH)-gdb
 
- 	
-#CFLAGS  = -O0 -g -Wall
 CFLAGS = -g2 -O1 \
           -fthread-jumps \
           -falign-functions  -falign-jumps \
@@ -64,10 +59,6 @@ CFLAGS = -g2 -O1 \
           
 # Causes Freeze on run: -fschedule-insns  -fschedule-insns2 
 
-
-
-#CFLAGS = -g0 -O1
-# -O3 -fno-tree-loop-distribute-patterns 
 CFLAGS += -mlittle-endian -mthumb 
 CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard

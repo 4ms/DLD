@@ -1,23 +1,38 @@
 /*
- * System Settings
+ * system_settings.c - interface for system mode settings (user settings)
  *
- * ????Time A/B knob:
- * -Quantized normally, unquantized when turned with Reverse held down (default)
- * -Unquantized normally, quantized when turned with Reverse held down
+ * Author: Dan Green (danngreen1@gmail.com)
  *
- * ????Time A/B CV jack:
- * -Quantized (default)
- * -Always unquantized (...try this?)
- * -Follows mode of knob (quantized until Time knob is wiggled with Reverse held down)
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * See http://creativecommons.org/licenses/MIT/ for more information.
+ *
+ * -----------------------------------------------------------------------------
  */
+
 
 #include "globals.h"
 #include "system_settings.h"
 #include "adc.h"
 #include "params.h"
 #include "flash_user.h"
-#include "buttons.h"
+#include "buttons_jacks.h"
 #include "dig_pins.h"
 
 extern int16_t i_smoothed_potadc[NUM_POT_ADCS];

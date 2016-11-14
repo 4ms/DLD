@@ -26,7 +26,6 @@
  * -----------------------------------------------------------------------------
  */
 
-#include <codec_CS4271.h>
 #include <stm32f4xx.h>
 
 #include "globals.h"
@@ -43,6 +42,8 @@
 #include "system_settings.h"
 #include "buttons_jacks.h"
 #include "dig_pins.h"
+#include "codec_CS4271.h"
+
 
 uint32_t g_error=0;
 
@@ -98,22 +99,6 @@ int main(void)
 	DeInit_I2SDMA_Channel2();
 	DeInit_I2SDMA_Channel1();
 
-#ifdef HAS_VCXO
-	init_VCXO();
-
-#ifdef USE_VCXO
-	setupPLLInt(SI5351_PLL_A, 15); //375Mhz
-	setupPLLInt(SI5351_PLL_B, 15);
-	setupMultisynth(0, SI5351_PLL_A, 36, 265, 512);
-	setupMultisynth(1, SI5351_PLL_A, 36, 265, 512);
-
-	delay();
-
-#else
-	Si5351a_enableOutputs(0);
-#endif
-#endif
-
 	delay();
 
 	init_timekeeper();
@@ -140,12 +125,6 @@ int main(void)
 
 	Codec_GPIO_Init();
 	Codec_AudioInterface_Init(I2S_AudioFreq_48k);
-
-#ifdef HAS_VCXO
-#ifdef USE_VCXO
-	Si5351a_enableOutputs(1);
-#endif
-#endif
 
 	init_audio_dma();
 
