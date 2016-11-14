@@ -1,104 +1,15 @@
+//=================================================================================================
+// STM32F429I-Discovery SDRAM configuration
+// Author : Radoslaw Kwiecien
+// e-mail : radek@dxp.pl
+// http://en.radzio.dxp.pl/stm32f429idiscovery/
+// Date : 24.11.2013
+//=================================================================================================
+
 #include "globals.h"
 #include "gpiof4.h"
 #include "sdram.h"
-#include "leds.h"
-#include "dig_pins.h"
 
-uint32_t RAM_test(void){
-
-	uint32_t addr;
-	uint32_t i;
-	uint16_t rd0;
-	uint16_t rd1;
-	volatile uint32_t fail=0;
-
-	addr=SDRAM_BASE;
-	for (i=0;i<(SDRAM_SIZE/2);i++){
-		LED_REV1_ON;
-		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
-
-		LED_REV1_OFF;
-
-		rd1 = (uint16_t)((i) & 0x0000FFFF);
-		*((uint16_t *)addr) = rd1;
-
-		addr+=2;
-
-
-	}
-
-	addr=SDRAM_BASE;
-	for (i=0;i<(SDRAM_SIZE/2);i++){
-		LED_REV2_ON;
-		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
-		LED_REV2_OFF;
-
-		rd1 = *((uint16_t *)addr);
-
-		rd0=(uint16_t)((i) & 0x0000FFFF);
-		if (rd1 != rd0)
-		{
-			fail++;
-		}
-
-		addr+=2;
-
-	}
-
-	return(fail);
-}
-
-
-void RAM_startup_test(void)
-{
-	volatile register uint32_t ram_errors=0;
-
-	LED_LOOP1_OFF;
-	LED_LOOP2_OFF;
-	LED_PINGBUT_OFF;
-	LED_REV1_OFF;
-	LED_REV2_OFF;
-	LED_INF1_OFF;
-	LED_INF2_OFF;
-
-	ram_errors = RAM_test();
-
-	LED_LOOP1_ON;
-	LED_LOOP2_ON;
-	LED_PINGBUT_ON;
-	LED_REV1_ON;
-	LED_REV2_ON;
-	LED_INF1_ON;
-	LED_INF2_ON;
-
-
-	//Display the number of bad memory addresses using the seven lights (up to 127 can be shown)
-	//If there's 128 or more bad memory addresses, then flash all the lights
-	if (ram_errors & 1)
-		LED_LOOP1_OFF;
-	if (ram_errors & 2)
-		LED_LOOP2_OFF;
-	if (ram_errors & 4)
-		LED_PINGBUT_OFF;
-	if (ram_errors & 8)
-		LED_REV1_OFF;
-	if (ram_errors & 16)
-		LED_INF1_OFF;
-	if (ram_errors & 32)
-		LED_INF2_OFF;
-	if (ram_errors & 64)
-		LED_REV2_OFF;
-
-	while (1)
-	{
-		if (ram_errors >= 128)
-		{
-			blink_all_lights(50);
-		}
-	}
-
-
-}
 
 
 //=================================================================================================
@@ -185,8 +96,6 @@ void SDRAM_Init(void)
 	// Timing characteristics, expressed in number of clock cycles (@180MHz, SDCLK is HCLK/2 means a value of 1 = 11.1ns, 2 = 22.2ns etc..)
 	FMC_Bank5_6->SDTR[0] = TRC(6)  | TRP(2);
 	FMC_Bank5_6->SDTR[1] = TMRD(2) | TXSR(6) | TRAS(4) | TWR(2) | TRCD(2);
-//	FMC_Bank5_6->SDTR[0] = TRC(7)  | TRP(4);
-//	FMC_Bank5_6->SDTR[1] = TMRD(3) | TXSR(7) | TRAS(6) | TWR(3) | TRCD(4);
 
 	// Initialization step 3
 	while(FMC_Bank5_6->SDSR & FMC_SDSR_BUSY);
@@ -194,12 +103,6 @@ void SDRAM_Init(void)
 	FMC_Bank5_6->SDCMR 	 = 1 | FMC_SDCMR_CTB2 | (1 << 5);
 
 	// Initialization step 4
-/*	do {
-	  register unsigned int i;
-	  for (i = 0; i < 1000000; ++i)
-	    __asm__ __volatile__ ("nop\n\t":::"memory");
-	} while (0);
-*/
 	delay();
 	delay();
 
@@ -260,18 +163,14 @@ void FMC_Config(void){
   uint32_t tmpr = 0;
   uint32_t timeout = SDRAM_TIMEOUT;
 
-  /* GPIO configuration ------------------------------------------------------*/
-  /* Enable GPIOs clock */
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE |
                          RCC_AHB1Periph_GPIOF | RCC_AHB1Periph_GPIOG , ENABLE);
 
-  /* Common GPIO configuration */
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
 
-  /* GPIOD configuration */
   GPIO_PinAFConfig(GPIOD, GPIO_PinSource0, GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOD, GPIO_PinSource1, GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOD, GPIO_PinSource8, GPIO_AF_FMC);
@@ -285,7 +184,6 @@ void FMC_Config(void){
 
   GPIO_Init(GPIOD, &GPIO_InitStructure);
 
-  /* GPIOE configuration */
   GPIO_PinAFConfig(GPIOE, GPIO_PinSource0 , GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOE, GPIO_PinSource1 , GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOE, GPIO_PinSource7 , GPIO_AF_FMC);
@@ -304,7 +202,6 @@ void FMC_Config(void){
 
   GPIO_Init(GPIOE, &GPIO_InitStructure);
 
-  /* GPIOF configuration */
   GPIO_PinAFConfig(GPIOF, GPIO_PinSource0 , GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOF, GPIO_PinSource1 , GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOF, GPIO_PinSource2 , GPIO_AF_FMC);
@@ -323,7 +220,6 @@ void FMC_Config(void){
 
   GPIO_Init(GPIOF, &GPIO_InitStructure);
 
-  /* GPIOG configuration */
   GPIO_PinAFConfig(GPIOG, GPIO_PinSource0 , GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOG, GPIO_PinSource1 , GPIO_AF_FMC);
   GPIO_PinAFConfig(GPIOG, GPIO_PinSource2 , GPIO_AF_FMC);

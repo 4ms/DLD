@@ -1,5 +1,5 @@
 /*
- * flash.c -
+ * flash.c - mid-level Flash r/w fuctions
  *
  * Author: Dan Green (danngreen1@gmail.com)
  *

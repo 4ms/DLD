@@ -1,39 +1,35 @@
 /*
- * to-do:
+ * main.c - Initialization and main loop for Dual Looping Delay
  *
- * Software:
+ * Author: Dan Green (danngreen1@gmail.com)
  *
- * Would it be more efficient to have a routine to change INF/REV/Time modes, instead of setting a flag and polling a process_() routine to check the flag:
- * i.e.:
- * if (trigger detected on inf jack)
- * 		set_inf_mode(!mode[channel][INF]);
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * 	if (inf button detected falling edge w/o pot wiggle)
- * 		set_inf_mode(!mode[channel][INF]);
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  *
+ * See http://creativecommons.org/licenses/MIT/ for more information.
  *
- * Make a nvic_control.c file, which has a table of all nvics we use.
- * Then enable each nvic in the current place.
- * ...Some central place to compare all priorities.
- * ...This makes us a bit less portable? Unless we implement the nvic_control.c file on all projects
- *
- *
- * Initialize all arrays with size NUM_POT_ADCS OR NUM_CV_ADCS or NUM_GLOBAL_MODES etc. with a init_() function, not in the declaration
- *
- *
- * Change mode[0][MAIN_CLOCK_GATETRIG] to global_mode[MAIN_CLOCK_GATETRIG]
- *
- *
- * Create a system settings input to turn on/off global_mode[AUTO_UNQ]
- *
- * change name of loopled_tmr to channel_tmr
+ * -----------------------------------------------------------------------------
  */
 
+#include <codec_CS4271.h>
 #include <stm32f4xx.h>
 
 #include "globals.h"
-#include "codec.h"
 #include "i2s.h"
 #include "adc.h"
 #include "looping_delay.h"
@@ -45,10 +41,8 @@
 #include "flash_user.h"
 #include "leds.h"
 #include "system_settings.h"
-#include "buttons.h"
+#include "buttons_jacks.h"
 #include "dig_pins.h"
-
-#include "ITM.h"
 
 uint32_t g_error=0;
 
@@ -103,13 +97,6 @@ int main(void)
     DeInit_I2S_Clock();
 	DeInit_I2SDMA_Channel2();
 	DeInit_I2SDMA_Channel1();
-
-//	*((volatile int *)(0xE0042004)) = 0x00000000;
-
-
-//	ITM_Init(6000000);
-//	ITM_Print(0,"\rStaring ITM\r");
-//	ITM_Disable();
 
 #ifdef HAS_VCXO
 	init_VCXO();

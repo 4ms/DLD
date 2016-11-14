@@ -1,8 +1,30 @@
 /*
- * params.c
+ * params.c - take raw input data, smooth/debounce it, shift/scale,
+ * and convert to params and modes
  *
- *  Created on: Mar 27, 2015
- *      Author: design
+ * Author: Dan Green (danngreen1@gmail.com)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * See http://creativecommons.org/licenses/MIT/ for more information.
+ *
+ * -----------------------------------------------------------------------------
  */
 
 #define QUANTIZE_TIMECV_CH1 1
@@ -74,12 +96,6 @@ int16_t i_smoothed_rawcvadc[NUM_CV_ADCS];
 int32_t pot_delta[NUM_POT_ADCS];
 int32_t cv_delta[NUM_POT_ADCS];
 
-/*
-uint32_t set_fade_samples(float increment)
-{
-	return ((increment - 1.0) * (codec_BUFF_LEN>>3));
-}
-*/
 
 float set_fade_increment(uint32_t samples)
 {
@@ -120,12 +136,6 @@ void init_modes(void)
 	global_mode[CALIBRATE] = 0;
 	global_mode[SYSTEM_SETTINGS] = 0;
 	global_mode[QUANTIZE_MODE_CHANGES] = 0;
-
-//	global_mode[INF_GATETRIG] = TRIG_MODE;
-//	global_mode[REV_GATETRIG] = TRIG_MODE;
-
-//	global_mode[LOG_DELAY_FEED] = 0;
-//	global_mode[RUNAWAYDC_BLOCK] = 1;
 
 
 }
@@ -509,12 +519,10 @@ void update_params(void)
 				if (t < 0)
 				{
 					abs_amt = t / -4096.0;
-					//abs_amt = pot_delta[REGEN*2+channel] / -4096.0;
 					subtract = 1;
 				} else
 				{
 					abs_amt = t / 4096.0;
-					//abs_amt = pot_delta[REGEN*2+channel] / 4096.0;
 					subtract = 0;
 				}
 
@@ -706,70 +714,3 @@ float get_clk_div_exact(uint16_t adc_val)
 	return( ((t-adc_val)/(t-b))*bval + ((adc_val-b)/(t-b))*tval );
 }
 
-
-/*
-uint32_t sample_rate_div[2]={36,36};
-uint32_t sample_rate_num[2]={265,265};
-uint32_t sample_rate_denom[2]={512,512};
-uint32_t old_sample_rate_div[2]={0,0};
-uint32_t old_sample_rate_num[2]={0,0};
-uint32_t old_sample_rate_denom[2]={0,0};
-
-
-#ifdef USE_VCXO
-
-		if (mode[channel][TIMEMODE_POT]==MOD_SAMPLE_RATE_Q)
-		{
-			sample_rate_div[channel] = 11 * (get_clk_div_nominal(4095-i_smoothed_potadc[TIME*2+channel]) + get_clk_div_nominal(4095-i_smoothed_cvadc[TIME*2+channel]));
-
-			//if (sample_rate_div[channel]>182) sample_rate_div[channel]=182; //limit at 8kHz SR = 2.048MHz MCLK
-			if (sample_rate_div[channel]>360) sample_rate_div[channel]=360; //limit at 8kHz SR = 2.048MHz MCLK
-
-			sample_rate_num[channel] = 265;
-			sample_rate_denom[channel] = 512;
-		}
-
-		if ( ((old_sample_rate_div[channel]>sample_rate_div[channel]) && ((old_sample_rate_div[channel]-sample_rate_div[channel])>4))
-				|| ((old_sample_rate_div[channel]<sample_rate_div[channel]) && ((sample_rate_div[channel]-old_sample_rate_div[channel])>4)))
-		{
-			old_sample_rate_div[channel] = sample_rate_div[channel];
-			old_sample_rate_num[channel] = sample_rate_num[channel];
-			old_sample_rate_denom[channel] = sample_rate_denom[channel];
-			setupMultisynth(channel, SI5351_PLL_A, sample_rate_div[channel], sample_rate_num[channel], sample_rate_denom[channel]);
-		}
-#endif
-*/
-
-/*if (mode[channel][TIMEMODE_POT]==MOD_SAMPLE_RATE_Q)
-{
-	sample_rate_div[channel] = 11 * (get_clk_div_nominal(4095-i_smoothed_potadc[TIME*2+channel]) + get_clk_div_nominal(4095-i_smoothed_cvadc[TIME*2+channel]));
-
-	if (sample_rate_div[channel]>182) sample_rate_div[channel]=182; //limit at 8kHz SR = 2.048MHz MCLK
-
-	sample_rate_num[channel] = 265;
-	sample_rate_denom[channel] = 512;
-}
-
-else if (mode[channel][TIMEMODE_POT]==MOD_SAMPLE_RATE_NOQ)
-{
-	t=i_smoothed_cvadc[TIME*2+channel] - old_smoothed_cvadc[channel];
-	t2=i_smoothed_potadc[TIME*2+channel] - old_smoothed_potadc[channel];
-
-	if ( t>50 || t<-50 || t2<-50 || t2>50 )
-	{
-		old_smoothed_cvadc[channel] = i_smoothed_cvadc[TIME*2+channel];
-		old_smoothed_potadc[channel] = i_smoothed_potadc[TIME*2+channel];
-
-
-		sample_rate_div[channel] = ((4095-i_smoothed_potadc[TIME*2+channel])/27)+30; //8 to 520 to 1032
-		sample_rate_div[channel] += ((4095-i_smoothed_cvadc[TIME*2+channel])/27)+30; //8 to 520 to 1032
-
-		if (sample_rate_div[channel]>182) sample_rate_div[channel]=182; //limit at 8kHz SR = 2.048MHz MCLK
-	}
-
-	sample_rate_num[channel] = 265;
-	sample_rate_denom[channel] = 512;
-}
-
-else if (mode[channel][TIMEMODE_POT]==MOD_READWRITE_TIME)
-{*/

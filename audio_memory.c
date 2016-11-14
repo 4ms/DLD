@@ -1,8 +1,29 @@
 /*
- * audio_memory.c
+ * audio_memory.c - audio buffer SDRAM access functions
  *
- *  Created on: Apr 6, 2015
- *      Author: design
+ * Author: Dan Green (danngreen1@gmail.com)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * See http://creativecommons.org/licenses/MIT/ for more information.
+ *
+ * -----------------------------------------------------------------------------
  */
 
 #include "globals.h"
@@ -61,7 +82,7 @@ uint32_t memory_read(uint32_t *addr, uint8_t channel, int32_t *rd_buff, uint8_t 
 }
 
 
-uint32_t memory_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t num_samples, uint8_t decrement)
+void memory_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t num_samples, uint8_t decrement)
 {
 	uint8_t i;
 
@@ -89,9 +110,6 @@ uint32_t memory_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t
 
 	}
 
-	return 0;
-//	return(addr);
-
 }
 
 //
@@ -100,7 +118,7 @@ uint32_t memory_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t
 // fade=0.5 means write 50% wr_buff and 50% read.
 // fade=0.0 means write 0% wr_buff and 100% read.
 //
-uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t num_samples, uint8_t decrement, float fade){
+void memory_fade_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, uint8_t num_samples, uint8_t decrement, float fade){
 	uint8_t i;
 	int32_t rd;
 	int32_t mix;
@@ -138,66 +156,4 @@ uint32_t memory_fade_write(uint32_t *addr, uint8_t channel, int32_t *wr_buff, ui
 
 	}
 
-	return 0;
-
 }
-
-
-/*
-#define MEM_SIZE 16000
-
-int16_t memory[MEM_SIZE];
-
-uint32_t test_read(uint32_t *addr, uint8_t channel, int16_t *rd_buff, uint8_t num_samples, uint32_t loop_addr)
-{
-	uint8_t i;
-	uint32_t j;
-
-	uint32_t heads_crossed=0;
-
-	for (i=0;i<num_samples;i++){
-
-		j=addr[channel] - LOOP_RAM_BASE[channel];
-		if (j<0)
-			j=0;
-
-		if (j>=MEM_SIZE)
-			j=MEM_SIZE;
-
-		rd_buff[i] = memory[j];
-
-		addr[channel]++;
-		if (addr[channel] >= (MEM_SIZE + LOOP_RAM_BASE[channel]))
-			addr[channel] = LOOP_RAM_BASE[channel];
-
-		if (addr[channel] == loop_addr)
-			heads_crossed=1;
-	}
-	return(heads_crossed);
-}
-
-uint32_t test_write(uint32_t *addr, uint8_t channel, int16_t *wr_buff, uint8_t num_samples)
-{
-	uint8_t i;
-	uint32_t j;
-
-	for (i=0;i<num_samples;i++){
-		j=addr[channel] - LOOP_RAM_BASE[channel];
-
-		if (j<0)
-			j=0;
-
-		if (j>=MEM_SIZE)
-			j=MEM_SIZE;
-
-		memory[j] = wr_buff[i];
-
-		addr[channel]++;
-		if (addr[channel] >= (MEM_SIZE + LOOP_RAM_BASE[channel]))
-			addr[channel] = LOOP_RAM_BASE[channel];
-
-	}
-
-	return 0;
-}
-*/

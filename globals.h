@@ -1,8 +1,31 @@
-/*  * globals.h
+/*
+ * globals.h - global macros
  *
- *  Created on: Jun 8, 2014
- *      Author: design
+ * Author: Dan Green (danngreen1@gmail.com)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * See http://creativecommons.org/licenses/MIT/ for more information.
+ *
+ * -----------------------------------------------------------------------------
  */
+
 
 #ifndef GLOBALS_H_
 #define GLOBALS_H_
@@ -11,9 +34,6 @@
 //Each channel = codec_BUFF_LEN/2 samples
 //We process the rx buffer when it's half-full and 100% full, so codec_BUFF_LEN/4 samples are processed at one time
 #define codec_BUFF_LEN 32
-//32 is 6kHz (48kHz / 32/4)
-//16 is 12kHz
-//8 is 24kHz but seems glitchy...
 
 #define FW_VERSION 5
 
@@ -33,34 +53,9 @@
 #define NUM_CHAN 2
 
 #define TRIG_TIME 400
-//#define TRIG_TIME 1000
-
-//Attack/decay time in seconds: (1/AUTO_MUTE_ATTACK) / 48000
-//0.01 = 2.08ms
-//0.02 = 1.04ms
-//0.04 = 520ns
 
 #define AUTO_MUTE_ATTACK .02
 #define AUTO_MUTE_DECAY .02
-
-
-//.01 is a xfade time of 12ms or max hold period of 83Hz = divmult_time of 420
-//#define FADE_INCREMENT 0.0025 ==> global_param[SLOW_FADE_INCREMENT]
-
-//#define WRITE_FADEUP_INCREMENT 0.02 ==> global_param[FAST_FADE_INCREMENT]
-//#define WRITE_FADEDOWN_INCREMENT 0.0025 ==> global_param[SLOW_FADE_INCREMENT]
-
-//FADE_ADDRESSES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/2
-//#define FADE_ADDRESSES 792
-//#define FADE_ADDRESSES 7992
-//#define FADE_ADDRESSES 3192
-
-//FADE_SAMPLES should equal ((1/FADE_INCREMENT)-1) * codec_BUFF_LEN/4
-//#define FADE_SAMPLES 1596
-
-//#define EXITINF_FADE_SAMPLES 196
-//#define ENTERINF_FADE_SAMPLES 1596
-
 
 //#define USE_VCXO
 
@@ -79,10 +74,6 @@ do {							\
   for (i = 0; i < (25000*x); ++i)				\
     __asm__ __volatile__ ("nop\n\t":::"memory");	\
 } while (0)
-
-
-//extern volatile uint32_t sys_time;
-//#define delay_sys(x) do{register uint32_t donetime=x+systime;__asm__ __volatile__ ("nop\n\t":::"memory");}while(sys_time!=donetime;)
 
 
 #endif /* GLOBALS_H_ */
