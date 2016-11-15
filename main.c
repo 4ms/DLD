@@ -35,7 +35,6 @@
 #include "params.h"
 #include "timekeeper.h"
 #include "sdram.h"
-#include "si5153a.h"
 #include "calibration.h"
 #include "flash_user.h"
 #include "leds.h"

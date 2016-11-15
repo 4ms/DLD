@@ -36,7 +36,6 @@
 #include "params.h"
 #include "equal_pow_pan_padded.h"
 #include "exp_1voct.h"
-#include "si5153a.h"
 #include "timekeeper.h"
 #include "looping_delay.h"
 #include "log_taper_padded.h"
