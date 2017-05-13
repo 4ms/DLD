@@ -80,8 +80,8 @@ void set_default_system_settings(void)
 	mode[1][LOOP_CLOCK_GATETRIG] = TRIG_MODE;
 	mode[0][MAIN_CLOCK_GATETRIG] = TRIG_MODE;
 
-	mode[0][LEVELCV_IS_MIX] = 0;
-	mode[1][LEVELCV_IS_MIX] = 0;
+	mode[0][SEND_RETURN_BEFORE_LOOP] = 0;
+	mode[1][SEND_RETURN_BEFORE_LOOP] = 0;
 
 
 	global_mode[AUTO_UNQ] = 0;
@@ -422,8 +422,35 @@ void update_system_settings(void)
 		}
 	}
 
+	//
+	// Switches: Center | Up
+	// Set Send/Return Before Loop
+	//
 
+	if (switch1==SWITCH_CENTER && switch2==SWITCH_UP)
+	{
+		disable_mode_changes=1;
 
+		if (flag_rev_change[0])
+		{
+			if (mode[0][SEND_RETURN_BEFORE_LOOP])
+				mode[0][SEND_RETURN_BEFORE_LOOP] = 0;
+			else
+				mode[0][SEND_RETURN_BEFORE_LOOP] = 1;
+
+			flag_rev_change[0]=0;
+		}
+
+		if (flag_rev_change[1])
+		{
+			if (mode[1][SEND_RETURN_BEFORE_LOOP])
+				mode[1][SEND_RETURN_BEFORE_LOOP] = 0;
+			else
+				mode[1][SEND_RETURN_BEFORE_LOOP] = 1;
+
+			flag_rev_change[1]=0;
+		}
+	}
 }
 
 void update_system_settings_button_leds(void)
@@ -552,6 +579,24 @@ void update_system_settings_button_leds(void)
 		else
 			LED_REV2_OFF;
 
+	}
+	else if (global_mode[SYSTEM_SETTINGS] && switch1==SWITCH_CENTER && switch2==SWITCH_UP)
+	{
+		// Display Send/Return Before Loop settings
+
+		if (mode[0][SEND_RETURN_BEFORE_LOOP])
+			LED_REV1_ON;
+		else
+			LED_REV1_OFF;
+
+		if (mode[1][SEND_RETURN_BEFORE_LOOP])
+			LED_REV2_ON;
+		else
+			LED_REV2_OFF;
+
+		// INF LEDs are not used in this menu
+		LED_INF1_OFF;
+		LED_INF2_OFF;
 	}
 	else if (global_mode[SYSTEM_SETTINGS])
 	{
@@ -696,4 +741,3 @@ void update_system_settings_leds(void)
 	}
 
 }
-

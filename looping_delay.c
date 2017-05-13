@@ -581,6 +581,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	float regen;
 	float mainin_atten;
 	int32_t auxin;
+	int32_t auxout;
 
 	uint16_t i,t;
 	uint16_t topbyte, bottombyte;
@@ -828,8 +829,18 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 		// Attenuate the clean signal by the LEVEL parameter
 		mainin_atten = ((float)mainin) * param[channel][LEVEL];
 
-		// Add the loop contents to the input signal, as well as the auxin signal
-		wr = (int32_t)(regen + mainin_atten + (float)auxin);
+		if (mode[channel][SEND_RETURN_BEFORE_LOOP]) {
+			// Assign the auxin signal to the write head
+			wr = auxin;
+			// Add the loop contents to the input signal, and assign to the auxout signal
+			auxout = (int32_t)(regen + mainin_atten);
+		} else {
+			// Add the loop contents to the input signal, as well as the auxin signal, and assign to the write head
+			wr = (int32_t)(regen + mainin_atten + (float)auxin);
+			// Assign the non-attenuated loop contents to the auxout signal
+			auxout = rd;
+                }
+
 
 		//High-pass filter on wr
 		if (global_mode[RUNAWAYDC_BLOCK])
@@ -892,7 +903,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 				*dst++ = 0;
 
 				//Send out
-				*dst++ = rd + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+				*dst++ = auxout + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
 				*dst++ = 0;
 			}
 			else
@@ -902,8 +913,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 				*dst++ = (int16_t)(mix & 0x0000FF00);
 
 				//Send out
-				*dst++ = (int16_t)(rd>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-				*dst++ = (int16_t)(rd & 0x0000FF00);
+				*dst++ = (int16_t)(auxout>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+				*dst++ = (int16_t)(auxout & 0x0000FF00);
 			}
 #endif
 #endif
@@ -969,4 +980,3 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	increment_write_fade(channel);
 
 }
-
