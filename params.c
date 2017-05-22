@@ -140,7 +140,7 @@ void init_modes(void)
 }
 
 
-inline float LowPassSmoothingFilter(float current_value, float new_value, float coef)
+float LowPassSmoothingFilter(float current_value, float new_value, float coef)
 {
 	return (current_value * coef) + (new_value * (1.0f-coef));
 }
@@ -613,7 +613,7 @@ void process_ping_changed(uint8_t channel)
 }
 
 
-inline uint8_t get_switch_val(uint8_t channel)
+uint8_t get_switch_val(uint8_t channel)
 {
 
 	if (channel==0)

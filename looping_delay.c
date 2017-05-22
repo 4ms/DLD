@@ -136,7 +136,7 @@ void audio_buffer_init(void)
 
 }
 
-inline uint32_t offset_samples(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract)
+uint32_t offset_samples(uint8_t channel, uint32_t base_addr, uint32_t offset, uint8_t subtract)
 {
 	uint32_t t_addr;
 
@@ -168,7 +168,7 @@ inline uint32_t offset_samples(uint8_t channel, uint32_t base_addr, uint32_t off
 }
 
 
-inline uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
+uint32_t calculate_read_addr(uint8_t channel, uint32_t new_divmult_time){
 	uint32_t t_read_addr;
 
 	t_read_addr = offset_samples(channel, write_addr[channel], new_divmult_time, 1-mode[channel][REV]);
@@ -210,7 +210,7 @@ void reverse_loop(uint8_t channel)
 
 }
 
-inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
+uint32_t inc_addr(uint32_t addr, uint8_t channel)
 {
 
 	if (mode[channel][REV] == 0)
@@ -231,7 +231,7 @@ inline uint32_t inc_addr(uint32_t addr, uint8_t channel)
 	//return (offset_samples(channel, addr, 1, mode[channel][REV]));
 }
 
-inline uint32_t dec_addr(uint32_t addr, uint8_t channel)
+uint32_t dec_addr(uint32_t addr, uint8_t channel)
 {
 
 	if (mode[channel][REV] != 0)
@@ -305,10 +305,10 @@ uint8_t in_between(uint32_t mid, uint32_t beg, uint32_t end, uint8_t reverse)
  *
  */
 
+uint32_t old_divmult_time[2]={0,0};
 
-inline void set_divmult_time(uint8_t channel){
+void set_divmult_time(uint8_t channel){
 	uint32_t t_divmult_time;
-	static uint32_t old_divmult_time[2]={0,0};
 
 
 	if (mode[channel][PING_LOCKED])
@@ -430,7 +430,7 @@ void scroll_loop(uint8_t channel, float scroll_amount, uint8_t scroll_subtract)
  *
  */
 
-inline void increment_read_fade(uint8_t channel)
+void increment_read_fade(uint8_t channel)
 {
 	if (read_fade_pos[channel]>0.0)
 	{
@@ -459,7 +459,7 @@ inline void increment_read_fade(uint8_t channel)
 	}
 }
 
-inline void increment_write_fade(uint8_t channel)
+void increment_write_fade(uint8_t channel)
 {
 
 	if (write_fade_pos[channel]>0.0){

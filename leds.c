@@ -32,6 +32,8 @@
 #include "leds.h"
 #include "timekeeper.h"
 #include "params.h"
+#include "calibration.h"
+#include "system_settings.h"
 
 
 extern volatile uint32_t ping_ledbut_tmr;

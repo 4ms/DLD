@@ -42,6 +42,7 @@
 #include "buttons_jacks.h"
 #include "dig_pins.h"
 #include "codec_CS4271.h"
+#include "RAM_test.h"
 
 
 uint32_t g_error=0;

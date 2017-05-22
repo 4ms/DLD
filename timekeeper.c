@@ -46,7 +46,7 @@ extern uint8_t loop_led_state[NUM_CHAN];
 
 extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
-inline void inc_tmrs(void)
+void inc_tmrs(void)
 {
 	ping_tmr++;
 	ping_ledbut_tmr++;
@@ -69,19 +69,19 @@ inline void inc_tmrs(void)
 	}
 }
 
-inline void reset_ping_ledbut_tmr(void)
+void reset_ping_ledbut_tmr(void)
 {
 	ping_ledbut_tmr=0;
 
 
 }
 
-inline void reset_ping_tmr(void)
+void reset_ping_tmr(void)
 {
 	ping_tmr=0;
 }
 
-inline void reset_clkout_trigger_tmr(void)
+void reset_clkout_trigger_tmr(void)
 {
 	clkout_trigger_tmr=0;
 
@@ -93,7 +93,7 @@ inline void reset_clkout_trigger_tmr(void)
 
 }
 
-inline void reset_loopled_tmr(uint8_t channel)
+void reset_loopled_tmr(uint8_t channel)
 {
 	loopled_tmr[channel]=0;
 

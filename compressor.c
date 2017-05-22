@@ -61,7 +61,7 @@ void init_compressor(uint32_t max_sample_val, float threshold_percent)
 	THRESHOLD_VALUE = threshold_percent*max_sample_val;
 }
 
-inline int32_t compress(int32_t val)
+int32_t compress(int32_t val)
 {
 	float tv = THRESHOLD_COMPILED / ((float)val);
 	if (val > THRESHOLD_VALUE) return (MAX_SAMPLEVAL - tv);
