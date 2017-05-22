@@ -117,6 +117,12 @@ extern int16_t i_smoothed_cvadc[NUM_POT_ADCS];
 #define FLASH_ADDR_QUANTIZE_MODE_CHANGES				(FLASH_ADDR_RUNAWAYDC_BLOCK		+ SZ_RDCB)		/* 89 ..	*/
 #define SZ_QCM 1
 
+#define FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_0				(FLASH_ADDR_QUANTIZE_MODE_CHANGES		+ SZ_QCM)		/* 90 ..	*/
+#define SZ_SRBL0 1
+
+#define FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_1				(FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_0		+ SZ_SRBL0)		/* 91 ..	*/
+#define SZ_SRBL1 1
+
 
 #define FLASH_SYMBOL_bankfilled 0x01
 #define FLASH_SYMBOL_startupoffset 0xAA
@@ -153,6 +159,9 @@ uint8_t flash_global_mode_PING_METHOD;
 uint8_t flash_global_mode_LOG_DELAY_FEED;
 uint8_t flash_global_mode_RUNAWAYDC_BLOCK;
 uint8_t flash_global_mode_QUANTIZE_MODE_CHANGES;
+
+uint8_t flash_mode_SEND_RETURN_BEFORE_LOOP_0;
+uint8_t flash_mode_SEND_RETURN_BEFORE_LOOP_1;
 
 
 void set_firmware_version(void)
@@ -263,6 +272,9 @@ uint32_t load_flash_params(void)
 		global_param[FAST_FADE_INCREMENT] = set_fade_increment(flash_global_param_FAST_FADE_SAMPLES);
 		global_param[SLOW_FADE_INCREMENT] = set_fade_increment(flash_global_param_SLOW_FADE_SAMPLES);
 
+		mode[0][SEND_RETURN_BEFORE_LOOP] = (flash_mode_SEND_RETURN_BEFORE_LOOP_0==1) ? 1:0;
+		mode[1][SEND_RETURN_BEFORE_LOOP] = (flash_mode_SEND_RETURN_BEFORE_LOOP_1==1) ? 1:0;
+
 		return (flash_firmware_version);
 
 	} else
@@ -360,6 +372,8 @@ void store_params_into_sram(void)
 	flash_mode_LEVELCV_IS_MIX_0 = mode[0][LEVELCV_IS_MIX];
 	flash_mode_LEVELCV_IS_MIX_1 = mode[1][LEVELCV_IS_MIX];
 
+	flash_mode_SEND_RETURN_BEFORE_LOOP_0 = mode[0][SEND_RETURN_BEFORE_LOOP];
+	flash_mode_SEND_RETURN_BEFORE_LOOP_1 = mode[1][SEND_RETURN_BEFORE_LOOP];
 }
 
 
@@ -412,6 +426,8 @@ void write_all_params_to_FLASH(void)
 	flash_open_program_byte(flash_global_mode_RUNAWAYDC_BLOCK, FLASH_ADDR_RUNAWAYDC_BLOCK);
 	flash_open_program_byte(flash_global_mode_QUANTIZE_MODE_CHANGES, FLASH_ADDR_QUANTIZE_MODE_CHANGES);
 
+	flash_open_program_byte(flash_mode_SEND_RETURN_BEFORE_LOOP_0, FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_0);
+	flash_open_program_byte(flash_mode_SEND_RETURN_BEFORE_LOOP_1, FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_1);
 
 	flash_end_open_program();
 }
@@ -478,6 +494,7 @@ void read_all_params_from_FLASH(void)
 	flash_global_mode_REV_GATETRIG = flash_read_byte(FLASH_ADDR_REV_GATETRIG) ? 1 : 0; //default trig
 	flash_global_mode_INF_GATETRIG = flash_read_byte(FLASH_ADDR_INF_GATETRIG) ? 1 : 0; //default trig
 
+	flash_mode_SEND_RETURN_BEFORE_LOOP_0 = (flash_read_byte(FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_0)==1) ? 1 : 0; //default OFF
+	flash_mode_SEND_RETURN_BEFORE_LOOP_1 = (flash_read_byte(FLASH_ADDR_SEND_RETURN_BEFORE_LOOP_1)==1) ? 1 : 0; //default OFF
+
 }
-
-
