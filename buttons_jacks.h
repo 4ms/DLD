@@ -30,6 +30,14 @@
 #define BUTTONS_JACKS_H_
 #include <stm32f4xx.h>
 
+//Hardware Test: On boot: Ping + both Hold buttons
+#define HARDWARETEST_BUTTONS (\
+		PINGBUT &&\
+		!REV1BUT &&\
+		INF1BUT &&\
+		!REV2BUT &&\
+		INF2BUT)
+
 //RAM Test: On boot: Up/Down + Left three buttons
 #define RAMTEST_BUTTONS (\
 		(TIMESW_CH1==SWITCH_UP) &&\

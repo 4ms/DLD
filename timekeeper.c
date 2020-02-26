@@ -72,8 +72,6 @@ void inc_tmrs(void)
 void reset_ping_ledbut_tmr(void)
 {
 	ping_ledbut_tmr=0;
-
-
 }
 
 void reset_ping_tmr(void)
@@ -90,7 +88,6 @@ void reset_clkout_trigger_tmr(void)
 		process_mode_flags(0);
 		process_mode_flags(1);
 	}
-
 }
 
 void reset_loopled_tmr(uint8_t channel)

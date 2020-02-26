@@ -43,7 +43,7 @@
 #include "dig_pins.h"
 #include "codec_CS4271.h"
 #include "RAM_test.h"
-
+#include "hardware_tests.h"
 
 uint32_t g_error=0;
 
@@ -69,25 +69,11 @@ uint8_t check_bootloader_keys(void)
 		else button_debounce=0;
 	}
 	return (button_debounce>15000);
-
 }
-
-typedef void (*EntryPoint)(void);
-
-void JumpTo(uint32_t address) {
-  uint32_t application_address = *(__IO uint32_t*)(address + 4);
-  EntryPoint application = (EntryPoint)(application_address);
-  __set_MSP(*(__IO uint32_t*)address);
-  application();
-}
-
 
 int main(void)
 {
 	uint32_t do_factory_reset=0;
-
-    if (check_bootloader_keys())
-    	JumpTo(0x08000000);
 
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
@@ -101,6 +87,9 @@ int main(void)
 
 	delay();
 
+	if (HARDWARETEST_BUTTONS)
+		do_hardware_test();
+	
 	init_timekeeper();
 
 	Deinit_Pot_ADC();
@@ -115,7 +104,9 @@ int main(void)
 
 	SDRAM_Init();
 
-	if (RAMTEST_BUTTONS) RAM_startup_test();
+
+	if (RAMTEST_BUTTONS) 
+		RAM_startup_test();
 
 	init_LED_PWM_IRQ();
 
@@ -124,13 +115,15 @@ int main(void)
 	delay();
 
 	Codec_GPIO_Init();
-	Codec_AudioInterface_Init(I2S_AudioFreq_48k);
+	Codec_B_AudioInterface_Init(I2S_AudioFreq_48k);
+	Codec_A_AudioInterface_Init(I2S_AudioFreq_48k);
 
 	init_audio_dma();
 
 	global_mode[DCINPUT] = DCINPUT_JUMPER;
 
-	Codec_Register_Setup(global_mode[DCINPUT]);
+	Codec_B_Register_Setup(global_mode[DCINPUT]);
+	Codec_A_Register_Setup(global_mode[DCINPUT]);
 
 	global_mode[CALIBRATE] = 0;
 
@@ -171,7 +164,6 @@ int main(void)
 
 	while(1){
 
-
 		if (global_mode[QUANTIZE_MODE_CHANGES]==0)
 		{
 			process_mode_flags(0);
@@ -183,14 +175,11 @@ int main(void)
 			process_ping_changed(1);
 		}
 
-
 		check_errors();
-		
 
     	if (do_factory_reset)
     		if (!(--do_factory_reset))
     			factory_reset(1);
-
 	}
 
 	return(1);

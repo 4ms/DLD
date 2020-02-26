@@ -227,23 +227,10 @@ const uint8_t codec_init_data_master[] =
 
 __IO uint32_t  CODECTimeout = CODEC_LONG_TIMEOUT;   
 
-
-
-#ifdef USE_DEFAULT_TIMEOUT_CALLBACK
-
-uint32_t Codec_TIMEOUT_UserCallback(void)
-{
-	while (1)
-	{   
-	}
-}
-#else
 uint32_t Codec_TIMEOUT_UserCallback(void)
 {
 	return 1;
 }
-#endif
-
 
 void Codecs_Deinit(void)
 {
@@ -262,32 +249,34 @@ void Codecs_Deinit(void)
 
 	CODECA_RESET_LOW;
 	CODECB_RESET_LOW;
-
-
 }
 
 
-uint32_t Codec_Register_Setup(uint8_t enable_DCinput)
+uint32_t Codec_A_Register_Setup(uint8_t enable_DCinput)
 {
 	uint32_t err = 0;
-
-	Codec_CtrlInterface_Init();
-
+	Codec_A_CtrlInterface_Init();
 
 	CODECA_RESET_HIGH;
 	delay_ms(2);
 
-	err+=Codec_Reset(CODECA_I2C, CODECA_MODE, enable_DCinput);
-
-
-	CODECB_RESET_HIGH;
-	delay_ms(2);
-
-	err+=Codec_Reset(CODECB_I2C, CODECB_MODE, enable_DCinput);
+	err = Codec_Reset(CODECA_I2C, CODECA_MODE, enable_DCinput);
 
 	return err;
 }
 
+uint32_t Codec_B_Register_Setup(uint8_t enable_DCinput)
+{
+	uint32_t err = 0;
+	Codec_B_CtrlInterface_Init();
+
+	CODECB_RESET_HIGH;
+	delay_ms(2);
+
+	err = Codec_Reset(CODECB_I2C, CODECB_MODE, enable_DCinput);
+	
+	return err;
+}
 
 uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave, uint8_t enable_DCinput)
 {
@@ -392,7 +381,7 @@ uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_Ty
 /*
  * Initializes I2C peripheral for both codecs
  */
-void Codec_CtrlInterface_Init(void)
+void Codec_B_CtrlInterface_Init(void)
 {
 	I2C_InitTypeDef I2C_InitStructure;
 
@@ -408,7 +397,11 @@ void Codec_CtrlInterface_Init(void)
 	I2C_DeInit(CODECB_I2C);
 	I2C_Init(CODECB_I2C, &I2C_InitStructure);
 	I2C_Cmd(CODECB_I2C, ENABLE);
+}
 
+void Codec_A_CtrlInterface_Init(void)
+{
+	I2C_InitTypeDef I2C_InitStructure;
 
 	RCC_APB1PeriphClockCmd(CODECA_I2C_CLK, ENABLE);
 
@@ -427,11 +420,9 @@ void Codec_CtrlInterface_Init(void)
 /*
  * Initializes I2S2 and I2S3 peripherals on the STM32
  */
-void Codec_AudioInterface_Init(uint32_t AudioFreq)
+void Codec_B_AudioInterface_Init(uint32_t AudioFreq)
 {
 	I2S_InitTypeDef I2S_InitStructure;
-
-
 
 	//CODEC B: Right channel of DLD (I2S2, I2C2)
 
@@ -444,7 +435,6 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 	I2S_InitStructure.I2S_Standard = I2S_STANDARD;
 	I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_24b;
 	I2S_InitStructure.I2S_CPOL = I2S_CPOL_Low;
-
 
 	if (CODECB_MODE==CODEC_IS_MASTER)
 		I2S_InitStructure.I2S_Mode = I2S_Mode_SlaveTx;
@@ -467,7 +457,11 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 
 	I2S_Cmd(CODECB_I2S, ENABLE);
 	I2S_Cmd(CODECB_I2S_EXT, ENABLE);
+}
 
+void Codec_A_AudioInterface_Init(uint32_t AudioFreq)
+{
+	I2S_InitTypeDef I2S_InitStructure;
 
 	// CODEC A: DLD Left Channel
 	// Enable the CODEC_I2S peripheral clock
@@ -494,7 +488,6 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 			I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
 	}
 
-
 	// Initialize the I2S main channel for TX
 	I2S_Init(CODECA_I2S, &I2S_InitStructure);
 
@@ -503,8 +496,6 @@ void Codec_AudioInterface_Init(uint32_t AudioFreq)
 
 	I2S_Cmd(CODECA_I2S, ENABLE);
 	I2S_Cmd(CODECA_I2S_EXT, ENABLE);
-
-
 }
 
 
@@ -577,7 +568,6 @@ void Codec_GPIO_Init(void)
 		gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
 
 		gpio.GPIO_Pin = CODECA_I2S_MCK_PIN; GPIO_Init(CODECA_I2S_MCK_GPIO, &gpio);
-
 	}
 
 	if (CODECB_MCLK_SRC==MCLK_SRC_STM){
@@ -595,34 +585,6 @@ void Codec_GPIO_Init(void)
 		gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
 
 		gpio.GPIO_Pin = CODECB_I2S_MCK_PIN; GPIO_Init(CODECB_I2S_MCK_GPIO, &gpio);
-
 	}
-
-
 }
 
-
-/*
- * This must be called before Codec_AudioInterface_Init() because the I2S2CLKConfig must happen before APB1 for I2S2 periph is turned on
- *
- * Must uncomment the line in stm32f4xx_conf.h:
- * #define I2S_EXTERNAL_CLOCK_VAL   7000000
- */
-void init_i2s_clkin(void){
-
-	GPIO_InitTypeDef gpio;
-
-	// Enable I2S2 clock in:
-	RCC_I2SCLKConfig(RCC_I2S2CLKSource_Ext);
-
-	//I2S2 CLK_IN is PC9
-	gpio.GPIO_Pin = GPIO_Pin_9;
-	gpio.GPIO_Mode = GPIO_Mode_AF;
-	gpio.GPIO_Speed = GPIO_Speed_100MHz;
-	gpio.GPIO_OType = GPIO_OType_PP;
-	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOC, &gpio);
-
-	GPIO_PinAFConfig(GPIOC, GPIO_PinSource9, CODECB_I2S_GPIO_AF);
-
-}
