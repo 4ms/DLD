@@ -239,6 +239,11 @@ void HardFault_Handler(void)
 	}
 }
 
+void SysTick_Handler(void)
+{
+	return;
+}
+
 void MemManage_Handler(void)
 { 
 	while(1){};

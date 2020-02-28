@@ -59,7 +59,7 @@ void do_hardware_test(void)
 
 	test_single_leds();
 	test_codec();
-	test_controls(); 
+	test_controls();
 	test_pots();
 	//test_outs();
 	test_input_jacks();
@@ -165,103 +165,92 @@ void I2C2_ER_IRQHandler(void)
 	codecb_buserr = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_BERR);
 }
 
-void test_I2C(void)
-{
 
-	// First test: I2C
-	//
-//	led_pwm_chip_err = LEDDriver_Init(5);
-//	delay(800);
+void test_codec(void) {
+
+	all_leds_off();
+
+	Codec_GPIO_Init();
+
+	LED_LOOP2_ON;
+	Codec_B_AudioInterface_Init(I2S_AudioFreq_48k);
+	LED_LOOP2_OFF;
+
+	LED_LOOP1_ON;
+	Codec_A_AudioInterface_Init(I2S_AudioFreq_48k);
+	LED_LOOP1_OFF;
+
+	LED_LOOP1_ON;
+	LED_LOOP2_ON;
+	init_audio_dma();
+//	RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
+//	RCC_PLLI2SCmd(ENABLE);
+	LED_LOOP1_OFF;
+	LED_LOOP2_OFF;
+
+	
+	uint32_t err;
+	LED_REV2_ON;
+	err = Codec_B_Register_Setup(DCINPUT_JUMPER);
+	if (err) {
+		while (1) {
+			LED_LOOP2_ON;
+			delay_ms(50);
+			LED_LOOP2_OFF;
+			delay_ms(50);
+		}
+	}
+	LED_REV2_OFF;
+
+	LED_REV1_ON;
+	err = Codec_A_Register_Setup(DCINPUT_JUMPER);
+	if (err) {
+		while (1) {
+			LED_LOOP1_ON;
+			delay_ms(50);
+			LED_LOOP1_OFF;
+			delay_ms(50);
+		}
+	}
+	LED_REV1_OFF;
+	
+//	I2S_Block_Init();
+//	set_audio_callback(&hardware_test_audio_IRQ);
 //
-//	while (led_pwm_chip_err | ledpwm_timeout | ledpwm_ackfail | ledpwm_buserr) {
-//		delay(800);
-//		
-//		if (ledpwm_timeout) LED_SLIDER_ON(slider_led[0]); else LED_SLIDER_OFF(slider_led[0]);
-//		if (ledpwm_ackfail) LED_SLIDER_ON(slider_led[1]); else LED_SLIDER_OFF(slider_led[1]);
-//		if (ledpwm_buserr) LED_SLIDER_ON(slider_led[2]); else LED_SLIDER_OFF(slider_led[2]);
-//		LED_SLIDER_OFF(slider_led[3]);
-//		LED_SLIDER_OFF(slider_led[4]);
-//		LED_SLIDER_OFF(slider_led[5]);
+//	//Env Out LEDs blue before codec I2S started init
+//	for (led_id=20; led_id<6; led_id++)
+//		LEDDriver_setRGBLED(led_id, 1023);
 //
-//		if (led_pwm_chip_err & 1) LOCKLED_ON(0); else LOCKLED_OFF(0);
-//		if (led_pwm_chip_err & 2) LOCKLED_ON(1); else LOCKLED_OFF(1);
-//		if (led_pwm_chip_err & 4) LOCKLED_ON(2); else LOCKLED_OFF(2);
-//		if (led_pwm_chip_err & 8) LOCKLED_ON(3); else LOCKLED_OFF(3);
-//		if (led_pwm_chip_err & 16) LOCKLED_ON(4); else LOCKLED_OFF(4);
-//		LOCKLED_ON(5);
-//		delay(800);
+//	I2S_Block_PlayRec();
 //
-//		if (hardwaretest_continue_button()) continue_armed=1; 
-//		if (continue_armed && !hardwaretest_continue_button()) {continue_armed=0;break;}
-//	}
-//
-//	// Second test: Check turning on all LEDs. 
-//	//
-//	uint32_t led_err=0;
-//
-//	LED_OFF(LED_RING_OE); //actually turns the LED ring on
-//
-//	for (uint32_t led_id=0; led_id<NUM_LED_ELEMENTS && !led_err; led_id++)
-//		led_err = LEDDriver_set_one_LED(led_id, 1023);
-//	
-//	delay(2000);
-//	pause_until_button_pressed();
-//
-//	// Third test: Individual LEDs
-//	// (optional: hold center rotary until sliders flash to do test)
-//	// Turn center rotary or Preset to select which LED element is on
-//	//
-//	uint32_t force_slow_led_test=0;
-//	uint32_t tmr=0;
-//	while (hardwaretest_continue_button())
-//	{
-//		if (tmr++ > 5000000) {
-//			force_slow_led_test = 1;
-//			LOCKLED_ALLON();
-//		}
-//	}
-//
-//	LOCKLED_ALLOFF();
-//
-//	//Turn all LEDs off, one color at a time
-//	for (uint32_t led_id=0; led_id<NUM_LEDS && !led_err; led_id++)
-//		led_err += LEDDriver_setRGBLED(led_id, (1023<<20 | 1023<<10 | 0));
-//	delay(800);
-//
-//	for (uint32_t led_id=0; led_id<NUM_LEDS && !led_err; led_id++)
-//		led_err += LEDDriver_setRGBLED(led_id, (1023<<20 | 0<<10 | 0));
-//	delay(800);
-//
-//	for (uint32_t led_id=0; led_id<NUM_LEDS && !led_err; led_id++)
-//		led_err += LEDDriver_setRGBLED(led_id, (0<<20 | 0<<10 | 0));
-//	delay(800);
-//
-//	int16_t led_element_id=0;
-//	uint32_t rotary_state;
-//
-//	while (led_err || force_slow_led_test)
-//	{
-//		rotary_state = read_rotary();
-//
-//		if (rotary_state == DIR_CW || rotary_state == DIR_CCW) {
-//			LEDDriver_set_one_LED(led_element_id, 0);
-//
-//			if (rotary_state == DIR_CW) 
-//				led_element_id = (led_element_id >= (NUM_LED_ELEMENTS-1)) ? 0 : led_element_id+1;
-//			if (rotary_state == DIR_CCW) 
-//				led_element_id = (led_element_id == 0) ? (NUM_LED_ELEMENTS-1) : led_element_id-1;
-//
-//			LEDDriver_set_one_LED(led_element_id, 1023);
-//		}
-//
-//		if (hardwaretest_continue_button()) {continue_armed=1; LOCKLED_ALLON();}
-//		if (continue_armed && !hardwaretest_continue_button()) {continue_armed=0;break;}
-//	}
-//	LOCKLED_ALLOFF();
-//	//Turn LED ring off
-//	for (uint32_t led_id=0; led_id<NUM_LEDS; led_id++)
+//	//Env Out LEDs Off after codec init
+//	for (led_id=20; led_id<6; led_id++)
 //		LEDDriver_setRGBLED(led_id, 0);
-
+//
+//	uint8_t continue_armed = 0;
+//	
+//	LEDDriver_set_one_LED(get_envoutled_red(0), 1023);
+//
+//	LEDDriver_set_one_LED(get_envoutled_green(1), 1023);
+//
+//	LEDDriver_set_one_LED(get_envoutled_blue(2), 1023);
+//
+//	LEDDriver_set_one_LED(get_envoutled_red(3), 1023);
+//	LEDDriver_set_one_LED(get_envoutled_blue(3), 1023);
+//
+//	LEDDriver_set_one_LED(get_envoutled_green(4), 1023);
+//	LEDDriver_set_one_LED(get_envoutled_blue(4), 1023);
+//
+//	LEDDriver_set_one_LED(get_envoutled_red(5), 1023);
+//	LEDDriver_set_one_LED(get_envoutled_green(5), 1023);
+//
+//	while (1) {
+//		if (hardwaretest_continue_button()) continue_armed = 1;
+//		if (!hardwaretest_continue_button() && continue_armed) break;
+//	}
+//
+//	for (led_id=20; led_id<6; led_id++)
+//		LEDDriver_setRGBLED(led_id, 0);
 }
 
 uint8_t read_switch_state(uint8_t sw_num) {
@@ -621,87 +610,6 @@ void hardware_test_audio_B_IRQ(int16_t *src, int16_t *dst) {
 }
 
 
-void test_codec(void) {
-
-	all_leds_off();
-
-	Codec_GPIO_Init();
-
-	RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
-	RCC_PLLI2SCmd(ENABLE);
-	
-	LED_LOOP2_ON;
-	Codec_B_AudioInterface_Init(I2S_AudioFreq_48k);
-	LED_LOOP2_OFF;
-
-	LED_LOOP1_ON;
-	Codec_A_AudioInterface_Init(I2S_AudioFreq_48k);
-	LED_LOOP1_OFF;
-
-	
-	uint32_t err;
-	LED_REV2_ON;
-	err = Codec_B_Register_Setup(DCINPUT_JUMPER);
-	if (err) {
-		while (1) {
-			LED_LOOP2_ON;
-			delay_ms(50);
-			LED_LOOP2_OFF;
-			delay_ms(50);
-		}
-	}
-	LED_REV2_OFF;
-
-	LED_REV1_ON;
-	err = Codec_A_Register_Setup(DCINPUT_JUMPER);
-	if (err) {
-		while (1) {
-			LED_LOOP1_ON;
-			delay_ms(50);
-			LED_LOOP1_OFF;
-			delay_ms(50);
-		}
-	}
-	LED_REV1_OFF;
-	
-//	I2S_Block_Init();
-//	set_audio_callback(&hardware_test_audio_IRQ);
-//
-//	//Env Out LEDs blue before codec I2S started init
-//	for (led_id=20; led_id<6; led_id++)
-//		LEDDriver_setRGBLED(led_id, 1023);
-//
-//	I2S_Block_PlayRec();
-//
-//	//Env Out LEDs Off after codec init
-//	for (led_id=20; led_id<6; led_id++)
-//		LEDDriver_setRGBLED(led_id, 0);
-//
-//	uint8_t continue_armed = 0;
-//	
-//	LEDDriver_set_one_LED(get_envoutled_red(0), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_green(1), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_blue(2), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_red(3), 1023);
-//	LEDDriver_set_one_LED(get_envoutled_blue(3), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_green(4), 1023);
-//	LEDDriver_set_one_LED(get_envoutled_blue(4), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_red(5), 1023);
-//	LEDDriver_set_one_LED(get_envoutled_green(5), 1023);
-//
-//	while (1) {
-//		if (hardwaretest_continue_button()) continue_armed = 1;
-//		if (!hardwaretest_continue_button() && continue_armed) break;
-//	}
-//
-//	for (led_id=20; led_id<6; led_id++)
-//		LEDDriver_setRGBLED(led_id, 0);
-}
 
 
 //int16_t get_cv_val(uint8_t cv_id) {
