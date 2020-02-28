@@ -34,6 +34,7 @@
 #include "RAM_test.h"
 #include "flash.h"
 #include "globals.h"
+#include "leds.h"
 
 
 uint16_t _abs(int16_t val) {return (val<0) ? -val : val;}
@@ -45,7 +46,8 @@ static void animate_success(void);
 static void all_leds_off(void);
 
 static void test_single_leds(void);
-static void test_codec(void);
+static void test_codec_init(void);
+static void test_audio(void);
 static void test_controls(void);
 static void test_pots(void);
 static void test_input_jacks(void);
@@ -58,7 +60,8 @@ void do_hardware_test(void)
 	pause_until_button_released();
 
 	test_single_leds();
-	test_codec();
+	test_codec_init();
+	test_audio();
 	test_controls();
 	test_pots();
 	//test_outs();
@@ -69,13 +72,12 @@ void do_hardware_test(void)
 	//Animate success and force a hard reboot
 	while (1) {
 		animate_success();
-		delay_ms(50);
 	}
 }
 
 void animate_success(void)
 {
-	static uint32_t led_element_id=0;
+	chase_all_lights(100);
 }
 
 
@@ -166,7 +168,7 @@ void I2C2_ER_IRQHandler(void)
 }
 
 
-void test_codec(void) {
+void test_codec_init(void) {
 
 	all_leds_off();
 
@@ -213,8 +215,23 @@ void test_codec(void) {
 		}
 	}
 	LED_REV1_OFF;
+}
+
+static void test_audio_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel){
+
+}
+
+void test_audio(void) {
+	set_codec_callback(test_audio_cb);
 	
-//	I2S_Block_Init();
+	uint8_t continue_armed=0;
+	while (1) {
+		if (hardwaretest_continue_button()) continue_armed = 1;
+		if (!hardwaretest_continue_button() && continue_armed) break;
+	}
+
+}
+
 //	set_audio_callback(&hardware_test_audio_IRQ);
 //
 //	//Env Out LEDs blue before codec I2S started init
@@ -244,14 +261,9 @@ void test_codec(void) {
 //	LEDDriver_set_one_LED(get_envoutled_red(5), 1023);
 //	LEDDriver_set_one_LED(get_envoutled_green(5), 1023);
 //
-//	while (1) {
-//		if (hardwaretest_continue_button()) continue_armed = 1;
-//		if (!hardwaretest_continue_button() && continue_armed) break;
-//	}
 //
 //	for (led_id=20; led_id<6; led_id++)
 //		LEDDriver_setRGBLED(led_id, 0);
-}
 
 uint8_t read_switch_state(uint8_t sw_num) {
 //	if (sw_num==0) return MOD135 ? 1 : 0;

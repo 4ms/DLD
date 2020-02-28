@@ -49,6 +49,13 @@ volatile int16_t ch2rx_buffer[codec_BUFF_LEN];
 uint32_t ch1tx_buffer_start, ch1rx_buffer_start;
 uint32_t ch2tx_buffer_start, ch2rx_buffer_start;
 
+void (*audio_callback)(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel);
+
+void set_codec_callback(void cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)) {
+    audio_callback = cb;
+}
+
+
 void init_audio_dma(void)
 {
 	RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
@@ -58,7 +65,6 @@ void init_audio_dma(void)
 
 	Init_I2SDMA_Channel2();
 	Init_I2SDMA_Channel1();
-
 }
 
 
@@ -76,14 +82,11 @@ void DeInit_I2S_Clock(void){
 
 	RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
 	RCC_PLLI2SCmd(DISABLE);
-
 }
 
 void DeInit_I2SDMA_Channel1(void)
 {
 	RCC_AHB1PeriphClockCmd(AUDIO_I2S3_DMA_CLOCK, DISABLE);
-
-
 
 	DMA_Cmd(AUDIO_I2S3_DMA_STREAM, DISABLE);
 	DMA_DeInit(AUDIO_I2S3_DMA_STREAM);
@@ -305,7 +308,7 @@ void DMA1_Stream3_IRQHandler(void)
 		src = (int16_t *)(ch2rx_buffer_start) +sz;
 		dst = (int16_t *)(ch2tx_buffer_start) +sz;
 
-		process_audio_block_codec(src, dst, sz/2, 1); //channel2
+		audio_callback(src, dst, sz/2, 1); //channel2
 
 		DMA_ClearFlag(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_TC);
 	}
@@ -318,7 +321,7 @@ void DMA1_Stream3_IRQHandler(void)
 		src = (int16_t *)(ch2rx_buffer_start);
 		dst = (int16_t *)(ch2tx_buffer_start);
 
-		process_audio_block_codec(src, dst, sz/2, 1); //channel2
+		audio_callback(src, dst, sz/2, 1); //channel2
 
 		DMA_ClearFlag(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_HT);
 	}
@@ -380,7 +383,7 @@ void DMA1_Stream2_IRQHandler(void)
 		src = (int16_t *)(ch1rx_buffer_start) + sz;
 		dst = (int16_t *)(ch1tx_buffer_start) + sz;
 
-		process_audio_block_codec(src, dst, sz/2, 0); //channel 1
+		audio_callback(src, dst, sz/2, 0); //channel 1
 
 		DMA_ClearFlag(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_TC);
 	}
@@ -393,7 +396,7 @@ void DMA1_Stream2_IRQHandler(void)
 		src = (int16_t *)(ch1rx_buffer_start);
 		dst = (int16_t *)(ch1tx_buffer_start);
 
-		process_audio_block_codec(src, dst, sz/2, 0); //channel 1
+		audio_callback(src, dst, sz/2, 0); //channel 1
 
 		DMA_ClearFlag(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_HT);
 	}

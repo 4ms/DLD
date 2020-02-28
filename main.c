@@ -89,7 +89,7 @@ int main(void)
 
 	if (HARDWARETEST_BUTTONS)
 		do_hardware_test();
-	
+
 	init_timekeeper();
 
 	Deinit_Pot_ADC();
@@ -105,7 +105,7 @@ int main(void)
 	SDRAM_Init();
 
 
-	if (RAMTEST_BUTTONS) 
+	if (RAMTEST_BUTTONS)
 		RAM_startup_test();
 
 	init_LED_PWM_IRQ();
@@ -136,28 +136,28 @@ int main(void)
 
     if (ENTER_CALIBRATE_BUTTONS)
     {
-    	global_mode[CALIBRATE] = 1;
+		global_mode[CALIBRATE] = 1;
     }
     else if (flash_firmware_version <= 1 ) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
     {
-    	if (RAM_test()==0)
-    	{
-    		global_mode[CALIBRATE] = 1;
-    		do_factory_reset = 960000; //run normally for about 6 seconds before calibrating the CV jacks
-    	}
-    	else
-    		while (1) blink_all_lights(50); //RAM Test failed: It's on the fritz!
-
-    }
-    else if (flash_firmware_version < FW_VERSION ) //If we detect a recently upgraded firmware version
-    {
+		if (RAM_test()==0)
+		{
+			global_mode[CALIBRATE] = 1;
+			do_factory_reset = 960000; //run normally for about 6 seconds before calibrating the CV jacks
+		}
+		else
+			while (1) blink_all_lights(50); //RAM Test failed: It's on the fritz!
+	}
+	else if (flash_firmware_version < FW_VERSION ) //If we detect a recently upgraded firmware version
+	{
     	set_firmware_version();
     	store_params_into_sram();
     	write_all_params_to_FLASH();
-
-    }
+	}
 
 	init_inputread_timer();
+
+	set_codec_callback(process_audio_block_codec);
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
@@ -175,11 +175,11 @@ int main(void)
 			process_ping_changed(1);
 		}
 
-		check_errors();
+	check_errors();
 
-    	if (do_factory_reset)
-    		if (!(--do_factory_reset))
-    			factory_reset(1);
+		if (do_factory_reset)
+			if (!(--do_factory_reset))
+				factory_reset(1);
 	}
 
 	return(1);
@@ -199,7 +199,7 @@ int main(void)
   * @retval None
   */
 void assert_failed(uint8_t* file, uint32_t line)
-{ 
+{
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 
@@ -213,12 +213,12 @@ void assert_failed(uint8_t* file, uint32_t line)
 #if 1
 /* exception handlers - so we know what's failing */
 void NMI_Handler(void)
-{ 
+{
 	while(1){};
 }
 
 void HardFault_Handler(void)
-{ 
+{
 	uint8_t foobar;
 	uint32_t hfsr,dfsr,afsr,bfar,mmfar,cfsr;
 
@@ -245,32 +245,32 @@ void SysTick_Handler(void)
 }
 
 void MemManage_Handler(void)
-{ 
+{
 	while(1){};
 }
 
 void BusFault_Handler(void)
-{ 
+{
 	while(1){};
 }
 
 void UsageFault_Handler(void)
-{ 
+{
 	while(1){};
 }
 
 void SVC_Handler(void)
-{ 
+{
 	while(1){};
 }
 
 void DebugMon_Handler(void)
-{ 
+{
 	while(1){};
 }
 
 void PendSV_Handler(void)
-{ 
+{
 	while(1){};
 }
 #endif
