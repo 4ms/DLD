@@ -49,9 +49,9 @@ volatile int16_t ch2rx_buffer[codec_BUFF_LEN];
 uint32_t ch1tx_buffer_start, ch1rx_buffer_start;
 uint32_t ch2tx_buffer_start, ch2rx_buffer_start;
 
-void (*audio_callback)(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel);
+static void (*audio_callback)(int16_t *, int16_t *, int16_t, uint8_t);
 
-void set_codec_callback(void cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)) {
+void set_codec_callback(void (*cb)(int16_t *, int16_t *, int16_t, uint8_t)) {
     audio_callback = cb;
 }
 

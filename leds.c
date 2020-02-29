@@ -46,8 +46,6 @@ extern float global_param[NUM_GLOBAL_PARAMS];
 
 extern uint32_t flag_acknowlegde_qcm;
 
-//extern uint32_t flash_firmware_version;
-
 uint8_t loop_led_state[NUM_CHAN]={0,0};
 
 
@@ -62,20 +60,18 @@ void update_ping_ledbut(void)
 	else if (flag_acknowlegde_qcm)
 	{
 		flag_acknowlegde_qcm--;
-		if (
-				(flag_acknowlegde_qcm & (1<<8))
-				|| (!global_mode[QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<6)))
-				)
+		if ( (flag_acknowlegde_qcm & (1<<8))
+			|| (!global_mode[QUANTIZE_MODE_CHANGES] && (flag_acknowlegde_qcm & (1<<6)))
+			)
 		{
 			LED_PINGBUT_ON;
 			LED_REV1_ON;
 			LED_REV2_ON;
-		}else{
+		} else {
 			LED_PINGBUT_OFF;
 			LED_REV1_OFF;
 			LED_REV2_OFF;
 		}
-
 	}
 	else
 	{
@@ -91,15 +87,8 @@ void update_ping_ledbut(void)
 	}
 }
 
-/*
-  			|| (mode[channel][WINDOWMODE_POT]==WINDOW && (flicker_ctr & 0x3FFFF) <= 0x5000)
-			|| (mode[channel][TIMEMODE_POT]==MOD_READWRITE_TIME_NOQ && (flicker_ctr & 0xFFFF) > 0xC000)
-
- */
-
 void chase_all_lights(uint32_t delaytime)
 {
-
 		LED_LOOP1_ON;
 		delay_ms(delaytime);
 		LED_LOOP1_OFF;
@@ -134,15 +123,11 @@ void chase_all_lights(uint32_t delaytime)
 		delay_ms(delaytime);
 		LED_REV2_OFF;
 		delay_ms(delaytime);
-
-		//infinite loop to force user to reset
-
 }
 
 
 void blink_all_lights(uint32_t delaytime)
 {
-
 		LED_LOOP1_ON;
 		LED_PINGBUT_ON;
 		LED_LOOP2_ON;
@@ -160,7 +145,16 @@ void blink_all_lights(uint32_t delaytime)
 		LED_INF2_OFF;
 		LED_REV2_OFF;
 		delay_ms(delaytime);
+}
 
+void all_leds_off(void) {
+	LED_PINGBUT_OFF;
+	LED_INF1_OFF;
+	LED_INF2_OFF;
+	LED_REV1_OFF;
+	LED_REV2_OFF;
+	LED_LOOP1_OFF;
+	LED_LOOP2_OFF;
 }
 
 

@@ -34,7 +34,8 @@ OBJCPY = $(ARCH)-objcopy
 OBJDMP = $(ARCH)-objdump
 GDB = $(ARCH)-gdb
 
-CFLAGS = -g2 -O1 \
+
+OPTFLAGS = -O1 \
           -fthread-jumps \
           -falign-functions  -falign-jumps \
           -falign-loops  -falign-labels \
@@ -56,9 +57,9 @@ CFLAGS = -g2 -O1 \
           -ftree-pre \
           -ftree-vrp \
           -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload -ftree-vectorize
-          
 # Causes Freeze on run: -fschedule-insns  -fschedule-insns2 
 
+CFLAGS = -g2
 CFLAGS += -mlittle-endian -mthumb 
 CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
@@ -69,6 +70,7 @@ AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
 
+$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
 
 all: Makefile $(BIN) $(HEX)
 
@@ -86,7 +88,7 @@ $(ELF): $(OBJECTS) $(wildcard *.h)
 
 $(BUILDDIR)/%.o: %.c
 	mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 
 $(BUILDDIR)/%.o: %.s

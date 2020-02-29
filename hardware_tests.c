@@ -29,42 +29,38 @@
 #include "hardware_tests.h"
 #include "dig_pins.h"
 #include "adc.h"
-#include "codec_CS4271.h"
-#include "i2s.h"
 #include "RAM_test.h"
 #include "flash.h"
 #include "globals.h"
 #include "leds.h"
-
+#include "sdram.h"
+#include "hardware_test_audio.h"
+#include "hardware_test_switches_buttons.h"
+#include "hardware_test_util.h"
 
 uint16_t _abs(int16_t val) {return (val<0) ? -val : val;}
 
-static uint8_t hardwaretest_continue_button(void);
-static void pause_until_button_pressed(void);
-static void pause_until_button_released(void);
-static void animate_success(void);
-static void all_leds_off(void);
-
 static void test_single_leds(void);
-static void test_codec_init(void);
-static void test_audio(void);
-static void test_controls(void);
+static void test_RAM(void);
+
 static void test_pots(void);
 static void test_input_jacks(void);
-//static void test_outs(void);
-
-const uint32_t SAMPLERATE = 48000;
+static void animate_success(void);
 
 void do_hardware_test(void)
 {
 	pause_until_button_released();
 
-	test_single_leds();
-	test_codec_init();
-	test_audio();
-	test_controls();
+//	test_single_leds();
+//	test_codec_init();
+//	test_audio_out();
+//	test_audio_in();
+//	test_RAM();
+
+	test_buttons();
+	test_switches();
+
 	test_pots();
-	//test_outs();
 	test_input_jacks();
 
 	pause_until_button_released();
@@ -150,249 +146,23 @@ void test_single_leds(void)
 	delay_ms(100);
 }
 
-FlagStatus codeca_timeout=0, codeca_ackfail=0, codeca_buserr=0;
-FlagStatus codecb_timeout=0, codecb_ackfail=0, codecb_buserr=0;
 
-void I2C1_ER_IRQHandler(void)
-{
-	codeca_timeout = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_TIMEOUT);
-	codeca_ackfail = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_AF);
-	codeca_buserr = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_BERR);
-}
+void test_RAM(void) {
+	LED_PINGBUT_ON;
 
-void I2C2_ER_IRQHandler(void)
-{
-	codecb_timeout = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_TIMEOUT);
-	codecb_ackfail = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_AF);
-	codecb_buserr = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_BERR);
-}
+	SDRAM_Init();
 
+	uint32_t errs = RAM_test();
 
-void test_codec_init(void) {
-
-	all_leds_off();
-
-	Codec_GPIO_Init();
-
-	LED_LOOP2_ON;
-	Codec_B_AudioInterface_Init(I2S_AudioFreq_48k);
-	LED_LOOP2_OFF;
-
-	LED_LOOP1_ON;
-	Codec_A_AudioInterface_Init(I2S_AudioFreq_48k);
-	LED_LOOP1_OFF;
-
-	LED_LOOP1_ON;
-	LED_LOOP2_ON;
-	init_audio_dma();
-//	RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
-//	RCC_PLLI2SCmd(ENABLE);
-	LED_LOOP1_OFF;
-	LED_LOOP2_OFF;
-
-	
-	uint32_t err;
-	LED_REV2_ON;
-	err = Codec_B_Register_Setup(DCINPUT_JUMPER);
-	if (err) {
+	if (errs>0) {
 		while (1) {
-			LED_LOOP2_ON;
-			delay_ms(50);
-			LED_LOOP2_OFF;
-			delay_ms(50);
+			blink_all_lights(50);
 		}
 	}
-	LED_REV2_OFF;
 
-	LED_REV1_ON;
-	err = Codec_A_Register_Setup(DCINPUT_JUMPER);
-	if (err) {
-		while (1) {
-			LED_LOOP1_ON;
-			delay_ms(50);
-			LED_LOOP1_OFF;
-			delay_ms(50);
-		}
-	}
-	LED_REV1_OFF;
+	flash_ping_until_pressed();
 }
 
-static void test_audio_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel){
-
-}
-
-void test_audio(void) {
-	set_codec_callback(test_audio_cb);
-	
-	uint8_t continue_armed=0;
-	while (1) {
-		if (hardwaretest_continue_button()) continue_armed = 1;
-		if (!hardwaretest_continue_button() && continue_armed) break;
-	}
-
-}
-
-//	set_audio_callback(&hardware_test_audio_IRQ);
-//
-//	//Env Out LEDs blue before codec I2S started init
-//	for (led_id=20; led_id<6; led_id++)
-//		LEDDriver_setRGBLED(led_id, 1023);
-//
-//	I2S_Block_PlayRec();
-//
-//	//Env Out LEDs Off after codec init
-//	for (led_id=20; led_id<6; led_id++)
-//		LEDDriver_setRGBLED(led_id, 0);
-//
-//	uint8_t continue_armed = 0;
-//	
-//	LEDDriver_set_one_LED(get_envoutled_red(0), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_green(1), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_blue(2), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_red(3), 1023);
-//	LEDDriver_set_one_LED(get_envoutled_blue(3), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_green(4), 1023);
-//	LEDDriver_set_one_LED(get_envoutled_blue(4), 1023);
-//
-//	LEDDriver_set_one_LED(get_envoutled_red(5), 1023);
-//	LEDDriver_set_one_LED(get_envoutled_green(5), 1023);
-//
-//
-//	for (led_id=20; led_id<6; led_id++)
-//		LEDDriver_setRGBLED(led_id, 0);
-
-uint8_t read_switch_state(uint8_t sw_num) {
-//	if (sw_num==0) return MOD135 ? 1 : 0;
-//	if (sw_num==1) return CVLAG ? 1 : 0;
-//	if (sw_num==2) return RANGE_MODE ? 1 : 0;
-//	if (sw_num==3) return MOD246 ? 1 : 0;
-//	if (sw_num==4) return ENV_MODE ? 1 : 0;
-//	if (sw_num==5) return ENVSPEEDFAST ? 1 : 0;
-//	if (sw_num==6) return ENVSPEEDSLOW ? 1 : 0;
-//	else return 0;
-}
-
-//
-// Tester has to flip each switch and press each button to make all the lights turn off
-// Fail: LED CLIP L/R is on: "Fast/Slow switch low on both throws"
-
-void test_controls(void)
-{
-	uint32_t continue_armed=0;
-	uint32_t sw_num;
-	uint8_t switch_state[7] = {0};
-	uint8_t switch_last_state[7] = {0};
-	uint32_t buttons_pressed = 0;
-	uint8_t do_continue;
-
-	//Turn on only LED Ring, Env Out (except blue 1-5), and button lights
-//	LED_SLIDER_OFF(slider_led[0]);
-//	LED_SLIDER_OFF(slider_led[1]);
-//	LED_SLIDER_OFF(slider_led[2]);
-//	LED_SLIDER_OFF(slider_led[3]);
-//	LED_SLIDER_OFF(slider_led[4]);
-//	LED_SLIDER_OFF(slider_led[5]);
-//	for (sw_num=0; sw_num<6; sw_num++)
-//		LEDDriver_setRGBLED(sw_num+20, FULL_WHITE);
-//	///Turn off green element of Env Out LEDs 1-5
-//	for (sw_num=0; sw_num<5; sw_num++)
-//		LEDDriver_set_one_LED(get_envoutled_green(sw_num), 0);
-//
-//	LOCKLED_ALLON();
-//	LED_CLIPL_OFF;
-//	LED_CLIPR_OFF;
-//
-//	for (sw_num=0; sw_num<5; sw_num++)
-//		switch_last_state[sw_num] = read_switch_state(sw_num);
-//	
-//	switch_last_state[5] = (read_switch_state(5) << 1) | read_switch_state(6);
-//
-//	while (1)
-//	{
-//		//Check button presses and turn off buttons
-//		//Must press buttons one at a time
-//		buttons_pressed = 0;
-//		for (uint8_t button_num=0; button_num<6; button_num++) {
-//			if (LOCKBUTTON(button_num)) 
-//				buttons_pressed++;
-//		}
-//		if (buttons_pressed == 1) {
-//			for (uint8_t button_num=0; button_num<6; button_num++) {
-//				if (LOCKBUTTON(button_num)) {
-//					LOCKLED_OFF(button_num);
-//					break;
-//				}
-//			}
-//		}
-//
-//		//Check 2-pos switches: Env Out LEDs 1-5
-//		for (sw_num=0; sw_num<5; sw_num++) {
-//			switch_state[sw_num] = read_switch_state(sw_num);
-//			if (switch_state[sw_num] && !switch_last_state[sw_num]) {
-//				LEDDriver_set_one_LED(get_envoutled_red(sw_num), 0);
-//				delay(100);
-//			}
-//			if (!switch_state[sw_num] && switch_last_state[sw_num]) {
-//				LEDDriver_set_one_LED(get_envoutled_blue(sw_num), 0);
-//				delay(100);
-//			}
-//
-//			switch_last_state[sw_num] = switch_state[sw_num];
-//		}
-//
-//		//3-pos switch: Env Out LED 6
-//		switch_state[5] = (read_switch_state(5) << 1) | read_switch_state(6);
-//		if (switch_state[5]==0 && switch_last_state[5]!=0) {
-//			LEDDriver_set_one_LED(get_envoutled_red(5), 0);
-//			delay(100);
-//		}
-//		if (switch_state[5]==1 && switch_last_state[5]!=1) {
-//			LEDDriver_set_one_LED(get_envoutled_green(5), 0);
-//			delay(100);
-//		}
-//		if (switch_state[5]==2 && switch_last_state[5]!=2) {
-//			LEDDriver_set_one_LED(get_envoutled_blue(5), 0);
-//			delay(100);
-//		}
-//		if (switch_state[5]==3 && switch_last_state[5]!=3) {
-//			LED_CLIPL_ON;LED_CLIPR_ON;  //error: Fast/Slow switch reading on in both positions simultaneously
-//			delay(100);
-//		}
-//
-//		switch_last_state[5] = switch_state[5];
-//
-//		do_continue = 0;
-//		if (hardwaretest_continue_button()) {
-//			continue_armed++;
-//			for (uint8_t led_id=0; led_id<20; led_id++) {
-//				if (continue_armed==((led_id*8000) + 1)) {
-//					LEDDriver_setRGBLED(led_id, 1023);
-//					if (led_id==19) do_continue = 1;
-//				}
-//			}
-//		}
-//		else {
-//			if (continue_armed!=0) {
-//				for (uint8_t led_id=0; led_id<20; led_id++)
-//					LEDDriver_setRGBLED(led_id, 0);
-//				continue_armed=0;
-//			}
-//		}
-//
-//		if (do_continue)
-//		{
-//			for (uint8_t led_id=0; led_id<NUM_LEDS; led_id++)
-//				LEDDriver_setRGBLED(led_id, 0);
-//			break;
-//		}
-//	}
-//
-	pause_until_button_released();
-}
 
 extern uint16_t potadc_buffer[NUM_POT_ADCS];
 extern uint16_t cvadc_buffer[NUM_CV_ADCS];
@@ -555,74 +325,6 @@ void test_pots(void)
 	pause_until_button_released();
 }
 
-void hardware_test_audio_A_IRQ(int16_t *src, int16_t *dst) {
-	uint16_t i;
-	static float audiowave=0;
-	static int32_t audiowave_dir=1;
-	const float MAX_CODEC_DAC_VAL =  160000000; //8388607;
-	const float MIN_CODEC_DAC_VAL = -1600000000; //-8388608;
-
-	const float period = (SAMPLERATE/100); // 960  = 96000Hz / 100Hz
-	const float rise_period = 100;
-	const float fall_period = period - rise_period;
-
-	for (i=0; i<(codec_BUFF_LEN/8); i++)
-	{
-		(void)(*src++);
-		(void)(*src++);
-		*dst++ = *src++;
-		*dst++ = *src++;
-
-		if (audiowave_dir==1)
-			audiowave+=(MAX_CODEC_DAC_VAL - MIN_CODEC_DAC_VAL)/rise_period;
-		else		
-			audiowave-=(MAX_CODEC_DAC_VAL - MIN_CODEC_DAC_VAL)/fall_period;
-
-		if (audiowave >= MAX_CODEC_DAC_VAL) 	{ audiowave_dir = 1 - audiowave_dir; audiowave = MAX_CODEC_DAC_VAL; }
-		if (audiowave <= MIN_CODEC_DAC_VAL) 	{ audiowave_dir = 1 - audiowave_dir; audiowave = MIN_CODEC_DAC_VAL; }
-
-		int32_t audiowave32 = (int32_t)audiowave;
-
-		*dst++ = (int16_t)(audiowave32 >> 16);
-		*dst++ = (int16_t)(audiowave32 & 0x0000FFFF);
-	}
-}
-
-void hardware_test_audio_B_IRQ(int16_t *src, int16_t *dst) {
-	uint16_t i;
-	static float audiowave=0;
-	static int32_t audiowave_dir=1;
-	const float MAX_CODEC_DAC_VAL =  160000000; //8388607;
-	const float MIN_CODEC_DAC_VAL = -1600000000; //-8388608;
-
-	const float period = (SAMPLERATE/100); // 960  = 96000Hz / 100Hz
-	const float rise_period = 100;
-	const float fall_period = period - rise_period;
-
-	for (i=0; i<(codec_BUFF_LEN/8); i++)
-	{
-		(void)(*src++);
-		(void)(*src++);
-		*dst++ = *src++;
-		*dst++ = *src++;
-
-		if (audiowave_dir==1)
-			audiowave+=(MAX_CODEC_DAC_VAL - MIN_CODEC_DAC_VAL)/rise_period;
-		else		
-			audiowave-=(MAX_CODEC_DAC_VAL - MIN_CODEC_DAC_VAL)/fall_period;
-
-		if (audiowave >= MAX_CODEC_DAC_VAL) 	{ audiowave_dir = 1 - audiowave_dir; audiowave = MAX_CODEC_DAC_VAL; }
-		if (audiowave <= MIN_CODEC_DAC_VAL) 	{ audiowave_dir = 1 - audiowave_dir; audiowave = MIN_CODEC_DAC_VAL; }
-
-		int32_t audiowave32 = (int32_t)audiowave;
-
-		*dst++ = (int16_t)(audiowave32 >> 16);
-		*dst++ = (int16_t)(audiowave32 & 0x0000FFFF);
-	}
-}
-
-
-
 
 //int16_t get_cv_val(uint8_t cv_id) {
 //	if (cv_id==0) return adc1[FREQCV1_ADC];
@@ -768,23 +470,4 @@ void test_input_jacks(void) {
 //	pause_until_button_released();
 }
 
-static void all_leds_off(void) {
-	LED_PINGBUT_OFF;
-	LED_INF1_OFF;
-	LED_INF2_OFF;
-	LED_REV1_OFF;
-	LED_REV2_OFF;
-	LED_LOOP1_OFF;
-	LED_LOOP2_OFF;
-}
 
-uint8_t hardwaretest_continue_button(void) 	{ return PINGBUT; }
-
-void pause_until_button_pressed(void) {
-	delay_ms(80);
-	while (!hardwaretest_continue_button()) {;}
-}
-void pause_until_button_released(void) {
- delay_ms(80);
- while (hardwaretest_continue_button()) {;}
-}

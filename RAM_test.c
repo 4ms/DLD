@@ -51,8 +51,6 @@ uint32_t RAM_test(void){
 		*((uint16_t *)addr) = rd1;
 
 		addr+=2;
-
-
 	}
 
 	addr=SDRAM_BASE;
@@ -65,12 +63,9 @@ uint32_t RAM_test(void){
 
 		rd0=(uint16_t)((i) & 0x0000FFFF);
 		if (rd1 != rd0)
-		{
 			fail++;
-		}
 
 		addr+=2;
-
 	}
 
 	return(fail);

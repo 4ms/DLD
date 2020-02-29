@@ -40,6 +40,7 @@ void DeInit_I2SDMA_Channel2(void);
 void Start_I2SDMA_Channel1(void);
 void Start_I2SDMA_Channel2(void);
 void init_audio_dma(void);
+void set_codec_callback(void (*cb)(int16_t *, int16_t *, int16_t, uint8_t));
 
 #endif
 

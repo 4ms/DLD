@@ -75,13 +75,13 @@ int main(void)
 {
 	uint32_t do_factory_reset=0;
 
-    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
+	NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
 
-    Codecs_Deinit();
+	Codecs_Deinit();
 
-    init_dig_inouts();
+	init_dig_inouts();
 
-    DeInit_I2S_Clock();
+	DeInit_I2S_Clock();
 	DeInit_I2SDMA_Channel2();
 	DeInit_I2SDMA_Channel1();
 
@@ -103,7 +103,6 @@ int main(void)
 	init_LowPassCoefs();
 
 	SDRAM_Init();
-
 
 	if (RAMTEST_BUTTONS)
 		RAM_startup_test();
@@ -134,12 +133,12 @@ int main(void)
 
 	flash_firmware_version = load_flash_params();
 
-    if (ENTER_CALIBRATE_BUTTONS)
-    {
+	if (ENTER_CALIBRATE_BUTTONS)
+	{
 		global_mode[CALIBRATE] = 1;
-    }
-    else if (flash_firmware_version <= 1 ) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
-    {
+	}
+	else if (flash_firmware_version <= 1 ) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
+	{
 		if (RAM_test()==0)
 		{
 			global_mode[CALIBRATE] = 1;
@@ -150,9 +149,9 @@ int main(void)
 	}
 	else if (flash_firmware_version < FW_VERSION ) //If we detect a recently upgraded firmware version
 	{
-    	set_firmware_version();
-    	store_params_into_sram();
-    	write_all_params_to_FLASH();
+		set_firmware_version();
+		store_params_into_sram();
+		write_all_params_to_FLASH();
 	}
 
 	init_inputread_timer();
@@ -162,7 +161,7 @@ int main(void)
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
 
-	while(1){
+	while(1) {
 
 		if (global_mode[QUANTIZE_MODE_CHANGES]==0)
 		{
@@ -175,7 +174,7 @@ int main(void)
 			process_ping_changed(1);
 		}
 
-	check_errors();
+		check_errors();
 
 		if (do_factory_reset)
 			if (!(--do_factory_reset))
@@ -185,32 +184,6 @@ int main(void)
 	return(1);
 }
 
-//#define USE_FULL_ASSERT
-
-#ifdef  USE_FULL_ASSERT
-
-#define assert_param(expr) ((expr) ? (void)0 : assert_failed((uint8_t *)__FILE__, __LINE__))
-
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *   where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t* file, uint32_t line)
-{
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-
-  /* Infinite loop */
-  while (1)
-  {
-  }
-}
-#endif
-
-#if 1
 /* exception handlers - so we know what's failing */
 void NMI_Handler(void)
 {
@@ -273,4 +246,4 @@ void PendSV_Handler(void)
 {
 	while(1){};
 }
-#endif
+
