@@ -70,7 +70,8 @@ AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
 
-$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
+#$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
+$(BUILDDIR)/hardware_test_adc.o: OPTFLAGS = -O0
 
 all: Makefile $(BIN) $(HEX)
 

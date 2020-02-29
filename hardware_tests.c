@@ -28,7 +28,6 @@
 
 #include "hardware_tests.h"
 #include "dig_pins.h"
-#include "adc.h"
 #include "RAM_test.h"
 #include "flash.h"
 #include "globals.h"
@@ -36,6 +35,7 @@
 #include "sdram.h"
 #include "hardware_test_audio.h"
 #include "hardware_test_switches_buttons.h"
+#include "hardware_test_adc.h"
 #include "hardware_test_util.h"
 
 uint16_t _abs(int16_t val) {return (val<0) ? -val : val;}
@@ -43,7 +43,6 @@ uint16_t _abs(int16_t val) {return (val<0) ? -val : val;}
 static void test_single_leds(void);
 static void test_RAM(void);
 
-static void test_pots(void);
 static void test_input_jacks(void);
 static void animate_success(void);
 
@@ -61,6 +60,7 @@ void do_hardware_test(void)
 	test_switches();
 
 	test_pots();
+	test_CV();
 	test_input_jacks();
 
 	pause_until_button_released();
@@ -164,35 +164,9 @@ void test_RAM(void) {
 }
 
 
-extern uint16_t potadc_buffer[NUM_POT_ADCS];
-extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 
-void setup_adc(void) {
-	Deinit_Pot_ADC();
-	Deinit_CV_ADC();
 
-	Init_Pot_ADC((uint16_t *)potadc_buffer, NUM_POT_ADCS);
-	Init_CV_ADC((uint16_t *)cvadc_buffer, NUM_CV_ADCS);
-}	
-
-void test_pots(void)
-{
-	uint8_t slider_armed[6]={0};
-	uint8_t do_continue;
-	uint32_t turn;
-	uint32_t led_id;
-	int8_t ring_pos=10;
-	uint32_t last_ring_pos_timestamp=0;
-	uint8_t ring_pos_active=0;
-	uint32_t continue_armed=0;
-	uint8_t range_tested[5] = {0};
-	uint8_t zero_tested[5] = {0};
-	int16_t last_adc_val[5] = {0};
-	uint8_t pot_centered[5] = {0};
-	int16_t adc_val;
-
-	//Turn on all lock LEDs, slider LEDs, and Env Out LEDs
 //	LOCKLED_ALLON();
 //	LED_SLIDER_ON(slider_led[0]);
 //	LED_SLIDER_ON(slider_led[1]);
@@ -228,7 +202,7 @@ void test_pots(void)
 //			if (turn == DIR_CCW) LEDDriver_set_one_LED(get_envoutled_red(5), 0);
 //		}
 //
-//		for (uint8_t pot_id=0; pot_id<5; pot_id++) { 
+//		for (uint8_t pot_id=0; pot_id<5; pot_id++) {
 //			adc_val = get_pot_val(pot_id);
 //
 //			if (!range_tested[pot_id] && adc_val > 3800) {
@@ -322,8 +296,8 @@ void test_pots(void)
 //		}
 //	}
 //
-	pause_until_button_released();
-}
+//	pause_until_button_released();
+//}
 
 
 //int16_t get_cv_val(uint8_t cv_id) {

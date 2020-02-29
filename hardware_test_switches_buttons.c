@@ -34,8 +34,8 @@ void test_buttons(void)
 	LED_INF2_ON;
 	LED_REV1_ON;
 	LED_REV2_ON;
-	LED_LOOP1_ON;
-	LED_LOOP2_ON;
+	LED_LOOP1_OFF;
+	LED_LOOP2_OFF;
 
 	uint32_t buttons_pressed = 0;
 	uint8_t buttons_state = 0b11111;
@@ -128,10 +128,6 @@ void test_switches(void) {
 		if (tot==0)
 			break;
 
-		if (hardwaretest_continue_button()) {
-			pause_until_button_released();
-			break;
-		}
 	}
 
 	if (bad_switch) {
