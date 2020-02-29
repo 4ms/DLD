@@ -1,4 +1,5 @@
 #include "hardware_test_util.h"
+#include "hardware_test_adc_check.h"
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"
@@ -15,42 +16,6 @@ void setup_adc(void) {
 	Init_Pot_ADC((uint16_t *)potadc_buffer, NUM_POT_ADCS);
 	Init_CV_ADC((uint16_t *)cvadc_buffer, NUM_CV_ADCS);
 }
-
-struct AdcCheck {
-	const uint16_t center_val;
-	const uint16_t center_width;
-	const uint16_t min_val;
-	const uint16_t max_val;
-	const uint32_t center_check_rate;
-	uint16_t cur_val;
-	uint32_t status;
-	};
-//
-//returns 1 if adc is fully ranged checked
-uint8_t check_adc(struct AdcCheck *adc_check)
-{
-	if (adc_check->cur_val < adc_check->min_val) {
-		LED_LOOP1_OFF;
-		adc_check->status &= ~(0b10UL);
-	}
-	if (adc_check->cur_val > adc_check->max_val) {
-		LED_LOOP2_OFF;
-		adc_check->status &= ~(0b01UL);
-	}
-	if (adc_check->cur_val>(adc_check->center_val - adc_check->center_width) \
-		&& adc_check->cur_val<(adc_check->center_val + adc_check->center_width)) {
-		LED_PINGBUT_OFF;
-		adc_check->status -= adc_check->center_check_rate; //count down
-	}
-	else {
-		adc_check->status |= ~(0b11UL); //reset counter
-		LED_PINGBUT_ON;
-	}
-	if ((adc_check->status & 0xFFFF0003)==0)
-		return 1;
-	else
-		return 0;
-	}
 
 void test_pots(void) {
 	LED_LOOP1_ON;
@@ -88,21 +53,44 @@ void test_pots(void) {
 		.center_check_rate = (1UL<<15)
 	};
 	for (uint32_t adc_i=0; adc_i<NUM_POT_ADCS+NUM_CV_ADCS; adc_i++) {
-		uint32_t cur_adc = adc_map[adc_i];
-		adc_check.status = 0xFFFFFFFF;
+		AdcCheck_reset(&adc_check);
 		LED_LOOP1_ON;
 		LED_LOOP2_ON;
 		LED_PINGBUT_ON;
-		while (!hardwaretest_continue_button()) {
-			adc_check.cur_val = (adc_i<NUM_POT_ADCS) ? potadc_buffer[cur_adc]: cvadc_buffer[cur_adc];
-			if (check_adc(&adc_check))
-				break;
+
+		uint8_t done = 0;
+		uint32_t cur_adc = adc_map[adc_i];
+		while (!done && !hardwaretest_continue_button()) {
+			uint16_t adcval = (adc_i<NUM_POT_ADCS) ? potadc_buffer[cur_adc]: cvadc_buffer[cur_adc];
+			AdcCheck_set_adcval(&adc_check, adcval);
+
+			switch(AdcCheck_check(&adc_check)) {
+				case (ADCCHECK_AT_MIN):
+					LED_LOOP1_OFF;
+					break;
+				case (ADCCHECK_AT_MAX):
+					LED_LOOP2_OFF;
+					break;
+				case (ADCCHECK_AT_CENTER):
+					LED_PINGBUT_OFF;
+					break;
+				case (ADCCHECK_ELSEWHERE):
+					LED_PINGBUT_ON;
+					break;
+				case (ADCCHECK_FULLY_COVERED):
+					done = 1;
+					break;
+				default:
+					break;
+			}
 		}
+
 		LED_INF1_ON;
 		LED_INF2_ON;
 		delay_ms(150);
 		LED_INF1_OFF;
 		LED_INF2_OFF;
+
 		pause_until_button_released();
 	}
 }
