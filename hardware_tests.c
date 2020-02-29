@@ -50,10 +50,10 @@ void do_hardware_test(void)
 {
 	pause_until_button_released();
 
-//	test_single_leds();
-//	test_codec_init();
-//	test_audio_out();
-//	test_audio_in();
+	test_single_leds();
+	test_codec_init();
+	test_audio_out();
+	test_audio_in();
 //	test_RAM();
 
 	test_buttons();
@@ -163,162 +163,6 @@ void test_RAM(void) {
 	flash_ping_until_pressed();
 }
 
-
-
-
-
-//	LOCKLED_ALLON();
-//	LED_SLIDER_ON(slider_led[0]);
-//	LED_SLIDER_ON(slider_led[1]);
-//	LED_SLIDER_ON(slider_led[2]);
-//	LED_SLIDER_ON(slider_led[3]);
-//	LED_SLIDER_ON(slider_led[4]);
-//	LED_SLIDER_ON(slider_led[5]);
-//	for (led_id=0; led_id<20; led_id++)
-//		LEDDriver_setRGBLED(led_id, 0);
-//	for (led_id=20; led_id<26; led_id++)
-//		LEDDriver_setRGBLED(led_id, FULL_WHITE);
-//
-//	//Init ADC
-//	ADC1_Init((uint16_t *)adc1);
-//	ADC3_Init((uint16_t *)adc3);
-//	delay(2000);
-//
-//	while (1) {
-//		//Check rotary turns and presses
-//		//Animate outer ring lights 0-12 to show rotary direction and number of steps
-//		turn = read_rotary();
-//		if (turn) {
-//			LEDDriver_setRGBLED(ring_pos, 0);
-//			if (turn == DIR_CW)  ring_pos = (ring_pos >= 19) ? 0 : ring_pos+1;
-//			if (turn == DIR_CCW) ring_pos = (ring_pos <= 0) ? 19 : ring_pos-1;
-//			LEDDriver_setRGBLED(ring_pos, FULL_WHITE);
-//
-//			last_ring_pos_timestamp = 5000;
-//			ring_pos_active = 1;
-//
-//			//Turn off Env Out 5 Green/Blue for rotary turns:
-//			if (turn == DIR_CW) LEDDriver_set_one_LED(get_envoutled_blue(5), 0);
-//			if (turn == DIR_CCW) LEDDriver_set_one_LED(get_envoutled_red(5), 0);
-//		}
-//
-//		for (uint8_t pot_id=0; pot_id<5; pot_id++) {
-//			adc_val = get_pot_val(pot_id);
-//
-//			if (!range_tested[pot_id] && adc_val > 3800) {
-//				range_tested[pot_id] = 1;
-//				LEDDriver_set_one_LED(get_envoutled_red(pot_id), 0);
-//			}
-//
-//			if (!zero_tested[pot_id] && adc_val < 10) {
-//				zero_tested[pot_id] = 1;
-//				LEDDriver_set_one_LED(get_envoutled_blue(pot_id), 0);
-//			}
-//
-//			if (adc_val > 1850 && adc_val < 2250) {
-//				if (!pot_centered[pot_id]) {
-//					LEDDriver_set_one_LED(get_envoutled_green(pot_id), 0);
-//					pot_centered[pot_id] = 1;
-//				}
-//			} else {
-//				if (pot_centered[pot_id]) {
-//					LEDDriver_set_one_LED(get_envoutled_green(pot_id), 500);
-//					pot_centered[pot_id] = 0;
-//				}
-//			}
-//
-//			if (_abs(adc_val - last_adc_val[pot_id]) > 100)
-//			{
-//				last_adc_val[pot_id] = adc_val;
-//				LEDDriver_setRGBLED(ring_pos, 0);
-//				ring_pos = flip_ring((adc_val * 20)>>12);
-//				LEDDriver_setRGBLED(ring_pos, FULL_WHITE);
-//				last_ring_pos_timestamp = 5000;
-//				ring_pos_active = 1;
-//			}
-//
-//		}
-//
-//		//Turn off ring LED when no motion (timed out)
-//		if (ring_pos_active && !(--last_ring_pos_timestamp)) {
-//			ring_pos_active = 0;
-//			LEDDriver_setRGBLED(ring_pos, 0);
-//		}
-//
-//		//Turn off Env Out 5 Red when rotary pressed
-//		if (ROTARY_SW) {
-//			LEDDriver_set_one_LED(get_envoutled_green(5), 0);
-//		}
-//
-//		// Check sliders: Button turns off when slider is all the way up
-//		// green Env Out turns off when slider is down,
-//		// Slider LED turns off when at 50%
-//		for (uint8_t slider_num=0; slider_num<6; slider_num++) {
-//			uint16_t slider_val = adc3[SLIDER_ADC_BASE+slider_num];
-//
-//			if ((slider_val > 1850) && (slider_val < 2250))
-//				LED_SLIDER_OFF(slider_led[slider_num]);
-//			else
-//				LED_SLIDER_ON(slider_led[slider_num]);
-//
-//			if (slider_val > 4050) {
-//				if (slider_armed[slider_num]) 	LOCKLED_OFF(slider_num);
-//			// } else if (slider_val < 50) {
-//			// 	if (slider_armed[slider_num])	LEDDriver_set_one_LED(get_envoutled_green(slider_num), 0);
-//			} else {
-//				slider_armed[slider_num] = 1;
-//			}
-//		}
-//
-//		do_continue = 0;
-//		if (hardwaretest_continue_button()) {
-//			continue_armed++;
-//			for (led_id=0; led_id<20; led_id++) {
-//				if (continue_armed==((led_id*500) + 1)) {
-//					LEDDriver_setRGBLED(led_id, 1023<<10);
-//					if (led_id==19) do_continue = 1;
-//				}
-//			}
-//		}
-//		else {
-//			if (continue_armed!=0) {
-//				for (led_id=0; led_id<20; led_id++)
-//					LEDDriver_setRGBLED(led_id, 0);
-//				continue_armed=0;
-//			}
-//		}
-//
-//		if (do_continue)
-//		{
-//			for (led_id=0; led_id<NUM_LEDS; led_id++)
-//				LEDDriver_setRGBLED(led_id, 0);
-//			break;
-//		}
-//	}
-//
-//	pause_until_button_released();
-//}
-
-
-//int16_t get_cv_val(uint8_t cv_id) {
-//	if (cv_id==0) return adc1[FREQCV1_ADC];
-//	else if (cv_id==1) return adc1[SCALE_ADC];
-//	else if (cv_id==2) return adc1[QVAL_ADC];
-//	else if (cv_id==3) return adc1[ROTCV_ADC];
-//	else if (cv_id==4) return adc1[SPREAD_ADC];
-//	else if (cv_id==5) return adc1[FREQCV6_ADC];
-//	else if (cv_id==6) return adc1[MORPH_ADC];
-//	else if (cv_id<13) return adc1[cv_id-5];
-//	else return 0;
-//}
-//
-//uint8_t get_gate_jack(uint8_t gate_id) {
-//	if (gate_id==0) return LOCK135 ? 1 : 0;
-//	else if (gate_id==1) return ROTDOWN ? 1 : 0;
-//	else if (gate_id==2) return ROTUP ? 1 : 0;
-//	else if (gate_id==3) return LOCK246 ? 1 : 0;
-//	else return 0;
-//}
 
 //Patch a cable from Odds Out and cable from Evens Out: both jacks must remain plugged.
 //Odds Out is -5V to +5V triangle (only 0V to 5V is used, so there is no response when the output is low)

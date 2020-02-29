@@ -9,6 +9,7 @@
 #include "skewed_tri.h"
 
 const uint32_t SAMPLERATE = 48000;
+static void setup_outs_as_LFOs(void);
 
 FlagStatus codeca_timeout=0, codeca_ackfail=0, codeca_buserr=0;
 FlagStatus codecb_timeout=0, codecb_ackfail=0, codecb_buserr=0;
@@ -92,6 +93,20 @@ static void test_audio_outs_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	(void)(*src);//unused
 }
 
+static void test_audio_ins_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel) {
+	uint16_t i;
+	for (i=0; i<sz/2; i++)
+	{
+		float waveOut = skewedTri_update(&testWaves[channel*2]);
+		*dst++ = ((int16_t)waveOut)/2 + (*src++);
+		*dst++ = *src++;
+
+		waveOut = skewedTri_update(&testWaves[channel*2+1]);
+		*dst++ = ((int16_t)waveOut)/2 + (*src++);
+		*dst++ = *src++;
+	}
+}
+
 //Test Audio Outs
 //"Outer" button lights turn on (Reverse A/B)
 //Each output jack outputs a left-leaning triangle, rising in freq as you go left->right
@@ -122,20 +137,6 @@ void test_audio_out(void) {
 	LED_PINGBUT_OFF;
 	LED_REV1_OFF;
 	LED_REV2_OFF;
-}
-
-static void test_audio_ins_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel) {
-	uint16_t i;
-	for (i=0; i<sz/2; i++)
-	{
-		float waveOut = skewedTri_update(&testWaves[channel*2]);
-		*dst++ = ((int16_t)waveOut)/2 + (*src++);
-		*dst++ = *src++;
-
-		waveOut = skewedTri_update(&testWaves[channel*2+1]);
-		*dst++ = ((int16_t)waveOut)/2 + (*src++);
-		*dst++ = *src++;
-	}
 }
 
 //Test Audio Ins
@@ -169,5 +170,19 @@ void test_audio_in(void) {
 	LED_PINGBUT_OFF;
 	LED_INF1_OFF;
 	LED_INF2_OFF;
+
+	setup_outs_as_LFOs();
+}
+
+static void setup_outs_as_LFOs(void) {
+	float max = ((1<<15)-1) / 20.f * 2.0f; //roughly scalling 20V range to 5V range
+	float min = 0;
+
+	skewedTri_init(&testWaves[0], 1, 0.5, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[1], 2, 0.5, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[2], 3, 0.5, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[3], 4, 0.5, max, min, SAMPLERATE);
+
+	set_codec_callback(test_audio_outs_cb);
 }
 
