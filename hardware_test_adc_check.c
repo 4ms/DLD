@@ -1,38 +1,40 @@
 #include "hardware_test_adc_check.h"
 
-enum AdcCheck_State AdcCheck_check(struct AdcCheck *adc_check)
+void AdcCheck_init(struct AdcCheck *obj)
+{
+	obj->countdown = obj->center_check_counts;
+	obj->coverage = 0;
+}
+
+enum AdcCheck_State AdcCheck_check(struct AdcCheck *obj)
 {
 	enum AdcCheck_State state;
 
-	if (adc_check->cur_val < adc_check->min_val) {
-		state = ADCCHECK_AT_MIN; //LED_LOOP1_OFF;
-		adc_check->status &= ~(0b10UL);
+	if (obj->cur_val < obj->min_val) {
+		state = ADCCHECK_AT_MIN;
+		obj->coverage |= (0b10UL);
 	}
-	if (adc_check->cur_val > adc_check->max_val) {
-		state = ADCCHECK_AT_MAX; //LED_LOOP2_OFF;
-		adc_check->status &= ~(0b01UL);
+	if (obj->cur_val > obj->max_val) {
+		state = ADCCHECK_AT_MAX;
+		obj->coverage |= (0b01UL);
 	}
-	if (adc_check->cur_val>(adc_check->center_val - adc_check->center_width) \
-		&& adc_check->cur_val<(adc_check->center_val + adc_check->center_width)) {
-		state = ADCCHECK_AT_CENTER; //LED_PINGBUT_OFF;
-		adc_check->status -= adc_check->center_check_rate; //count down
+	if (obj->cur_val>(obj->center_val - obj->center_width) \
+		&& obj->cur_val<(obj->center_val + obj->center_width)) {
+		state = ADCCHECK_AT_CENTER;
+		obj->countdown--;
+		if (obj->countdown==0 && obj->coverage==0b11)
+			state = ADCCHECK_FULLY_COVERED;
 	}
 	else {
-		adc_check->status |= ~(0b11UL); //reset counter
-		state = ADCCHECK_ELSEWHERE; //LED_PINGBUT_ON;
+		obj->countdown = obj->center_check_counts;
+		state = ADCCHECK_ELSEWHERE;
 	}
-	if ((adc_check->status & 0xFFFF0003)==0) //Todo: fix this magic number with two variables:countdown and coverage
-		state = ADCCHECK_FULLY_COVERED; //return 1;
 
 	return state;
 }
 
-void AdcCheck_reset(struct AdcCheck *adc_check)
+void AdcCheck_set_adcval(struct AdcCheck *obj, uint16_t adcval)
 {
-	adc_check->status = 0xFFFFFFFF;
+	obj->cur_val = adcval;
 }
 
-void AdcCheck_set_adcval(struct AdcCheck *adc_check, uint16_t adcval)
-{
-	adc_check->cur_val = adcval;
-}

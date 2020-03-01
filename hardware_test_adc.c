@@ -50,10 +50,10 @@ void test_pots(void) {
 		.center_width = 200,
 		.min_val = 10,
 		.max_val = 4000,
-		.center_check_rate = (1UL<<15)
+		.center_check_counts = 1000
 	};
 	for (uint32_t adc_i=0; adc_i<NUM_POT_ADCS+NUM_CV_ADCS; adc_i++) {
-		AdcCheck_reset(&adc_check);
+		AdcCheck_init(&adc_check);
 		LED_LOOP1_ON;
 		LED_LOOP2_ON;
 		LED_PINGBUT_ON;
