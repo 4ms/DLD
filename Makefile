@@ -13,14 +13,20 @@ BUILDDIR = build
 SOURCES += $(wildcard $(PERIPH)/src/*.c)
 SOURCES += $(DEVICE)/src/$(STARTUP)
 SOURCES += $(DEVICE)/src/$(SYSTEM)
-SOURCES += $(wildcard *.c)
+SOURCES += $(wildcard src/*.c)
+SOURCES += $(wildcard lib_hwtest/src/*.c)
+SOURCES += $(wildcard lib_hwtest/src/*.cc)
+SOURCES += $(wildcard lib_hwtest/src/*.cpp)
 
 OBJECTS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(SOURCES))))
+DEPS = $(OBJECTS:.o=.d)
 
 INCLUDES += -I$(DEVICE)/include \
 			-I$(CORE)/include \
 			-I$(PERIPH)/include \
-			-I\
+			-Iinc \
+			-Ilib_hwtest/inc \
+			-I \
 
 ELF = $(BUILDDIR)/$(BINARYNAME).elf
 HEX = $(BUILDDIR)/$(BINARYNAME).hex
@@ -71,31 +77,44 @@ LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
 
 #$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
-$(BUILDDIR)/hardware_test_adc.o: OPTFLAGS = -O0
+#$(BUILDDIR)/hardware_test_adc.o: OPTFLAGS = -O0
+
+DEPFLAGS = -MMD -MP -MF $(BUILDDIR)/$(basename $<).d
 
 all: Makefile $(BIN) $(HEX)
 
 $(BIN): $(ELF)
-	$(OBJCPY) -O binary $< $@
-	$(OBJDMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
+	@$(OBJCPY) -O binary $< $@
+	@$(OBJDMP) -x --syms $< > $(addsuffix .dmp, $(basename $<))
 	ls -l $@ $<
 
 $(HEX): $(ELF)
-	$(OBJCPY) --output-target=ihex $< $@
+	@$(OBJCPY) --output-target=ihex $< $@
 
-$(ELF): $(OBJECTS) $(wildcard *.h)
-	$(LD) $(LFLAGS) -o $@ $(OBJECTS)
+$(ELF): $(OBJECTS)
+	@echo "Linking..."
+	@$(LD) $(LFLAGS) -o $@ $(OBJECTS)
 
+$(BUILDDIR)/%.o: %.c $(BUILDDIR)/%.d
+	@mkdir -p $(dir $@)
+	@echo "Compiling:" $<
+	@$(CC) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
-$(BUILDDIR)/%.o: %.c
-	mkdir -p $(dir $@)
-	$(CC) -c $(OPTFLAGS) $(CFLAGS) $< -o $@
-
+$(BUILDDIR)/%.o: %.cc $(BUILDDIR)/%.d
+	@mkdir -p $(dir $@)
+	@echo "Compiling:" $<
+	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.s
-	mkdir -p $(dir $@)
-	$(AS) $(AFLAGS) $< -o $@ > $(addprefix $(BUILDDIR)/, $(addsuffix .lst, $(basename $<)))
+	@mkdir -p $(dir $@)
+	@echo "Compiling:" $<
+	@$(AS) $(AFLAGS) $< -o $@ > $(addprefix $(BUILDDIR)/, $(addsuffix .lst, $(basename $<)))
 
+%.d: ;
+
+ifneq "$(MAKECMDGOALS)" "clean"
+-include $(DEPS)
+endif
 
 flash: $(BIN)
 	st-flash write $(BIN) 0x8008000

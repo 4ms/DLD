@@ -55,16 +55,16 @@ void do_hardware_test(void)
 	test_audio_out();
 	test_audio_in();
 //	test_RAM();
-
 	test_buttons();
 	test_switches();
 
-	test_pots();
-	test_CV();
-	test_input_jacks();
+	send_LFOs_to_audio_outs();
+	test_pots_and_CV();
+
+	//test_gate_inputs();
+	//test_gate_outputs();
 
 	pause_until_button_released();
-
 	//Animate success and force a hard reboot
 	while (1) {
 		animate_success();

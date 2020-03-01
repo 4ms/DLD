@@ -13,6 +13,8 @@ def Settings( **kwargs ):
     '-I', '/usr/local/Cellar/arm-none-eabi-gcc/8-2018-q4-major/gcc/arm-none-eabi/include/machine/',
     '-I', '/usr/local/Cellar/arm-none-eabi-gcc/8-2018-q4-major/gcc/lib/gcc/arm-none-eabi/8.2.1/include/',
     '-I', '/Users/dann/4ms/stm32/DLD/',
+    '-I', '/Users/dann/4ms/stm32/DLD/inc/',
+    '-I', '/Users/dann/4ms/stm32/DLD/lib_hwtest/inc/',
     '-I', '/Users/dann/4ms/stm32/DLD/stm32/periph/include/',
     '-I', '/Users/dann/4ms/stm32/DLD/stm32/device/include/',
     '-I', '/Users/dann/4ms/stm32/DLD/stm32/core/include/',

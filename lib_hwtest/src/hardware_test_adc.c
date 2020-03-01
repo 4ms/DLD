@@ -17,7 +17,7 @@ void setup_adc(void) {
 	Init_CV_ADC((uint16_t *)cvadc_buffer, NUM_CV_ADCS);
 }
 
-void test_pots(void) {
+void test_pots_and_CV(void) {
 	LED_LOOP1_ON;
 	LED_LOOP2_ON;
 	LED_PINGBUT_ON;
@@ -94,9 +94,4 @@ void test_pots(void) {
 		pause_until_button_released();
 	}
 }
-
-void test_CV(void) {
-
-}
-
 

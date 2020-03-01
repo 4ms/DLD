@@ -170,11 +170,9 @@ void test_audio_in(void) {
 	LED_PINGBUT_OFF;
 	LED_INF1_OFF;
 	LED_INF2_OFF;
-
-	setup_outs_as_LFOs();
 }
 
-static void setup_outs_as_LFOs(void) {
+void send_LFOs_to_audio_outs(void) {
 	float max = ((1<<15)-1) / 20.f * 2.0f; //roughly scalling 20V range to 5V range
 	float min = 0;
 
