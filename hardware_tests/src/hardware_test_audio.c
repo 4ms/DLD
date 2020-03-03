@@ -11,23 +11,23 @@
 const uint32_t SAMPLERATE = 48000;
 static void setup_outs_as_LFOs(void);
 
-FlagStatus codeca_timeout=0, codeca_ackfail=0, codeca_buserr=0;
-FlagStatus codecb_timeout=0, codecb_ackfail=0, codecb_buserr=0;
+//FlagStatus codeca_timeout=0, codeca_ackfail=0, codeca_buserr=0;
+//FlagStatus codecb_timeout=0, codecb_ackfail=0, codecb_buserr=0;
 
-//Todo: enable these to help diagnose
-void I2C1_ER_IRQHandler(void)
-{
-	codeca_timeout = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_TIMEOUT);
-	codeca_ackfail = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_AF);
-	codeca_buserr = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_BERR);
-}
+////Todo: enable these to help diagnose
+//void I2C1_ER_IRQHandler(void)
+//{
+//	codeca_timeout = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_TIMEOUT);
+//	codeca_ackfail = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_AF);
+//	codeca_buserr = I2C_GetFlagStatus(CODECA_I2C, I2C_FLAG_BERR);
+//}
 
-void I2C2_ER_IRQHandler(void)
-{
-	codecb_timeout = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_TIMEOUT);
-	codecb_ackfail = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_AF);
-	codecb_buserr = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_BERR);
-}
+//void I2C2_ER_IRQHandler(void)
+//{
+//	codecb_timeout = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_TIMEOUT);
+//	codecb_ackfail = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_AF);
+//	codecb_buserr = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_BERR);
+//}
 
 
 void test_codec_init(void) {
@@ -82,11 +82,10 @@ static void test_audio_outs_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	for (i=0; i<sz/2; i++)
 	{
 		float leftOut = skewedTri_update(&testWaves[channel*2]);
-		float rightOut = skewedTri_update(&testWaves[channel*2+1]);
-
 		*dst++ = (int16_t)leftOut;
 		*dst++ = 0;
 
+		float rightOut = skewedTri_update(&testWaves[channel*2+1]);
 		*dst++ = (int16_t)rightOut;
 		*dst++ = 0;
 	}
@@ -170,17 +169,5 @@ void test_audio_in(void) {
 	LED_PINGBUT_OFF;
 	LED_INF1_OFF;
 	LED_INF2_OFF;
-}
-
-void send_LFOs_to_audio_outs(void) {
-	float max = ((1<<15)-1) / 20.f * 2.0f; //roughly scalling 20V range to 5V range
-	float min = 0;
-
-	skewedTri_init(&testWaves[0], 1, 0.5, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[1], 2, 0.5, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[2], 3, 0.5, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[3], 4, 0.5, max, min, SAMPLERATE);
-
-	set_codec_callback(test_audio_outs_cb);
 }
 

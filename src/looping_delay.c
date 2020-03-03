@@ -975,8 +975,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	}
 #endif
 
-
 	increment_read_fade(channel);
 	increment_write_fade(channel);
-
 }

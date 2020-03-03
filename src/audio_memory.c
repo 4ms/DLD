@@ -37,14 +37,11 @@ extern uint8_t SAMPLESIZE;
 
 void memory_clear(uint8_t channel)
 {
-
 	uint32_t i;
 
 	//Takes 700ms to clear the channel buffer in 32-bit chunks, roughly 83ns per write
 	for(i = LOOP_RAM_BASE[channel]; i < (LOOP_RAM_BASE[channel] + LOOP_SIZE); i += 4)
 			*((uint32_t *)i) = 0x00000000;
-
-
 }
 
 uint32_t memory_read(uint32_t *addr, uint8_t channel, int32_t *rd_buff, uint8_t num_samples, uint32_t loop_addr, uint8_t decrement){

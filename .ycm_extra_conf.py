@@ -1,6 +1,6 @@
 def Settings( **kwargs ):
   return {
-    'flags': [ '-x', 'c', 
+    'flags': [ '-x', 'cpp',
     '-Wall', '-Wextra', '-Werror',
     '-DARM_MATH_CM4', 
     '-DUSE_STDPERIPH_DRIVER',
@@ -12,12 +12,13 @@ def Settings( **kwargs ):
     '-I', '/usr/local/Cellar/arm-none-eabi-gcc/8-2018-q4-major/gcc/arm-none-eabi/include/newlib-nano/',
     '-I', '/usr/local/Cellar/arm-none-eabi-gcc/8-2018-q4-major/gcc/arm-none-eabi/include/machine/',
     '-I', '/usr/local/Cellar/arm-none-eabi-gcc/8-2018-q4-major/gcc/lib/gcc/arm-none-eabi/8.2.1/include/',
-    '-I', '/Users/dann/4ms/stm32/DLD/',
-    '-I', '/Users/dann/4ms/stm32/DLD/inc/',
-    '-I', '/Users/dann/4ms/stm32/DLD/lib_hwtest/inc/',
-    '-I', '/Users/dann/4ms/stm32/DLD/stm32/periph/include/',
-    '-I', '/Users/dann/4ms/stm32/DLD/stm32/device/include/',
-    '-I', '/Users/dann/4ms/stm32/DLD/stm32/core/include/',
+    '-I', '/Users/design/4ms/stm32/DLD/',
+    '-I', '/Users/design/4ms/stm32/DLD/inc/',
+    '-I', '/Users/design/4ms/stm32/DLD/libhwtest/inc/',
+    '-I', '/Users/design/4ms/stm32/DLD/hardware_tests/inc/',
+    '-I', '/Users/design/4ms/stm32/DLD/stm32/periph/include/',
+    '-I', '/Users/design/4ms/stm32/DLD/stm32/device/include/',
+    '-I', '/Users/design/4ms/stm32/DLD/stm32/core/include/',
     ],
   }
 

@@ -50,15 +50,14 @@ void do_hardware_test(void)
 {
 	pause_until_button_released();
 
-	test_single_leds();
+	//test_single_leds();
 	test_codec_init();
 	test_audio_out();
-	test_audio_in();
+	//test_audio_in();
 //	test_RAM();
-	test_buttons();
-	test_switches();
+//	test_buttons();
+//	test_switches();
 
-	send_LFOs_to_audio_outs();
 	test_pots_and_CV();
 
 	//test_gate_inputs();
@@ -75,6 +74,7 @@ void animate_success(void)
 {
 	chase_all_lights(100);
 }
+
 
 
 // Slider, button, and clip LED test

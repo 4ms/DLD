@@ -14,19 +14,25 @@ SOURCES += $(wildcard $(PERIPH)/src/*.c)
 SOURCES += $(DEVICE)/src/$(STARTUP)
 SOURCES += $(DEVICE)/src/$(SYSTEM)
 SOURCES += $(wildcard src/*.c)
-SOURCES += $(wildcard lib_hwtest/src/*.c)
-SOURCES += $(wildcard lib_hwtest/src/*.cc)
-SOURCES += $(wildcard lib_hwtest/src/*.cpp)
+SOURCES += $(wildcard libhwtest/src/*.c)
+SOURCES += $(wildcard libhwtest/src/*.cc)
+SOURCES += $(wildcard libhwtest/src/*.cpp)
+SOURCES += $(wildcard hardware_tests/src/*.c)
+SOURCES += $(wildcard hardware_tests/src/*.cc)
+SOURCES += $(wildcard hardware_tests/src/*.cpp)
 
 OBJECTS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(SOURCES))))
 DEPS = $(OBJECTS:.o=.d)
+
+# show:
+# 	echo $(OBJECTS)
 
 INCLUDES += -I$(DEVICE)/include \
 			-I$(CORE)/include \
 			-I$(PERIPH)/include \
 			-Iinc \
-			-Ilib_hwtest/inc \
-			-I \
+			-Ilibhwtest/inc \
+			-Ihardware_tests/inc \
 
 ELF = $(BUILDDIR)/$(BINARYNAME).elf
 HEX = $(BUILDDIR)/$(BINARYNAME).hex
@@ -34,6 +40,7 @@ BIN = $(BUILDDIR)/$(BINARYNAME).bin
 
 ARCH = arm-none-eabi
 CC = $(ARCH)-gcc
+CXX = $(ARCH)-g++
 LD = $(ARCH)-ld -v
 AS = $(ARCH)-as
 OBJCPY = $(ARCH)-objcopy
@@ -66,12 +73,13 @@ OPTFLAGS = -O1 \
 # Causes Freeze on run: -fschedule-insns  -fschedule-insns2 
 
 CFLAGS = -g2
+CFLAGS += -fno-exceptions
 CFLAGS += -mlittle-endian -mthumb 
 CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
 CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion 
 
-AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4 
+AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
@@ -101,6 +109,11 @@ $(BUILDDIR)/%.o: %.c $(BUILDDIR)/%.d
 	@$(CC) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cc $(BUILDDIR)/%.d
+	@mkdir -p $(dir $@)
+	@echo "Compiling:" $<
+	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
+
+$(BUILDDIR)/%.o: %.cpp $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
 	@echo "Compiling:" $<
 	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@

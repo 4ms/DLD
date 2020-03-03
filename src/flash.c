@@ -54,7 +54,7 @@ FLASH_Status flash_erase_sector(uint32_t address)
 				  FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR|FLASH_FLAG_PGSERR);
 	for (i = 0; i < 12; ++i) {
 		if (address == kSectorBaseAddress[i]) {
-			status |= FLASH_EraseSector(i * 8, VoltageRange_3);
+			status = FLASH_EraseSector(i * 8, VoltageRange_3);
 		}
 	}
 	FLASH_Lock();
@@ -70,7 +70,7 @@ FLASH_Status flash_open_erase_sector(uint32_t address)
 
 	for (i = 0; i < 12; ++i) {
 		if (address == kSectorBaseAddress[i]) {
-		  status |= FLASH_EraseSector(i * 8, VoltageRange_3);
+		  status = FLASH_EraseSector(i * 8, VoltageRange_3);
 		}
 	}
 	return status;
@@ -105,7 +105,7 @@ FLASH_Status flash_open_program_array(uint8_t* arr, uint32_t address, uint32_t s
 	FLASH_Status status;
 
 	while(size--) {
-		status |= FLASH_ProgramByte(address, *arr++);
+		status = FLASH_ProgramByte(address, *arr++);
 		address++;
 	}
 	return status;
