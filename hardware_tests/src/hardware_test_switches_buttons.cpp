@@ -1,27 +1,9 @@
+#include "LEDButtonChecker.h"
+extern "C" {
 #include "hardware_test_util.h"
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"
-
-static uint8_t read_switch_state(uint8_t sw_num) {
-	if (sw_num==0) return TIMESW_CH1;
-	if (sw_num==1) return TIMESW_CH2;
-	else return 0;
-}
-static uint8_t read_button_state(uint8_t button_num) {
-	if (button_num==0) return PINGBUT ? 1 : 0;
-	if (button_num==1) return REV1BUT ? 1 : 0;
-	if (button_num==2) return INF1BUT ? 1 : 0;
-	if (button_num==3) return INF2BUT ? 1 : 0;
-	if (button_num==4) return REV2BUT ? 1 : 0;
-	else return 0;
-}
-static void button_led_off(uint8_t button_num) {
-	if (button_num==0) LED_PINGBUT_OFF;
-	if (button_num==1) LED_REV1_OFF;
-	if (button_num==2) LED_INF1_OFF;
-	if (button_num==3) LED_INF2_OFF;
-	if (button_num==4) LED_REV2_OFF;
 }
 
 //
@@ -29,34 +11,14 @@ static void button_led_off(uint8_t button_num) {
 //
 void test_buttons(void)
 {
-	LED_PINGBUT_ON;
-	LED_INF1_ON;
-	LED_INF2_ON;
-	LED_REV1_ON;
-	LED_REV2_ON;
-	LED_LOOP1_OFF;
-	LED_LOOP2_OFF;
+	all_leds_off();
 
-	uint32_t buttons_pressed = 0;
-	uint8_t buttons_state = 0b11111;
+	LEDButtonChecker check{5};
+	check.assign_button_read_func(read_button_state);
+	check.assign_button_led_func(set_button_led);
+	check.reset();
 
-	while (buttons_state)
-	{
-		//Check button presses and turn off buttons
-		//Must press buttons one at a time
-		buttons_pressed = 0;
-		for (uint8_t button_num=0; button_num<5; button_num++) {
-			if (read_button_state(button_num))
-				buttons_pressed++;
-		}
-		if (buttons_pressed == 1) {
-			for (uint8_t button_num=0; button_num<5; button_num++) {
-				if (read_button_state(button_num)) {
-					button_led_off(button_num);
-					buttons_state &= ~(1<<button_num);
-				}
-			}
-		}
+	while (check.run_check()) {
 	}
 }
 
