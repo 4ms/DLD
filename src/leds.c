@@ -128,23 +128,23 @@ void chase_all_lights(uint32_t delaytime)
 
 void blink_all_lights(uint32_t delaytime)
 {
-		LED_LOOP1_ON;
-		LED_PINGBUT_ON;
-		LED_LOOP2_ON;
-		LED_REV1_ON;
-		LED_INF1_ON;
-		LED_INF2_ON;
-		LED_REV2_ON;
-		delay_ms(delaytime);
+	LED_LOOP1_ON;
+	LED_PINGBUT_ON;
+	LED_LOOP2_ON;
+	LED_REV1_ON;
+	LED_INF1_ON;
+	LED_INF2_ON;
+	LED_REV2_ON;
+	delay_ms(delaytime);
 
-		LED_LOOP1_OFF;
-		LED_PINGBUT_OFF;
-		LED_LOOP2_OFF;
-		LED_REV1_OFF;
-		LED_INF1_OFF;
-		LED_INF2_OFF;
-		LED_REV2_OFF;
-		delay_ms(delaytime);
+	LED_LOOP1_OFF;
+	LED_PINGBUT_OFF;
+	LED_LOOP2_OFF;
+	LED_REV1_OFF;
+	LED_INF1_OFF;
+	LED_INF2_OFF;
+	LED_REV2_OFF;
+	delay_ms(delaytime);
 }
 
 void all_leds_off(void) {

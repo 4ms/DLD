@@ -84,6 +84,7 @@ AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
 
+#$(BUILDDIR)/hardware_tests/src/hardware_test_adc.o: OPTFLAGS = -O0
 #$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
 #$(BUILDDIR)/hardware_test_adc.o: OPTFLAGS = -O0
 
@@ -105,17 +106,17 @@ $(ELF): $(OBJECTS)
 
 $(BUILDDIR)/%.o: %.c $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "Compiling:" $<
+	@echo "Compiling:" $< $(OPTFLAGS)
 	@$(CC) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cc $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "Compiling:" $<
+	@echo "Compiling:" $< $(OPTFLAGS)
 	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cpp $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "Compiling:" $<
+	@echo "Compiling:" $< $(OPTFLAGS)
 	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.s

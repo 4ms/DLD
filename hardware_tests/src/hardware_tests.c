@@ -58,9 +58,9 @@ void do_hardware_test(void)
 //	test_buttons();
 //	test_switches();
 
-	test_pots_and_CV();
+	//test_pots_and_CV();
 
-	//test_gate_inputs();
+	//test_gate_ins();
 	//test_gate_outputs();
 
 	pause_until_button_released();

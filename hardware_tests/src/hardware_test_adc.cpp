@@ -9,6 +9,7 @@ extern "C" {
 #include "i2s.h"
 #include "skewed_tri.h"
 }
+static void show_multiple_nonzeros_error();
 extern uint16_t potadc_buffer[NUM_POT_ADCS];
 extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 
@@ -72,15 +73,27 @@ void setup_adc() {
 	Init_CV_ADC((uint16_t *)cvadc_buffer, NUM_CV_ADCS);
 }
 
-bool check_cvs_are_zero_except(uint8_t chan) {
-	return ((cvadc_buffer[REGEN1_CV] < 30) || chan==REGEN1_CV)
-		&& ((cvadc_buffer[LVL1_CV] < 30) || chan==LVL1_CV)
-		&& ((cvadc_buffer[REGEN2_CV] < 30) || chan==REGEN2_CV)
-		&& ((cvadc_buffer[LVL2_CV] < 30) || chan==LVL2_CV)
-		&& ((cvadc_buffer[TIME1_CV] > 1950) || chan==TIME1_CV)
-		&& ((cvadc_buffer[TIME1_CV] < 2150) || chan==TIME1_CV)
-		&& ((cvadc_buffer[TIME2_CV] > 1950) || chan==TIME2_CV)
-		&& ((cvadc_buffer[TIME2_CV] < 2150) || chan==TIME2_CV);
+bool check_max_one_cvs_is_nonzero() {
+	uint8_t num_nonzero = 0;
+
+	if (cvadc_buffer[REGEN1_CV] > 200)
+		num_nonzero++;
+	if (cvadc_buffer[LVL1_CV] > 200)
+		num_nonzero++;
+	if (cvadc_buffer[LVL2_CV] > 200)
+		num_nonzero++;
+	if (cvadc_buffer[REGEN2_CV] > 200)
+		num_nonzero++;
+	if (cvadc_buffer[TIME1_CV] < 1950)
+		num_nonzero++;
+	if (cvadc_buffer[TIME2_CV] < 1950)
+		num_nonzero++;
+	if (cvadc_buffer[TIME1_CV] > 2150)
+		num_nonzero++;
+	if (cvadc_buffer[TIME2_CV] > 2150)
+		num_nonzero++;
+
+	return (num_nonzero <= 1); 
 }
 
 void test_pots_and_CV() {
@@ -105,7 +118,7 @@ void test_pots_and_CV() {
 	LED_INF1_OFF;
 	LED_REV1_OFF;
 
-	for (uint32_t adc_i=NUM_POT_ADCS; adc_i<NUM_POT_ADCS+NUM_CV_ADCS; adc_i++) {
+	for (uint32_t adc_i=0; adc_i<NUM_POT_ADCS+NUM_CV_ADCS; adc_i++) {
 		pause_until_button_released();
 		delay_ms(100);
 
@@ -124,13 +137,17 @@ void test_pots_and_CV() {
 			checker.set_adcval(adcval);
 
 			if (adc_i>=NUM_POT_ADCS) {
-				zeroes_ok = check_cvs_are_zero_except(cur_adc);
-				if (!zeroes_ok)
-					done = true;
+				zeroes_ok = check_max_one_cvs_is_nonzero();
+				if (!zeroes_ok) {
+					show_multiple_nonzeros_error();
+					checker.reset();
+					LED_LOOP1_ON;
+					LED_LOOP2_ON;
+					LED_PINGBUT_ON;
+				}
 			}
 
 			auto status = checker.check();
-
 			if (status==ADCCHECK_AT_MIN){
 				LED_LOOP1_OFF;
 			}
@@ -147,27 +164,25 @@ void test_pots_and_CV() {
 				done = true;
 			}
 
-			if (hardwaretest_continue_button())
-				done = true;
+			// if (hardwaretest_continue_button())
+			// 	done = true;
+		}
 
-		}
-		if (!zeroes_ok) {
-			int flashes=5;
-			while (flashes--) 
-				blink_all_lights(200);
-			LED_PINGBUT_ON;
-			pause_until_button_pressed();
-			LED_PINGBUT_OFF;
-			pause_until_button_released();
-			delay_ms(150);
-		}
-		else {
-			LED_INF1_ON;
-			LED_INF2_ON;
-			delay_ms(150);
-			LED_INF1_OFF;
-			LED_INF2_OFF;
-		}
+		LED_INF1_ON;
+		LED_INF2_ON;
+		delay_ms(150);
+		LED_INF1_OFF;
+		LED_INF2_OFF;
 	}
+}
+
+static void show_multiple_nonzeros_error() {
+	blink_all_lights(200);
+	blink_all_lights(200);
+	blink_all_lights(200);
+	blink_all_lights(200);
+	blink_all_lights(200);
+	flash_ping_until_pressed();
+	delay_ms(150);
 }
 
