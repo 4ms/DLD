@@ -4,3 +4,6 @@
 [submodule "lib_hwtest/tests/fff"]
 	path = lib_hwtest/tests/fff
 	url = https://github.com/meekrosoft/fff.git
+[submodule "libhwtests"]
+	path = libhwtests
+	url = https://github.com/4ms/libhwtests.git
