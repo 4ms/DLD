@@ -36,6 +36,7 @@
 #include "hardware_test_audio.h"
 #include "hardware_test_switches_buttons.h"
 #include "hardware_test_adc.h"
+#include "hardware_test_gates.h"
 #include "hardware_test_util.h"
 
 uint16_t _abs(int16_t val) {return (val<0) ? -val : val;}
@@ -50,18 +51,18 @@ void do_hardware_test(void)
 {
 	pause_until_button_released();
 
-	//test_single_leds();
+	test_single_leds();
 	test_codec_init();
 	test_audio_out();
-	//test_audio_in();
-//	test_RAM();
-//	test_buttons();
-//	test_switches();
+	test_audio_in();
+	test_RAM();
+	test_buttons();
+	test_switches();
 
-	//test_pots_and_CV();
+	test_pots_and_CV();
 
-	//test_gate_ins();
-	//test_gate_outputs();
+	test_gate_ins();
+	test_gate_outs();
 
 	pause_until_button_released();
 	//Animate success and force a hard reboot
