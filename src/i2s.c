@@ -49,9 +49,9 @@ volatile int16_t ch2rx_buffer[codec_BUFF_LEN];
 uint32_t ch1tx_buffer_start, ch1rx_buffer_start;
 uint32_t ch2tx_buffer_start, ch2rx_buffer_start;
 
-static void (*audio_callback)(int16_t *, int16_t *, int16_t, uint8_t);
+static void (*audio_callback)(int16_t *, int16_t *, uint16_t, uint8_t);
 
-void set_codec_callback(void (*cb)(int16_t *, int16_t *, int16_t, uint8_t)) {
+void set_codec_callback(void (*cb)(int16_t *, int16_t *, uint16_t, uint8_t)) {
     audio_callback = cb;
 }
 
@@ -285,7 +285,8 @@ void Init_I2SDMA_Channel2(void)
   */
 void DMA1_Stream3_IRQHandler(void)
 {
-	int16_t *src, *dst, sz;
+	int16_t *src, *dst;
+	uint16_t sz;
 	uint32_t err=0;
 
 	if (DMA_GetFlagStatus(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_FE) != RESET)
@@ -359,7 +360,8 @@ void DMA1_Stream4_IRQHandler(void)
   */
 void DMA1_Stream2_IRQHandler(void)
 {
-	int16_t *src, *dst, sz;
+	int16_t *src, *dst;
+	uint16_t sz;
 	uint32_t err=0;
 	//uint32_t i;
 

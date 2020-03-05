@@ -1,8 +1,8 @@
 #include "GateInChecker.h"
 #include "GateOutput.h"
-extern "C" {
 #include "hardware_test_gates.h"
 #include "hardware_test_util.h"
+extern "C" {
 #include "globals.h"
 #include "dig_pins.h"
 #include "leds.h"
@@ -12,7 +12,6 @@ const uint8_t kNumGateIns = 5;
 
 static bool read_gate(uint8_t gatenum);
 static void output_gate(uint8_t gatenum, bool turn_on);
-static void led_on(uint8_t led_num, bool turn_on);
 static void show_multiple_highs_error();
 
 static void clock_out_onoff(bool newstate);
@@ -31,7 +30,7 @@ void test_gate_ins() {
 	LED_LOOP2_OFF;
 
 	checker.assign_read_gate_func(read_gate);
-	checker.assign_indicator_func(led_on);
+	checker.assign_indicator_func(set_led);
 	
 	checker.reset();
 	while (checker.check()) {
@@ -100,32 +99,6 @@ static void output_gate(uint8_t gatenum, bool turn_on) {
 	}
 }
 
-static void led_on(uint8_t led_num, bool turn_on) {
-	if (turn_on) {
-		if (led_num==0)
-			LED_PINGBUT_ON;
-		else if (led_num==1)
-			LED_REV1_ON;
-		else if (led_num==2)
-			LED_INF1_ON;
-		else if (led_num==3)
-			LED_INF2_ON;
-		else if (led_num==4)
-			LED_REV2_ON;
-	} 
-	else {
-		if (led_num==0)
-			LED_PINGBUT_OFF;
-		else if (led_num==1)
-			LED_REV1_OFF;
-		else if (led_num==2)
-			LED_INF1_OFF;
-		else if (led_num==3)
-			LED_INF2_OFF;
-		else if (led_num==4)
-			LED_REV2_OFF;
-	}
-}
 
 void show_multiple_highs_error() {
 	blink_all_lights(100);
@@ -141,17 +114,14 @@ void show_multiple_highs_error() {
 }
 
 static void clock_out_onoff(bool newstate) {
-	if (newstate) CLKOUT_ON;
-	else CLKOUT_OFF;
+	output_gate(1, newstate);
 }
 
 static void loopA_out_onoff(bool newstate) {
-	if (newstate) CLKOUT1_ON;
-	else CLKOUT1_OFF;
+	output_gate(0, newstate);
 }
 
 static void loopB_out_onoff(bool newstate) {
-	if (newstate) CLKOUT2_ON;
-	else CLKOUT2_OFF;
+	output_gate(2, newstate);
 }
 

@@ -1,7 +1,7 @@
 #include "AdcRangeChecker.hh"
-extern "C" {
 #include "hardware_test_adc.h"
 #include "hardware_test_util.h"
+extern "C" {
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"
@@ -17,7 +17,7 @@ extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 
 static skewedTri testWaves[4];
 
-static void test_audio_outs_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel) {
+static void test_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
 	uint16_t i;
 	for (i=0; i<sz/2; i++)
 	{

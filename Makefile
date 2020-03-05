@@ -14,9 +14,9 @@ SOURCES += $(wildcard $(PERIPH)/src/*.c)
 SOURCES += $(DEVICE)/src/$(STARTUP)
 SOURCES += $(DEVICE)/src/$(SYSTEM)
 SOURCES += $(wildcard src/*.c)
-SOURCES += $(wildcard libhwtest/src/*.c)
-SOURCES += $(wildcard libhwtest/src/*.cc)
-SOURCES += $(wildcard libhwtest/src/*.cpp)
+SOURCES += $(wildcard libhwtests/src/*.c)
+SOURCES += $(wildcard libhwtests/src/*.cc)
+SOURCES += $(wildcard libhwtests/src/*.cpp)
 SOURCES += $(wildcard hardware_tests/src/*.c)
 SOURCES += $(wildcard hardware_tests/src/*.cc)
 SOURCES += $(wildcard hardware_tests/src/*.cpp)
@@ -31,7 +31,7 @@ INCLUDES += -I$(DEVICE)/include \
 			-I$(CORE)/include \
 			-I$(PERIPH)/include \
 			-Iinc \
-			-Ilibhwtest/inc \
+			-Ilibhwtests/inc \
 			-Ihardware_tests/inc \
 
 ELF = $(BUILDDIR)/$(BINARYNAME).elf

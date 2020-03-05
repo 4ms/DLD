@@ -1,12 +1,13 @@
 #include "hardware_test_audio.h"
 #include "hardware_test_util.h"
+extern "C" {
+#include "skewed_tri.h"
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"
-
 #include "codec_CS4271.h"
 #include "i2s.h"
-#include "skewed_tri.h"
+}
 
 const uint32_t SAMPLERATE = 48000;
 static void setup_outs_as_LFOs(void);
@@ -78,7 +79,7 @@ void test_codec_init(void) {
 
 struct skewedTri testWaves[4];
 
-static void test_audio_outs_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel) {
+static void test_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
 	uint16_t i;
 	for (i=0; i<sz/2; i++)
 	{
@@ -93,7 +94,7 @@ static void test_audio_outs_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t c
 	(void)(*src);//unused
 }
 
-static void test_audio_ins_cb(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel) {
+static void test_audio_ins_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
 	uint16_t i;
 	for (i=0; i<sz/2; i++)
 	{
