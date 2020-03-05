@@ -18,10 +18,10 @@ static inline void pause_until_button_released(void) {
 static inline void flash_ping_until_pressed(void) {
 	while (1) {
 		LED_PINGBUT_OFF;
-		delay_ms(200);
+		delay_ms(100);
 		if (hardwaretest_continue_button()) break;
 		LED_PINGBUT_ON;
-		delay_ms(200);
+		delay_ms(100);
 	}
 	LED_PINGBUT_ON;
 	pause_until_button_released();
