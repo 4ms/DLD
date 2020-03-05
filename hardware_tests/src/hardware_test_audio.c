@@ -32,6 +32,7 @@ static void setup_outs_as_LFOs(void);
 
 void test_codec_init(void) {
 	all_leds_off();
+	pause_until_button_released();
 
 	Codec_GPIO_Init();
 
