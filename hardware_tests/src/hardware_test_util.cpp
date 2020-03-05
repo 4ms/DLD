@@ -1,7 +1,8 @@
-extern "C" {
 #include "hardware_test_util.h"
+extern "C" {
 #include "dig_pins.h"
 #include "globals.h"
+}
 
 uint8_t hardwaretest_continue_button(void) {
 	return PINGBUT;
@@ -35,7 +36,7 @@ uint8_t read_switch_state(uint8_t sw_num) {
 	if (sw_num==1) return TIMESW_CH2;
 	else return 0;
 }
-uint8_t read_button_state(uint8_t button_num) {
+bool read_button_state(uint8_t button_num) {
 	if (button_num==0) return PINGBUT ? 1 : 0;
 	if (button_num==1) return REV1BUT ? 1 : 0;
 	if (button_num==2) return INF1BUT ? 1 : 0;
@@ -105,4 +106,4 @@ void all_leds_on() {
 	LED_LOOP1_ON;
 	LED_LOOP2_ON;
 }
-}
+

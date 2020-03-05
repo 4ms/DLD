@@ -1,7 +1,7 @@
 #include "AdcRangeChecker.hh"
-extern "C" {
 #include "hardware_test_adc.h"
 #include "hardware_test_util.h"
+extern "C" {
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"

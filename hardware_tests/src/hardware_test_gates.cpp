@@ -1,8 +1,8 @@
 #include "GateInChecker.h"
 #include "GateOutput.h"
-extern "C" {
 #include "hardware_test_gates.h"
 #include "hardware_test_util.h"
+extern "C" {
 #include "globals.h"
 #include "dig_pins.h"
 #include "leds.h"

@@ -1,6 +1,6 @@
 #include "LEDButtonChecker.h"
-extern "C" {
 #include "hardware_test_util.h"
+extern "C" {
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"

@@ -29,6 +29,13 @@
 #pragma once
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint8_t key_combo_enter_hardwaretest(void);
 void do_hardware_test(void);
 
+#ifdef __cplusplus
+}
+#endif

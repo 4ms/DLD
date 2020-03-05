@@ -26,13 +26,15 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "hardware_tests.h"
+extern "C" {
 #include "dig_pins.h"
 #include "RAM_test.h"
 #include "flash.h"
 #include "globals.h"
 #include "leds.h"
 #include "sdram.h"
+}
+#include "hardware_tests.h"
 #include "hardware_test_audio.h"
 #include "hardware_test_switches_buttons.h"
 #include "hardware_test_adc.h"
