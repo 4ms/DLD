@@ -567,7 +567,7 @@ enum AutoMute_States{
  * parameter sz is codec_BUFF_LEN = 8
  *
  */
-void process_audio_block_codec(int16_t *src, int16_t *dst, int16_t sz, uint8_t channel)
+void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel)
 {
 	static uint32_t mute_on_boot_ctr=96000;
 	static uint8_t auto_muting_main_state[NUM_CHAN]={0,0};
