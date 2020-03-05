@@ -40,6 +40,8 @@ void test_gate_ins() {
 			checker.reset();
 		}
 	}
+
+	flash_ping_until_pressed();
 }
 
 void test_gate_outs() {
