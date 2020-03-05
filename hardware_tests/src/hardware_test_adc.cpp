@@ -1,4 +1,5 @@
 #include "AdcRangeChecker.hh"
+#include "CodecCallbacks.h"
 #include "hardware_test_adc.h"
 #include "hardware_test_util.h"
 extern "C" {
@@ -13,19 +14,22 @@ static void show_multiple_nonzeros_error();
 extern uint16_t potadc_buffer[NUM_POT_ADCS];
 extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 
-#define SAMPLERATE 48000
 
-static skewedTri testWaves[4];
+static CenterFlatRamp flatRampWaveBiPolar; 
+static CenterFlatRamp flatRampWaveUniPolar; 
 
-static void test_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+	if (channel==0) 
+		return;
+
 	uint16_t i;
 	for (i=0; i<sz/2; i++)
 	{
-		float leftOut = skewedTri_update(&testWaves[channel*2]);
+		float leftOut = flatRampWaveBiPolar.update();
 		*dst++ = (int16_t)leftOut;
 		*dst++ = 0;
 
-		float rightOut = skewedTri_update(&testWaves[channel*2+1]);
+		float rightOut = flatRampWaveUniPolar.update();
 		*dst++ = (int16_t)rightOut;
 		*dst++ = 0;
 	}
@@ -33,18 +37,9 @@ static void test_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 }
 
 void send_LFOs_to_audio_outs() {
-	float one_volt = (float)(1<<15) / 12.2f;
-
-	float max = one_volt * 5.0f; 
-	float min = -one_volt * 0.6f;
-	float neg_max = -one_volt * 6.4f;
-
-	skewedTri_init(&testWaves[0], 1, 0.5, 1, 0, SAMPLERATE);
-	skewedTri_init(&testWaves[1], 0.5, 0.5, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[2], 0.5, 0.5, max, neg_max, SAMPLERATE);
-	skewedTri_init(&testWaves[3], 0.5, 0.5, max, min, SAMPLERATE);
-
-	set_codec_callback(test_audio_outs_cb);
+	flatRampWaveBiPolar.init(2.f, 0.1f, five_volts, neg_five_volts, 0.f, 48000.f);
+	flatRampWaveUniPolar.init(2.f, 0.1f, five_volts, zero_volts, 0.f, 48000.f);
+	set_codec_callback(test_audio_outs_as_lfos_cb);
 }
 
 const uint8_t adc_map[NUM_POT_ADCS+NUM_CV_ADCS] = {
@@ -73,24 +68,24 @@ void setup_adc() {
 	Init_CV_ADC((uint16_t *)cvadc_buffer, NUM_CV_ADCS);
 }
 
-bool check_max_one_cvs_is_nonzero() {
+bool check_max_one_cv_is_nonzero(uint16_t width) {
 	uint8_t num_nonzero = 0;
 
-	if (cvadc_buffer[REGEN1_CV] > 200)
+	if (cvadc_buffer[REGEN1_CV] > width)
 		num_nonzero++;
-	if (cvadc_buffer[LVL1_CV] > 200)
+	if (cvadc_buffer[LVL1_CV] > width)
 		num_nonzero++;
-	if (cvadc_buffer[LVL2_CV] > 200)
+	if (cvadc_buffer[LVL2_CV] > width)
 		num_nonzero++;
-	if (cvadc_buffer[REGEN2_CV] > 200)
+	if (cvadc_buffer[REGEN2_CV] > width)
 		num_nonzero++;
-	if (cvadc_buffer[TIME1_CV] < 1950)
+	if (cvadc_buffer[TIME1_CV] < (2048-width/2))
 		num_nonzero++;
-	if (cvadc_buffer[TIME2_CV] < 1950)
+	if (cvadc_buffer[TIME2_CV] < (2048-width/2))
 		num_nonzero++;
-	if (cvadc_buffer[TIME1_CV] > 2150)
+	if (cvadc_buffer[TIME1_CV] > (2048+width/2))
 		num_nonzero++;
-	if (cvadc_buffer[TIME2_CV] > 2150)
+	if (cvadc_buffer[TIME2_CV] > (2048+width/2))
 		num_nonzero++;
 
 	return (num_nonzero <= 1); 
@@ -102,7 +97,7 @@ void test_pots_and_CV() {
 	struct AdcRangeCheckerBounds bounds = {
 		.center_val = 2048,
 		.center_width = 200,
-		.center_check_counts = 10000,
+		.center_check_counts = 100000,
 		.min_val = 10,
 		.max_val = 4080,
 	};
@@ -137,7 +132,7 @@ void test_pots_and_CV() {
 			checker.set_adcval(adcval);
 
 			if (adc_i>=NUM_POT_ADCS) {
-				zeroes_ok = check_max_one_cvs_is_nonzero();
+				zeroes_ok = check_max_one_cv_is_nonzero(300);
 				if (!zeroes_ok) {
 					show_multiple_nonzeros_error();
 					checker.reset();

@@ -9,7 +9,6 @@ extern "C" {
 #include "i2s.h"
 }
 
-const uint32_t SAMPLERATE = 48000;
 static void setup_outs_as_LFOs(void);
 
 //FlagStatus codeca_timeout=0, codeca_ackfail=0, codeca_buserr=0;
