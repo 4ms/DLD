@@ -18,7 +18,8 @@ void test_buttons(void)
 	check.assign_button_led_func(set_button_led);
 	check.reset();
 
-	while (check.run_check()) {
+	while (!check.check_done()) {
+		check.run_check();
 	}
 }
 
