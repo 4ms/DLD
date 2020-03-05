@@ -1,11 +1,13 @@
 #include "GateInChecker.h"
 #include "GateOutput.h"
+#include "CodecCallbacks.h"
 #include "hardware_test_gates.h"
 #include "hardware_test_util.h"
 extern "C" {
 #include "globals.h"
 #include "dig_pins.h"
 #include "leds.h"
+#include "i2s.h"
 }
 
 const uint8_t kNumGateIns = 5;
@@ -13,6 +15,7 @@ const uint8_t kNumGateIns = 5;
 static bool read_gate(uint8_t gatenum);
 static void output_gate(uint8_t gatenum, bool turn_on);
 static void show_multiple_highs_error();
+static void send_gates_to_audio_outs();
 
 static void clock_out_onoff(bool newstate);
 static void loopA_out_onoff(bool newstate);
@@ -25,6 +28,8 @@ static void loopB_out_onoff(bool newstate);
 //
 void test_gate_ins() {
 	GateInChecker checker{kNumGateIns};
+
+	send_gates_to_audio_outs();
 
 	LED_LOOP1_OFF;
 	LED_LOOP2_OFF;
@@ -123,5 +128,30 @@ static void loopA_out_onoff(bool newstate) {
 
 static void loopB_out_onoff(bool newstate) {
 	output_gate(2, newstate);
+}
+
+
+static TestGateOscillator gateWave; 
+
+static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+	if (channel==0) 
+		return;
+
+	uint16_t i;
+	for (i=0; i<sz/2; i++)
+	{
+		float leftOut = gateWave.update();
+		*dst++ = (int16_t)leftOut;
+		*dst++ = 0;
+
+		*dst++ = 0;
+		*dst++ = 0;
+	}
+	(void)(*src);//unused
+}
+
+static void send_gates_to_audio_outs() {
+	gateWave.init(2.f, 0.1f, five_volts, zero_volts, 0.f, 48000.f);
+	set_codec_callback(test_audio_outs_as_lfos_cb);
 }
 

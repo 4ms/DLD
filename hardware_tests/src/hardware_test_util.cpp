@@ -4,6 +4,7 @@ extern "C" {
 #include "globals.h"
 }
 
+
 uint8_t hardwaretest_continue_button(void) {
 	return PINGBUT;
 }
