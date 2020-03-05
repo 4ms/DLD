@@ -154,10 +154,10 @@ void test_audio_in(void) {
 	float max = ((1<<15)-1) / 2.0f;
 	float min = -max - 1.0f;
 
-	skewedTri_init(&testWaves[0], 100, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[1], 150, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[2], 225, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[3], 175, 0.2, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[0], 200, 0.2, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[1], 300, 0.2, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[2], 450, 0.2, max, min, SAMPLERATE);
+	skewedTri_init(&testWaves[3], 350, 0.2, max, min, SAMPLERATE);
 
 	set_codec_callback(test_audio_ins_cb);
 
