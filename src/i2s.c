@@ -108,7 +108,7 @@ void DeInit_I2SDMA_Channel2(void)
 
 void Init_I2SDMA_Channel1(void)
 {
-	uint32_t Size = codec_BUFF_LEN;
+	uint32_t Size = codec_BUFF_LEN/2;
 
 	/* Enable the DMA clock */
 	RCC_AHB1PeriphClockCmd(AUDIO_I2S3_DMA_CLOCK, ENABLE);
@@ -124,7 +124,7 @@ void Init_I2SDMA_Channel1(void)
 	dma_ch1tx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch1tx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch1tx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch1tx.DMA_PeripheralDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch1tx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
 	dma_ch1tx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch1tx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch1tx.DMA_Priority = DMA_Priority_High;
@@ -152,7 +152,7 @@ void Init_I2SDMA_Channel1(void)
 	dma_ch1rx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch1rx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch1rx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch1rx.DMA_PeripheralDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch1rx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
 	dma_ch1rx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch1rx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch1rx.DMA_Priority = DMA_Priority_High;
@@ -195,7 +195,7 @@ void Init_I2SDMA_Channel1(void)
 
 void Init_I2SDMA_Channel2(void)
 {
-	uint32_t Size = codec_BUFF_LEN;
+	uint32_t Size = codec_BUFF_LEN/2;
 
 	/* Enable the DMA clock */
 	RCC_AHB1PeriphClockCmd(AUDIO_I2S2_DMA_CLOCK, ENABLE);
@@ -240,7 +240,7 @@ void Init_I2SDMA_Channel2(void)
 	dma_ch2rx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch2rx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch2rx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch2rx.DMA_PeripheralDataSize = DMA_MemoryDataSize_Word;
+	dma_ch2rx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
 	dma_ch2rx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch2rx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch2rx.DMA_Priority = DMA_Priority_High;

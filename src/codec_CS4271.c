@@ -318,7 +318,7 @@ uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_Ty
 	
 	uint8_t Byte1 = RegisterAddr;
 	uint8_t Byte2 = RegisterValue;
-	
+
 	/*!< While the bus is busy */
 	CODECTimeout = CODEC_LONG_TIMEOUT;
 	while(I2C_GetFlagStatus(CODEC, I2C_FLAG_BUSY))
@@ -393,7 +393,7 @@ void Codec_B_CtrlInterface_Init(void)
 	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
 	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
 	I2C_InitStructure.I2C_ClockSpeed = I2C_SPEED;
-	
+
 	I2C_DeInit(CODECB_I2C);
 	I2C_Init(CODECB_I2C, &I2C_InitStructure);
 	I2C_Cmd(CODECB_I2C, ENABLE);
