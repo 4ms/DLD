@@ -1,8 +1,8 @@
 BINARYNAME = main
 
-STARTUP = startup_stm32f427_437xx.s
+STARTUP = startup_stm32f427_modern.s
 SYSTEM = system_stm32f4xx.c
-LOADFILE = stm32f427.ld
+LOADFILE = stm32f427_modern.ld
 
 DEVICE = stm32/device
 CORE = stm32/core
@@ -41,7 +41,7 @@ BIN = $(BUILDDIR)/$(BINARYNAME).bin
 ARCH = arm-none-eabi
 CC = $(ARCH)-gcc
 CXX = $(ARCH)-g++
-LD = $(ARCH)-ld -v
+LD = $(ARCH)-g++
 AS = $(ARCH)-as
 OBJCPY = $(ARCH)-objcopy
 OBJDMP = $(ARCH)-objdump
@@ -73,16 +73,19 @@ OPTFLAGS = -O1 \
 # Causes Freeze on run: -fschedule-insns  -fschedule-insns2 
 
 CFLAGS = -g2
-CFLAGS += -fno-exceptions
 CFLAGS += -mlittle-endian -mthumb 
-CFLAGS +=  -I. -DARM_MATH_CM4 -D'__FPU_PRESENT=1'  $(INCLUDES)  -DUSE_STDPERIPH_DRIVER
-CFLAGS += -mcpu=cortex-m4 -mfloat-abi=hard
-CFLAGS +=  -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion 
+CFLAGS += -mcpu=cortex-m4 
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16 
+CFLAGS += -DARM_MATH_CM4 -D'__FPU_PRESENT=1' -DUSE_STDPERIPH_DRIVER
+CFLAGS += -I. $(INCLUDES)
+CFLAGS += -fno-exceptions -fsingle-precision-constant -Wdouble-promotion
+CFLAGS += -ffreestanding
+CFLAGS += --specs=nosys.specs
 
 AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
-LFLAGS  = -Map main.map -nostartfiles -T $(LDSCRIPT)
+LFLAGS  = $(CFLAGS) -Wl,-Map,main.map -T $(LDSCRIPT)
 
 #$(BUILDDIR)/hardware_tests/src/hardware_test_adc.o: OPTFLAGS = -O0
 #$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
