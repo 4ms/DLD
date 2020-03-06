@@ -45,14 +45,15 @@ void test_gate_ins() {
 		}
 	}
 
+	all_leds_off();
 	flash_ping_until_pressed();
 }
 
 void test_gate_outs() {
-	uint32_t kEmpiricalSampleRate = 2500;
-	GateOutput loopA_out {80, 0.25, 0.0, kEmpiricalSampleRate};
-	GateOutput clock_out {100, 0.5, 0.33, kEmpiricalSampleRate};
-	GateOutput loopB_out {120, 0.25, 0.66, kEmpiricalSampleRate};
+	uint32_t kEmpiricalSampleRate = 2658;
+	GateOutput loopA_out {80, 0.25, 0, kEmpiricalSampleRate};
+	GateOutput clock_out {100, 0.5, 0, kEmpiricalSampleRate};
+	GateOutput loopB_out {120, 0.75, 0, kEmpiricalSampleRate};
 
 	clock_out.assign_gate_onoff_func(clock_out_onoff);
 	loopA_out.assign_gate_onoff_func(loopA_out_onoff);
