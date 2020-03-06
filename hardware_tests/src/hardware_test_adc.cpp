@@ -18,7 +18,7 @@ extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 static CenterFlatRamp flatRampWaveBiPolar; 
 static CenterFlatRamp flatRampWaveUniPolar; 
 
-static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+static void test_audio_outs_as_lfos_cb(int32_t *src, int32_t *dst, uint16_t sz, uint8_t channel) {
 	if (channel==0) 
 		return;
 
@@ -26,12 +26,10 @@ static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, 
 	for (i=0; i<sz/2; i++)
 	{
 		float leftOut = flatRampWaveBiPolar.update();
-		*dst++ = (int16_t)leftOut;
-		*dst++ = 0;
+		*dst++ = (int32_t)leftOut;
 
 		float rightOut = flatRampWaveUniPolar.update();
-		*dst++ = (int16_t)rightOut;
-		*dst++ = 0;
+		*dst++ = (int32_t)rightOut;
 	}
 	(void)(*src);//unused
 }

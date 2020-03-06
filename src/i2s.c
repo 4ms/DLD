@@ -40,18 +40,18 @@ DMA_InitTypeDef dma_ch2tx, dma_ch2rx;
 NVIC_InitTypeDef nvic_i2s2ext, nvic_i2s3ext, NVIC_InitStructure;
 
 
-volatile int16_t ch1tx_buffer[codec_BUFF_LEN];
-volatile int16_t ch1rx_buffer[codec_BUFF_LEN];
+volatile int32_t ch1tx_buffer[codec_BUFF_LEN/2];
+volatile int32_t ch1rx_buffer[codec_BUFF_LEN/2];
 
-volatile int16_t ch2tx_buffer[codec_BUFF_LEN];
-volatile int16_t ch2rx_buffer[codec_BUFF_LEN];
+volatile int32_t ch2tx_buffer[codec_BUFF_LEN/2];
+volatile int32_t ch2rx_buffer[codec_BUFF_LEN/2];
 
 uint32_t ch1tx_buffer_start, ch1rx_buffer_start;
 uint32_t ch2tx_buffer_start, ch2rx_buffer_start;
 
-static void (*audio_callback)(int16_t *, int16_t *, uint16_t, uint8_t);
+static void (*audio_callback)(int32_t *, int32_t *, uint16_t, uint8_t);
 
-void set_codec_callback(void (*cb)(int16_t *, int16_t *, uint16_t, uint8_t)) {
+void set_codec_callback(void (*cb)(int32_t *, int32_t *, uint16_t, uint8_t)) {
     audio_callback = cb;
 }
 
@@ -124,8 +124,8 @@ void Init_I2SDMA_Channel1(void)
 	dma_ch1tx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch1tx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch1tx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch1tx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	dma_ch1tx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch1tx.DMA_PeripheralDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch1tx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch1tx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch1tx.DMA_Priority = DMA_Priority_High;
 	dma_ch1tx.DMA_FIFOMode = DMA_FIFOMode_Disable;
@@ -152,8 +152,8 @@ void Init_I2SDMA_Channel1(void)
 	dma_ch1rx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch1rx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch1rx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch1rx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	dma_ch1rx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch1rx.DMA_PeripheralDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch1rx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch1rx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch1rx.DMA_Priority = DMA_Priority_High;
 	dma_ch1rx.DMA_FIFOMode = DMA_FIFOMode_Disable;
@@ -211,8 +211,8 @@ void Init_I2SDMA_Channel2(void)
 	dma_ch2tx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch2tx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch2tx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch2tx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	dma_ch2tx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch2tx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
+	dma_ch2tx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch2tx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch2tx.DMA_Priority = DMA_Priority_High;
 	dma_ch2tx.DMA_FIFOMode = DMA_FIFOMode_Disable;
@@ -240,8 +240,8 @@ void Init_I2SDMA_Channel2(void)
 	dma_ch2rx.DMA_BufferSize = (uint32_t)Size;
 	dma_ch2rx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	dma_ch2rx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	dma_ch2rx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	dma_ch2rx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	dma_ch2rx.DMA_PeripheralDataSize = DMA_MemoryDataSize_Word;
+	dma_ch2rx.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
 	dma_ch2rx.DMA_Mode = DMA_Mode_Circular;
 	dma_ch2rx.DMA_Priority = DMA_Priority_High;
 	dma_ch2rx.DMA_FIFOMode = DMA_FIFOMode_Disable;
@@ -285,7 +285,7 @@ void Init_I2SDMA_Channel2(void)
   */
 void DMA1_Stream3_IRQHandler(void)
 {
-	int16_t *src, *dst;
+	int32_t *src, *dst;
 	uint16_t sz;
 	uint32_t err=0;
 
@@ -306,8 +306,8 @@ void DMA1_Stream3_IRQHandler(void)
 	{
 		/* Point to 2nd half of buffers */
 		sz = codec_BUFF_LEN/2;
-		src = (int16_t *)(ch2rx_buffer_start) +sz;
-		dst = (int16_t *)(ch2tx_buffer_start) +sz;
+		src = (int32_t *)(ch2rx_buffer_start) +sz/2;
+		dst = (int32_t *)(ch2tx_buffer_start) +sz/2;
 
 		audio_callback(src, dst, sz/2, 1); //channel2
 
@@ -319,8 +319,8 @@ void DMA1_Stream3_IRQHandler(void)
 	{
 		/* Point to 1st half of buffers */
 		sz = codec_BUFF_LEN/2;
-		src = (int16_t *)(ch2rx_buffer_start);
-		dst = (int16_t *)(ch2tx_buffer_start);
+		src = (int32_t *)(ch2rx_buffer_start);
+		dst = (int32_t *)(ch2tx_buffer_start);
 
 		audio_callback(src, dst, sz/2, 1); //channel2
 
@@ -360,7 +360,7 @@ void DMA1_Stream4_IRQHandler(void)
   */
 void DMA1_Stream2_IRQHandler(void)
 {
-	int16_t *src, *dst;
+	int32_t *src, *dst;
 	uint16_t sz;
 	uint32_t err=0;
 	//uint32_t i;
@@ -382,8 +382,8 @@ void DMA1_Stream2_IRQHandler(void)
 	{
 		/* Point to 2nd half of buffers */
 		sz = codec_BUFF_LEN/2;
-		src = (int16_t *)(ch1rx_buffer_start) + sz;
-		dst = (int16_t *)(ch1tx_buffer_start) + sz;
+		src = (int32_t *)(ch1rx_buffer_start) + sz/2;
+		dst = (int32_t *)(ch1tx_buffer_start) + sz/2;
 
 		audio_callback(src, dst, sz/2, 0); //channel 1
 
@@ -395,8 +395,8 @@ void DMA1_Stream2_IRQHandler(void)
 	{
 		/* Point to 1st half of buffers */
 		sz = codec_BUFF_LEN/2;
-		src = (int16_t *)(ch1rx_buffer_start);
-		dst = (int16_t *)(ch1tx_buffer_start);
+		src = (int32_t *)(ch1rx_buffer_start);
+		dst = (int32_t *)(ch1tx_buffer_start);
 
 		audio_callback(src, dst, sz/2, 0); //channel 1
 

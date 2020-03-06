@@ -38,7 +38,7 @@
 
 
 void audio_buffer_init(void);
-void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel);
+void process_audio_block_codec(int32_t *src, int32_t *dst, uint16_t sz, uint8_t channel);
 void update_write_time(uint8_t channel);
 void set_divmult_time(uint8_t channel);
 void swap_read_write(uint8_t channel);

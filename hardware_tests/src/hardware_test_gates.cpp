@@ -134,7 +134,7 @@ static void loopB_out_onoff(bool newstate) {
 
 static TestGateOscillator gateWave; 
 
-static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+static void test_audio_outs_as_lfos_cb(int32_t *src, int32_t *dst, uint16_t sz, uint8_t channel) {
 	if (channel==0) 
 		return;
 
@@ -142,10 +142,7 @@ static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, 
 	for (i=0; i<sz/2; i++)
 	{
 		float leftOut = gateWave.update();
-		*dst++ = (int16_t)leftOut;
-		*dst++ = 0;
-
-		*dst++ = 0;
+		*dst++ = (int32_t)leftOut;
 		*dst++ = 0;
 	}
 	(void)(*src);//unused

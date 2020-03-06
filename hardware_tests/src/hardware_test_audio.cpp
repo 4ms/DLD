@@ -78,32 +78,38 @@ void test_codec_init(void) {
 
 struct skewedTri testWaves[4];
 
-static void test_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+int32_t swap_halfword(float f) {
+	int32_t w = (int32_t)f;
+	uint32_t top = w >> 16;
+	uint32_t bot = w & 0x0000FFFF;
+	uint32_t swapped = (bot << 16) | top;
+	return (int32_t)swapped;
+}
+
+static void test_audio_outs_cb(int32_t *src, int32_t *dst, uint16_t sz, uint8_t channel) {
 	uint16_t i;
 	for (i=0; i<sz/2; i++)
 	{
 		float leftOut = skewedTri_update(&testWaves[channel*2]);
-		*dst++ = (int16_t)leftOut;
-		*dst++ = 0;
+		*dst++ = (int32_t)leftOut;
+		//int32_t out = swap_halfword(leftOut);
+		//*dst++ = out;
 
 		float rightOut = skewedTri_update(&testWaves[channel*2+1]);
-		*dst++ = (int16_t)rightOut;
-		*dst++ = 0;
+		*dst++ = (int32_t)rightOut;
 	}
 	(void)(*src);//unused
 }
 
-static void test_audio_ins_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+static void test_audio_ins_cb(int32_t *src, int32_t *dst, uint16_t sz, uint8_t channel) {
 	uint16_t i;
 	for (i=0; i<sz/2; i++)
 	{
 		float waveOut = skewedTri_update(&testWaves[channel*2]);
-		*dst++ = ((int16_t)waveOut)/2 + (*src++);
-		*dst++ = *src++;
+		*dst++ = ((int32_t)waveOut)/2 + (*src++);
 
 		waveOut = skewedTri_update(&testWaves[channel*2+1]);
-		*dst++ = ((int16_t)waveOut)/2 + (*src++);
-		*dst++ = *src++;
+		*dst++ = ((int32_t)waveOut)/2 + (*src++);
 	}
 }
 

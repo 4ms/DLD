@@ -88,8 +88,7 @@ LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = $(CFLAGS) -Wl,-Map,main.map -T $(LDSCRIPT)
 
 #$(BUILDDIR)/hardware_tests/src/hardware_test_adc.o: OPTFLAGS = -O0
-#$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
-#$(BUILDDIR)/hardware_test_adc.o: OPTFLAGS = -O0
+#$(BUILDDIR)/src/looping_delay.o: OPTFLAGS = -O0
 
 DEPFLAGS = -MMD -MP -MF $(BUILDDIR)/$(basename $<).d
 

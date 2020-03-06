@@ -567,7 +567,7 @@ enum AutoMute_States{
  * parameter sz is codec_BUFF_LEN = 8
  *
  */
-void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel)
+void process_audio_block_codec(int32_t *src, int32_t *dst, uint16_t sz, uint8_t channel)
 {
 	static uint32_t mute_on_boot_ctr=96000;
 	static uint8_t auto_muting_main_state[NUM_CHAN]={0,0};
@@ -584,7 +584,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 	int32_t auxout;
 
 	uint16_t i,t;
-	uint16_t topbyte, bottombyte;
 
 	int32_t rd_buff[codec_BUFF_LEN/4];
 	int32_t rd_buff_dest[codec_BUFF_LEN/4];
@@ -597,7 +596,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 
 	uint32_t t32;
 
-
 	//Sanity check to made sure the read_addr is inside the loop.
 	//We shouldn't have to do this. The likely reason the read_addr escapes the loop
 	//is that it passes the start_fade_addr and triggers the crossed_start_fade_addr block,
@@ -606,7 +604,6 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 	//We could set start_fade_addr to be much earlier than the loop_end (by a factor of 2?) so that we won't go
 	//past the loop_end even if we have to do two cross fades. Of course, this means usually our loop will be earlier by
 	//one crossfade period, maybe 3ms or so. This seems acceptable, but a better solution could be desired.
-
 
 	if ((mode[channel][INF]==INF_ON || mode[channel][INF]==INF_TRANSITIONING_OFF || mode[channel][INF]==INF_TRANSITIONING_ON)
 			&& (!in_between(read_addr[channel], loop_start[channel], loop_end[channel], mode[channel][REV])))
@@ -623,9 +620,9 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 		}
 	}
 
-	 //
-	 // Sanity check: make sure read_addr and write_addr are spaced properly
-	 //
+	//
+	// Sanity check: make sure read_addr and write_addr are spaced properly
+	//
 	if ((mode[channel][INF]==INF_OFF) && (read_fade_pos[channel] < global_param[SLOW_FADE_INCREMENT]) /*&& !mode[channel][CONTINUOUS_REVERSE]*/)
 	{
 		t32 = calculate_read_addr(channel, divmult_time[channel]);
@@ -702,23 +699,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 
 		// Split incoming stereo audio into the two channels: Left=>Main input (clean), Right=>Aux Input
 
-		if (SAMPLESIZE==2){
-			mainin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+0]*/;
-			dummy=*src++;
-
-			auxin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+2]*/;
-			dummy=*src++;
-		}
-		else
-		{
-			topbyte = (uint16_t)(*src++);
-			bottombyte = (uint16_t)(*src++);
-			mainin = (topbyte << 16) + (uint16_t)bottombyte;
-
-			topbyte = (uint16_t)(*src++);
-			bottombyte = (uint16_t)(*src++);
-			auxin = (topbyte << 16) + (uint16_t)bottombyte;
-		}
+		mainin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+0]*/;
+		auxin = (*src++) /*+ CODEC_ADC_CALIBRATION_DCOFFSET[channel+2]*/;
 
 		if (mute_on_boot_ctr)
 		{
@@ -867,15 +849,12 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 
 		if (global_mode[CALIBRATE])
 		{
-			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
-			*dst++ = 0;
-
-			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-			*dst++ = 0;
+			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];//? * (1<<16);
+			*dst++ = CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];//? * (1<<16);
 		}
 		else
 		{
-
+/*
 #ifdef DEBUG_POTADC_TO_CODEC
 			*dst++ = potadc_buffer[channel+0]*4;
 			*dst++ = 0;
@@ -895,33 +874,28 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 			*dst++ = 0;
 
 #else
+*/
 
+			//Main out
+			*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel] * 65536;
+			
+			//Send out
+			*dst++ = auxout + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel] * 65536;
 
-			if (SAMPLESIZE==2){
-				//Main out
-				*dst++ = mix + CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
-				*dst++ = 0;
+			////Main out
+			//*dst++ = (int16_t)(mix>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
+			//*dst++ = (int16_t)(mix & 0x0000FF00);
 
-				//Send out
-				*dst++ = auxout + CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-				*dst++ = 0;
-			}
-			else
-			{
-				//Main out
-				*dst++ = (int16_t)(mix>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[0+channel];
-				*dst++ = (int16_t)(mix & 0x0000FF00);
-
-				//Send out
-				*dst++ = (int16_t)(auxout>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
-				*dst++ = (int16_t)(auxout & 0x0000FF00);
-			}
+			////Send out
+			//*dst++ = (int16_t)(auxout>>16) + (int16_t)CODEC_DAC_CALIBRATION_DCOFFSET[2+channel];
+			//*dst++ = (int16_t)(auxout & 0x0000FF00);
+/*
 #endif
 #endif
+*/
 		}
 
 		wr_buff[i]=wr;
-
 	}
 
 	//Write a block to memory
