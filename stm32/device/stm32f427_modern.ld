@@ -84,13 +84,14 @@ SECTIONS
     KEEP (*(SORT(.fini_array.*)))
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
+	_sidata = __fini_array_end;
   } >FLASH
 
   /* used by the startup to initialize data */
-  _sidata = LOADADDR(.data);
+  /* _sidata = LOADADDR(.data); */
 
   /* Initialized data sections goes into RAM, load LMA copy after code */
-  .data : 
+  .data : AT ( _sidata )
   {
     . = ALIGN(16);
     _sdata = .;        /* create a global symbol at data start */
