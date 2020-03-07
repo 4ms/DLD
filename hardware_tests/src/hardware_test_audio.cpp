@@ -54,11 +54,17 @@ void test_codec_init(void) {
 	LED_REV2_ON;
 	err = Codec_B_Register_Setup(DCINPUT_JUMPER);
 	if (err) {
-		while (1) {
+		const uint32_t bailout_time=50; //5 seconds
+		uint32_t ctr = bailout_time;
+		while (ctr) {
 			LED_LOOP2_ON;
 			delay_ms(50);
 			LED_LOOP2_OFF;
 			delay_ms(50);
+			if (hardwaretest_continue_button())
+				ctr--;
+			else 
+				ctr = bailout_time;
 		}
 	}
 	LED_REV2_OFF;
@@ -67,10 +73,18 @@ void test_codec_init(void) {
 	err = Codec_A_Register_Setup(DCINPUT_JUMPER);
 	if (err) {
 		while (1) {
+		const uint32_t bailout_time=50; //5 seconds
+		uint32_t ctr = bailout_time;
+		while (ctr) {
 			LED_LOOP1_ON;
 			delay_ms(50);
 			LED_LOOP1_OFF;
 			delay_ms(50);
+			if (hardwaretest_continue_button())
+				ctr--;
+			else 
+				ctr = bailout_time;
+		}
 		}
 	}
 	LED_REV1_OFF;
