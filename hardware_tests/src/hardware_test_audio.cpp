@@ -1,5 +1,6 @@
 #include "hardware_test_audio.h"
 #include "hardware_test_util.h"
+#include "CodecCallbacks.h"
 extern "C" {
 #include "skewed_tri.h"
 #include "dig_pins.h"
@@ -90,36 +91,7 @@ void test_codec_init(void) {
 	LED_REV1_OFF;
 }
 
-struct skewedTri testWaves[4];
-
-static void test_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
-	uint16_t i;
-	for (i=0; i<sz/2; i++)
-	{
-		float leftOut = skewedTri_update(&testWaves[channel*2]);
-		*dst++ = (int16_t)leftOut;
-		*dst++ = 0;
-
-		float rightOut = skewedTri_update(&testWaves[channel*2+1]);
-		*dst++ = (int16_t)rightOut;
-		*dst++ = 0;
-	}
-	(void)(*src);//unused
-}
-
-static void test_audio_ins_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
-	uint16_t i;
-	for (i=0; i<sz/2; i++)
-	{
-		float waveOut = skewedTri_update(&testWaves[channel*2]);
-		*dst++ = ((int16_t)waveOut)/2 + (*src++);
-		*dst++ = *src++;
-
-		waveOut = skewedTri_update(&testWaves[channel*2+1]);
-		*dst++ = ((int16_t)waveOut)/2 + (*src++);
-		*dst++ = *src++;
-	}
-}
+static SkewedTriOsc testWaves[4];
 
 //Test Audio Outs
 //"Outer" button lights turn on (Reverse A/B)
@@ -133,12 +105,17 @@ void test_audio_out(void) {
 	float max = ((1<<15)-1);
 	float min = -max - 1.0f;
 
-	skewedTri_init(&testWaves[0], 100, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[1], 150, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[2], 225, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[3], 175, 0.2, max, min, SAMPLERATE);
+	testWaves[0].init(100, 0.2, max, min, 0, SAMPLERATE);
+	testWaves[1].init(150, 0.2, max, min, 0, SAMPLERATE);
+	testWaves[2].init(225, 0.2, max, min, 0, SAMPLERATE);
+	testWaves[3].init(175, 0.2, max, min, 0, SAMPLERATE);
 
-	set_codec_callback(test_audio_outs_cb);
+	CodecCallbacks::leftOut = &testWaves[0];
+	CodecCallbacks::rightOut = &testWaves[1];
+	CodecCallbacks::leftOutCodec2 = &testWaves[2];
+	CodecCallbacks::rightOutCodec2 = &testWaves[3];
+	set_codec_callback(CodecCallbacks::testWavesOut_2codecs);
+
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
 
@@ -148,6 +125,7 @@ void test_audio_out(void) {
 		else if (!hardwaretest_continue_button() && continue_armed) break;
 		delay_ms(80);
 	}
+
 	LED_PINGBUT_OFF;
 	LED_REV1_OFF;
 	LED_REV2_OFF;
@@ -164,15 +142,16 @@ void test_audio_out(void) {
 void test_audio_in(void) {
 	LED_INF1_ON;
 	LED_INF2_ON;
+
 	float max = ((1<<15)-1) / 2.0f;
 	float min = -max - 1.0f;
 
-	skewedTri_init(&testWaves[0], 200, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[1], 300, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[2], 450, 0.2, max, min, SAMPLERATE);
-	skewedTri_init(&testWaves[3], 350, 0.2, max, min, SAMPLERATE);
+	testWaves[0].init(200, 0.2, max, min, 0, SAMPLERATE);
+	testWaves[1].init(300, 0.2, max, min, 0, SAMPLERATE);
+	testWaves[2].init(450, 0.2, max, min, 0, SAMPLERATE);
+	testWaves[3].init(350, 0.2, max, min, 0, SAMPLERATE);
 
-	set_codec_callback(test_audio_ins_cb);
+	set_codec_callback(CodecCallbacks::passthruPlusTestWave_2codecs);
 
 	uint8_t continue_armed=0;
 	while (1) {
