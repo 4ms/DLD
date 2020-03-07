@@ -82,6 +82,9 @@ CFLAGS += -fno-exceptions -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -ffreestanding
 CFLAGS += --specs=nosys.specs
 
+CXXFLAGS = -std=c++17
+CXXFLAGS += -Wno-register
+
 AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
@@ -115,12 +118,12 @@ $(BUILDDIR)/%.o: %.c $(BUILDDIR)/%.d
 $(BUILDDIR)/%.o: %.cc $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
 	@echo "Compiling:" $< $(OPTFLAGS)
-	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
+	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cpp $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
 	@echo "Compiling:" $< $(OPTFLAGS)
-	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
+	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.s
 	@mkdir -p $(dir $@)
