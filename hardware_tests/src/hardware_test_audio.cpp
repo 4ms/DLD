@@ -2,7 +2,6 @@
 #include "hardware_test_util.h"
 #include "CodecCallbacks.h"
 extern "C" {
-#include "skewed_tri.h"
 #include "dig_pins.h"
 #include "leds.h"
 #include "globals.h"

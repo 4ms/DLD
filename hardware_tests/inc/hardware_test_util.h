@@ -15,6 +15,7 @@ uint8_t hardwaretest_continue_button(void);
 void pause_until_button_pressed(void);
 void pause_until_button_released(void);
 void flash_ping_until_pressed(void);
+bool check_for_longhold_button(void);
 
 bool read_button_state(uint8_t button_num);
 uint8_t read_switch_state(uint8_t sw_num);

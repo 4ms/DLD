@@ -8,7 +8,6 @@ extern "C" {
 #include "globals.h"
 #include "adc.h"
 #include "i2s.h"
-#include "skewed_tri.h"
 }
 static void show_multiple_nonzeros_error();
 extern uint16_t potadc_buffer[NUM_POT_ADCS];
