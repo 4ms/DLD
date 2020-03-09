@@ -46,7 +46,7 @@ void test_gate_ins() {
 	}
 
 	all_leds_off();
-	flash_ping_until_pressed();
+	delay_ms(150);
 }
 
 void test_gate_outs() {
@@ -59,6 +59,9 @@ void test_gate_outs() {
 	loopA_out.assign_gate_onoff_func(loopA_out_onoff);
 	loopB_out.assign_gate_onoff_func(loopB_out_onoff);
 
+	LED_LOOP1_ON;
+	LED_LOOP2_ON;
+	LED_PINGBUT_ON;
 	pause_until_button_released();
 
 	while (!hardwaretest_continue_button()) {
