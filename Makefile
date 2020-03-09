@@ -69,7 +69,8 @@ OPTFLAGS = -O1 \
           -ftree-switch-conversion \
           -ftree-pre \
           -ftree-vrp \
-          -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload -ftree-vectorize
+          -finline-functions -funswitch-loops -fpredictive-commoning -fgcse-after-reload -ftree-vectorize \
+
 # Causes Freeze on run: -fschedule-insns  -fschedule-insns2 
 
 CFLAGS = -g2
@@ -112,17 +113,17 @@ $(ELF): $(OBJECTS)
 
 $(BUILDDIR)/%.o: %.c $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "Compiling:" $< $(OPTFLAGS)
+	@echo "Compiling:" $<
 	@$(CC) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cc $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "Compiling:" $< $(OPTFLAGS)
+	@echo "Compiling:" $<
 	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cpp $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "Compiling:" $< $(OPTFLAGS)
+	@echo "Compiling:" $<
 	@$(CXX) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $(CXXFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.s
