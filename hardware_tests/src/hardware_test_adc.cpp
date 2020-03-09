@@ -39,12 +39,12 @@ void send_LFOs_to_audio_outs() {
 	flatRampWaveBiPolar.init(2.f, 0.1f, five_volts, neg_five_volts, 0.f, 48000.f);
 	flatRampWaveUniPolar.init(2.f, 0.1f, five_volts, zero_volts, 0.f, 48000.f);
 
-	CodecCallbacks_DualCodec::leftOut = nullptr;
-	CodecCallbacks_DualCodec::rightOut = nullptr;
-	CodecCallbacks_DualCodec::leftOutCodec2 = &flatRampWaveBiPolar;
-	CodecCallbacks_DualCodec::rightOutCodec2 = &flatRampWaveUniPolar;
+	CodecCallbacks_TwoCodecs::leftOutCodec1 = nullptr;
+	CodecCallbacks_TwoCodecs::rightOutCodec1 = nullptr;
+	CodecCallbacks_TwoCodecs::leftOutCodec2 = &flatRampWaveBiPolar;
+	CodecCallbacks_TwoCodecs::rightOutCodec2 = &flatRampWaveUniPolar;
 
-	set_codec_callback(CodecCallbacks_DualCodec::testWavesOut_2codecs);
+	set_codec_callback(CodecCallbacks_TwoCodecs::testWavesOut);
 }
 
 const uint8_t adc_map[NUM_POT_ADCS+NUM_CV_ADCS] = {

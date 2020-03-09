@@ -49,7 +49,7 @@ void test_codec_init(void) {
 	init_audio_dma();
 	LED_LOOP1_OFF;
 	LED_LOOP2_OFF;
-	
+
 	uint32_t err;
 	LED_REV2_ON;
 	err = Codec_B_Register_Setup(DCINPUT_JUMPER);
@@ -109,11 +109,11 @@ void test_audio_out(void) {
 	testWaves[2].init(225, 0.2, max, min, 0, SAMPLERATE);
 	testWaves[3].init(175, 0.2, max, min, 0, SAMPLERATE);
 
-	CodecCallbacks_DualCodec::leftOut = &testWaves[0];
-	CodecCallbacks_DualCodec::rightOut = &testWaves[1];
-	CodecCallbacks_DualCodec::leftOutCodec2 = &testWaves[2];
-	CodecCallbacks_DualCodec::rightOutCodec2 = &testWaves[3];
-	set_codec_callback(CodecCallbacks_DualCodec::testWavesOut_2codecs);
+	CodecCallbacks_TwoCodecs::leftOutCodec1 = &testWaves[0];
+	CodecCallbacks_TwoCodecs::rightOutCodec1 = &testWaves[1];
+	CodecCallbacks_TwoCodecs::leftOutCodec2 = &testWaves[2];
+	CodecCallbacks_TwoCodecs::rightOutCodec2 = &testWaves[3];
+	set_codec_callback(CodecCallbacks_TwoCodecs::testWavesOut);
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
@@ -150,7 +150,7 @@ void test_audio_in(void) {
 	testWaves[2].init(450, 0.2, max, min, 0, SAMPLERATE);
 	testWaves[3].init(350, 0.2, max, min, 0, SAMPLERATE);
 
-	set_codec_callback(CodecCallbacks_DualCodec::passthruPlusTestWave_2codecs);
+	set_codec_callback(CodecCallbacks_TwoCodecs::passthruPlusTestWave);
 
 	pause_until_button_pressed();
 	delay_ms(80);
