@@ -164,13 +164,13 @@ void test_pots_and_CV() {
 				done = true;
 			}
 
-			// if (hardwaretest_continue_button())
-			// 	done = true;
+			if (hardwaretest_continue_button())
+				done = true;
 		}
 
 		LED_INF1_ON;
 		LED_INF2_ON;
-		delay_ms(150);
+		delay_ms(350);
 		LED_INF1_OFF;
 		LED_INF2_OFF;
 	}
