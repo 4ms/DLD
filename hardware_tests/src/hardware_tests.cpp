@@ -115,9 +115,16 @@ void test_RAM(void) {
 
 	uint32_t errs = RAM_test();
 
+	errs++;
 	if (errs>0) {
-		while (1) {
+		const uint32_t bailout_time=100; //5 seconds
+		uint32_t ctr = bailout_time;
+		while (ctr) {
 			blink_all_lights(50);
+			if (hardwaretest_continue_button())
+				ctr--;
+			else 
+				ctr = bailout_time;
 		}
 	}
 
