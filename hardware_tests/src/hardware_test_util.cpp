@@ -32,6 +32,19 @@ void flash_ping_until_pressed(void) {
 	LED_PINGBUT_OFF;
 }
 
+bool check_for_longhold_button(void) {
+	uint32_t press_tmr = 0;
+	bool longhold_detected = false;
+	LED_PINGBUT_OFF;
+	while (hardwaretest_continue_button()) {
+		if (++press_tmr > 20000000) {
+			longhold_detected = true;
+			LED_PINGBUT_ON;
+		}
+	}
+	return longhold_detected;
+}
+
 uint8_t read_switch_state(uint8_t sw_num) {
 	if (sw_num==0) return TIMESW_CH1;
 	if (sw_num==1) return TIMESW_CH2;

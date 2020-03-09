@@ -152,12 +152,8 @@ void test_audio_in(void) {
 
 	set_codec_callback(CodecCallbacks_DualCodec::passthruPlusTestWave_2codecs);
 
-	uint8_t continue_armed=0;
-	while (1) {
-		if (hardwaretest_continue_button()) {LED_PINGBUT_ON; continue_armed = 1;}
-		else if (!hardwaretest_continue_button() && continue_armed) break;
-		delay_ms(80);
-	}
+	pause_until_button_pressed();
+	delay_ms(80);
 
 	LED_PINGBUT_OFF;
 	LED_INF1_OFF;

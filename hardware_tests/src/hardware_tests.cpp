@@ -59,7 +59,10 @@ void do_hardware_test(void)
 	test_codec_init();
 	test_audio_out();
 	test_audio_in();
-	test_RAM();
+
+	if (!check_for_longhold_button())
+		test_RAM();
+
 	test_buttons();
 	test_switches();
 
@@ -69,14 +72,13 @@ void do_hardware_test(void)
 	test_gate_outs();
 
 	pause_until_button_released();
-	//Animate success and force a hard reboot
+
 	while (1) {
 		animate_success();
 	}
 }
 
-void animate_success(void)
-{
+void animate_success(void) {
 	chase_all_lights(100);
 }
 
