@@ -109,11 +109,11 @@ void test_audio_out(void) {
 	testWaves[2].init(225, 0.2, max, min, 0, SAMPLERATE);
 	testWaves[3].init(175, 0.2, max, min, 0, SAMPLERATE);
 
-	CodecCallbacks::leftOut = &testWaves[0];
-	CodecCallbacks::rightOut = &testWaves[1];
-	CodecCallbacks::leftOutCodec2 = &testWaves[2];
-	CodecCallbacks::rightOutCodec2 = &testWaves[3];
-	set_codec_callback(CodecCallbacks::testWavesOut_2codecs);
+	CodecCallbacks_DualCodec::leftOut = &testWaves[0];
+	CodecCallbacks_DualCodec::rightOut = &testWaves[1];
+	CodecCallbacks_DualCodec::leftOutCodec2 = &testWaves[2];
+	CodecCallbacks_DualCodec::rightOutCodec2 = &testWaves[3];
+	set_codec_callback(CodecCallbacks_DualCodec::testWavesOut_2codecs);
 
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
@@ -150,7 +150,7 @@ void test_audio_in(void) {
 	testWaves[2].init(450, 0.2, max, min, 0, SAMPLERATE);
 	testWaves[3].init(350, 0.2, max, min, 0, SAMPLERATE);
 
-	set_codec_callback(CodecCallbacks::passthruPlusTestWave_2codecs);
+	set_codec_callback(CodecCallbacks_DualCodec::passthruPlusTestWave_2codecs);
 
 	uint8_t continue_armed=0;
 	while (1) {
