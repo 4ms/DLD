@@ -38,9 +38,10 @@ ELF = $(BUILDDIR)/$(BINARYNAME).elf
 HEX = $(BUILDDIR)/$(BINARYNAME).hex
 BIN = $(BUILDDIR)/$(BINARYNAME).bin
 
+CCACHE = ccache
 ARCH = arm-none-eabi
-CC = $(ARCH)-gcc
-CXX = $(ARCH)-g++
+CC = $(CCACHE) $(ARCH)-gcc
+CXX = $(CCACHE) $(ARCH)-g++
 LD = $(ARCH)-g++
 AS = $(ARCH)-as
 OBJCPY = $(ARCH)-objcopy
