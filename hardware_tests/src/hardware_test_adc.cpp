@@ -13,31 +13,12 @@ static void show_multiple_nonzeros_error();
 extern uint16_t potadc_buffer[NUM_POT_ADCS];
 extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 
-
 static CenterFlatRamp flatRampWaveBiPolar; 
 static CenterFlatRamp flatRampWaveUniPolar; 
 
-static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
-	if (channel==0) 
-		return;
-
-	uint16_t i;
-	for (i=0; i<sz/2; i++)
-	{
-		float leftOut = flatRampWaveBiPolar.update();
-		*dst++ = (int16_t)leftOut;
-		*dst++ = 0;
-
-		float rightOut = flatRampWaveUniPolar.update();
-		*dst++ = (int16_t)rightOut;
-		*dst++ = 0;
-	}
-	(void)(*src);//unused
-}
-
 void send_LFOs_to_audio_outs() {
-	flatRampWaveBiPolar.init(2.f, 0.1f, five_volts, neg_five_volts, 0.f, 48000.f);
-	flatRampWaveUniPolar.init(2.f, 0.1f, five_volts, zero_volts, 0.f, 48000.f);
+	flatRampWaveBiPolar.init(2.f, 0.2f, five_volts, neg_five_volts, 0.f, 48000.f);
+	flatRampWaveUniPolar.init(2.f, 0.2f, five_volts, zero_volts, 0.f, 48000.f);
 
 	CodecCallbacks_TwoCodecs::leftOutCodec1 = nullptr;
 	CodecCallbacks_TwoCodecs::rightOutCodec1 = nullptr;
@@ -103,8 +84,8 @@ void test_pots_and_CV() {
 		.center_val = 2048,
 		.center_width = 200,
 		.center_check_counts = 100000,
-		.min_val = 10,
-		.max_val = 4080,
+		.min_val = 35, //about 28mV
+		.max_val = 4080, //about 3288mV
 	};
 	AdcRangeChecker checker {bounds};
 

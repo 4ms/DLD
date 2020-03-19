@@ -6,7 +6,7 @@
 #endif
 
 constexpr float SAMPLERATE = (48000.0f);
-constexpr float one_volt = (float)(1<<15) / 12.2f;
+constexpr float one_volt = (float)(1<<15) / 12.0f;
 constexpr float five_volts = one_volt * 5.0f; 
 constexpr float zero_volts = -one_volt * 0.6f;
 constexpr float neg_five_volts = -one_volt * 6.4f;

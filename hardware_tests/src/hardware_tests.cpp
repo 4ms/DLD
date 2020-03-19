@@ -115,7 +115,6 @@ void test_RAM(void) {
 
 	uint32_t errs = RAM_test();
 
-	errs++;
 	if (errs>0) {
 		const uint32_t bailout_time=100; //5 seconds
 		uint32_t ctr = bailout_time;
