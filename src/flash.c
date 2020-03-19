@@ -85,12 +85,18 @@ void flash_begin_open_program(void)
 
 FLASH_Status flash_open_program_byte(uint8_t byte, uint32_t address)
 {
-	return FLASH_ProgramByte(address, byte);
+	if (address<kSectorBaseAddress[1]) 
+		return FLASH_ERROR_PROGRAM;
+	else
+		return FLASH_ProgramByte(address, byte);
 }
 
 FLASH_Status flash_open_program_word(uint32_t word, uint32_t address)
 {
-	return FLASH_ProgramWord(address, word);
+	if (address<kSectorBaseAddress[1]) 
+		return FLASH_ERROR_PROGRAM;
+	else
+		return FLASH_ProgramWord(address, word);
 }
 
 void flash_end_open_program(void)
@@ -105,7 +111,9 @@ FLASH_Status flash_open_program_array(uint8_t* arr, uint32_t address, uint32_t s
 	FLASH_Status status;
 
 	while(size--) {
-		status = FLASH_ProgramByte(address, *arr++);
+		if (address>=kSectorBaseAddress[1]) 
+			status = FLASH_ProgramByte(address, *arr);
+		*arr++;
 		address++;
 	}
 	return status;
