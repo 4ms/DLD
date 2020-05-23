@@ -1,4 +1,4 @@
-#include "AdcRangeChecker.hh"
+#include "AdcRangeChecker.h"
 #include "CodecCallbacks.h"
 #include "hardware_test_adc.h"
 #include "hardware_test_util.h"

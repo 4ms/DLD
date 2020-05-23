@@ -10,44 +10,145 @@ extern "C" {
 #include "i2s.h"
 }
 
-const uint8_t kNumGateIns = 5;
 
-static bool read_gate(uint8_t gatenum);
-static void output_gate(uint8_t gatenum, bool turn_on);
-static void show_multiple_highs_error();
-static void send_gates_to_audio_outs();
+class DLDGateInChecker : public IGateInChecker {
+	const uint8_t kNumGateIns = 5;
+	const unsigned kNumRepeats = 100;
 
-static void clock_out_onoff(bool newstate);
-static void loopA_out_onoff(bool newstate);
-static void loopB_out_onoff(bool newstate);
+public:
+	DLDGateInChecker() 
+		: IGateInChecker(kNumGateIns)
+	{
+		out_B_val = 0;
+		set_codec_callback(manual_control_audio_outs_cb);
+		set_num_toggles(kNumRepeats);
+	}
 
-//Each gate input needs to get a low and a high gate signal to pass.
-//The corresponding button will turn on/off when the gate is high/low.
-//If two gates are detected high at the same time, flash all lights 5 times,
-//then turn on red and blue lights. Ping will flash, press it to start the test over.
-//
+private:
+	static inline uint16_t out_B_val;
+	static void manual_control_audio_outs_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
+		if (channel==1) {
+			for (uint16_t i=0; i<sz/2; i++) {
+				*dst++ = channel ? out_B_val : 0;
+				*dst++ = 0;
+				*dst++ = 0;
+				*dst++ = 0;
+			}
+			(void)(*src);//unused
+		}
+	}
+
+protected:
+	virtual void _set_test_signal(bool newstate) {
+		out_B_val = newstate ? 31000 : 0;
+		if (newstate) LED_REV1_ON;
+		else LED_REV1_OFF;
+		delay_ms(1); //allow for latency of DAC output
+	}
+
+	virtual bool _read_gate(uint8_t gate_num) {
+		if (gate_num==0) 
+			return (PINGJACK!=0);
+		else if (gate_num==1)
+			return (REV1JACK!=0);
+		else if (gate_num==2)
+			return (INF1JACK!=0);
+		else if (gate_num==3)
+			return (INF2JACK!=0);
+		else if (gate_num==4)
+			return (REV2JACK!=0);
+		else
+			return false;
+	}
+
+	virtual void _set_indicator(uint8_t indicator_num, bool newstate) {
+		if (newstate) {
+			if (indicator_num==0) 
+				LED_PINGBUT_ON;
+			else if (indicator_num==1)
+				LED_REV1_ON;
+			else if (indicator_num==2)
+				LED_INF1_ON;
+			else if (indicator_num==3)
+				LED_INF2_ON;
+			else if (indicator_num==4)
+				LED_REV1_OFF;
+		} else {
+			if (indicator_num==0) 
+				LED_PINGBUT_OFF;
+			else if (indicator_num==1)
+				LED_REV1_OFF;
+			else if (indicator_num==2)
+				LED_INF1_OFF;
+			else if (indicator_num==3)
+				LED_INF2_OFF;
+			else if (indicator_num==4)
+				LED_REV1_OFF;
+		}
+	}
+
+	virtual void _set_error_indicator(uint8_t channel, ErrorType err) {
+		switch (err) {
+			case ErrorType::None:
+				all_leds_off();
+				break;
+
+			case ErrorType::MultipleHighs:
+				blink_all_lights(100);
+				blink_all_lights(100);
+				blink_all_lights(100);
+				blink_all_lights(100);
+				blink_all_lights(100);
+				all_leds_off();
+				LED_LOOP1_ON;
+				LED_LOOP2_ON;
+				flash_ping_until_pressed();
+				delay_ms(150);
+				break;
+
+			case ErrorType::StuckHigh:
+				LED_LOOP1_ON;
+				//flash_ping_until_pressed();
+				//delay_ms(150);
+				break;
+
+			case ErrorType::StuckLow:
+				LED_LOOP2_ON;
+				// flash_ping_until_pressed();
+				// delay_ms(150);
+				break;
+		}
+	}
+};
+
 void test_gate_ins() {
-	GateInChecker checker{kNumGateIns};
+	DLDGateInChecker checker;
 
-	send_gates_to_audio_outs();
-
-	LED_LOOP1_OFF;
-	LED_LOOP2_OFF;
-
-	checker.assign_read_gate_func(read_gate);
-	checker.assign_indicator_func(set_led);
-	
 	checker.reset();
-	while (checker.check()) {
-		if (checker.num_gates_high()>1) {
-			show_multiple_highs_error();
-			checker.reset();
+	while (checker.check()) {;}
+
+	if (checker.get_error() != DLDGateInChecker::ErrorType::None) {
+		while (!hardwaretest_continue_button()) {
+			blink_all_lights(400);
+			blink_all_lights(400);
+			blink_all_lights(400);
+			blink_all_lights(400);
+			flash_ping_until_pressed();
+			delay_ms(150);
 		}
 	}
 
 	all_leds_off();
 	delay_ms(150);
 }
+
+
+///GATE OUTS
+static void output_gate(uint8_t gatenum, bool turn_on);
+static void clock_out_onoff(bool newstate);
+static void loopA_out_onoff(bool newstate);
+static void loopB_out_onoff(bool newstate);
+
 
 void test_gate_outs() {
 	uint32_t kEmpiricalSampleRate = 2658;
@@ -74,20 +175,6 @@ void test_gate_outs() {
 }
 
 
-static bool read_gate(uint8_t gatenum) {
-	if (gatenum==0) 
-		return (PINGJACK!=0);
-	else if (gatenum==1)
-		return (REV1JACK!=0);
-	else if (gatenum==2)
-		return (INF1JACK!=0);
-	else if (gatenum==3)
-		return (INF2JACK!=0);
-	else if (gatenum==4)
-		return (REV2JACK!=0);
-	else
-		return false;
-}
 
 static void output_gate(uint8_t gatenum, bool turn_on) {
 	if (turn_on) {
@@ -109,18 +196,6 @@ static void output_gate(uint8_t gatenum, bool turn_on) {
 }
 
 
-void show_multiple_highs_error() {
-	blink_all_lights(100);
-	blink_all_lights(100);
-	blink_all_lights(100);
-	blink_all_lights(100);
-	blink_all_lights(100);
-	all_leds_off();
-	LED_LOOP1_ON;
-	LED_LOOP2_ON;
-	flash_ping_until_pressed();
-	delay_ms(150);
-}
 
 static void clock_out_onoff(bool newstate) {
 	output_gate(1, newstate);
@@ -132,30 +207,5 @@ static void loopA_out_onoff(bool newstate) {
 
 static void loopB_out_onoff(bool newstate) {
 	output_gate(2, newstate);
-}
-
-
-static TestGateOscillator gateWave; 
-
-static void test_audio_outs_as_lfos_cb(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel) {
-	if (channel==0) 
-		return;
-
-	uint16_t i;
-	for (i=0; i<sz/2; i++)
-	{
-		float leftOut = gateWave.update();
-		*dst++ = (int16_t)leftOut;
-		*dst++ = 0;
-
-		*dst++ = 0;
-		*dst++ = 0;
-	}
-	(void)(*src);//unused
-}
-
-static void send_gates_to_audio_outs() {
-	gateWave.init(2.f, 0.1f, five_volts, zero_volts, 0.f, 48000.f);
-	set_codec_callback(test_audio_outs_as_lfos_cb);
 }
 
