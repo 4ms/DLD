@@ -92,7 +92,8 @@ AFLAGS  = -mlittle-endian -mthumb -mcpu=cortex-m4
 LDSCRIPT = $(DEVICE)/$(LOADFILE)
 LFLAGS  = $(CFLAGS) -Wl,-Map,main.map -T $(LDSCRIPT)
 
-#$(BUILDDIR)/hardware_tests/src/hardware_test_adc.o: OPTFLAGS = -O0
+$(BUILDDIR)/hardware_tests/src/hardware_test_switches_buttons.o: OPTFLAGS = -O0
+$(BUILDDIR)/libhwtests/src/ButtonChecker.o: OPTFLAGS = -O0
 #$(BUILDDIR)/hardware_test_switches_buttons.o: OPTFLAGS = -O0
 #$(BUILDDIR)/hardware_test_adc.o: OPTFLAGS = -O0
 

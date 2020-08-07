@@ -50,14 +50,14 @@ uint8_t read_switch_state(uint8_t sw_num) {
 	if (sw_num==1) return TIMESW_CH2;
 	else return 0;
 }
-bool read_button_state(uint8_t button_num) {
-	if (button_num==0) return PINGBUT ? 1 : 0;
-	if (button_num==1) return REV1BUT ? 1 : 0;
-	if (button_num==2) return INF1BUT ? 1 : 0;
-	if (button_num==3) return INF2BUT ? 1 : 0;
-	if (button_num==4) return REV2BUT ? 1 : 0;
-	else return 0;
-}
+// bool read_button_state(uint8_t button_num) {
+// 	if (button_num==0) return PINGBUT ? 1 : 0;
+// 	if (button_num==1) return REV1BUT ? 1 : 0;
+// 	if (button_num==2) return INF1BUT ? 1 : 0;
+// 	if (button_num==3) return INF2BUT ? 1 : 0;
+// 	if (button_num==4) return REV2BUT ? 1 : 0;
+// 	else return 0;
+// }
 
 void set_button_led(uint8_t button_num, bool turn_on) {
 	if (turn_on) {

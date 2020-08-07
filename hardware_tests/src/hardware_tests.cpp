@@ -43,12 +43,9 @@ extern "C" {
 
 #include "LEDTester.h"
 
-uint16_t _abs(int16_t val) {return (val<0) ? -val : val;}
-
 static void test_single_leds(void);
 static void test_RAM(void);
 
-static void test_input_jacks(void);
 static void animate_success(void);
 
 void do_hardware_test(void)

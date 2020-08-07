@@ -1,32 +1,34 @@
-#include "LEDButtonChecker.h"
+#include "hardware_test_switches_buttons.h"
 #include "hardware_test_util.h"
-extern "C" {
-#include "dig_pins.h"
-#include "leds.h"
-#include "globals.h"
+
+void test_buttons(void)
+{
+	using ERRT = DLDButtonChecker::ErrorType;
+	all_leds_off();
+
+	DLDButtonChecker checker;
+	checker.reset();
+	checker.set_min_steady_state_time(400);
+	while (checker.check()) {
+	}
+
+	for (uint8_t i=0; i<kNumDLDButtons; i++) {
+		auto err = checker.get_error(i);
+		if (err != DLDButtonChecker::ErrorType::None) {
+			checker._set_error_indicator(i, err);
+			flash_ping_until_pressed();
+		}
+	}
 }
 
 //
 // Press each button to turn the lights off
 //
-void test_buttons(void)
-{
-	all_leds_off();
-
-	LEDButtonChecker check{5};
-	check.assign_button_read_func(read_button_state);
-	check.assign_button_led_func(set_button_led);
-	check.reset();
-
-	while (!check.check_done()) {
-		check.run_check();
-	}
-}
 
 void test_switches(void) {
 	uint8_t switch_state[2] = {0};
 	uint8_t switch_last_state[2] = {0};
-	uint8_t pos0[2]; 
+	uint8_t pos0[2];
 	uint8_t pos1[2];
 	uint8_t pos2[2];
 
