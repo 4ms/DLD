@@ -33,9 +33,9 @@ public:
 		if (err != ErrorType::None) {
 			uint8_t flashes = 10;
 			while (flashes--) {
-				delay_ms(50);
+				delay_ms(20);
 				_set_indicator(channel, false);
-				delay_ms(50);
+				delay_ms(20);
 				_set_indicator(channel, true);
 			}
 		}

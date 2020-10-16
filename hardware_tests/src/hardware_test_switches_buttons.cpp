@@ -6,9 +6,14 @@ void test_buttons(void)
 	using ERRT = DLDButtonChecker::ErrorType;
 	all_leds_off();
 
+	delay_ms(100);
+	pause_until_button_released();
+
 	DLDButtonChecker checker;
 	checker.reset();
-	checker.set_min_steady_state_time(400);
+	checker.set_min_steady_state_time(1000);
+	checker.set_allowable_noise(600);
+
 	while (checker.check()) {
 	}
 
