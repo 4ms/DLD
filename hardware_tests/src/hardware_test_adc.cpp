@@ -84,8 +84,8 @@ void test_pots_and_CV() {
 		.center_val = 2048,
 		.center_width = 200,
 		.center_check_counts = 100000,
-		.min_val = 35, //about 28mV
-		.max_val = 4080, //about 3288mV
+		.min_val = 40, //about 28mV
+		.max_val = 3980, //about 3288mV
 	};
 	AdcRangeChecker checker {bounds};
 
