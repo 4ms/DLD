@@ -139,13 +139,8 @@ int main(void)
 	}
 	else if (flash_firmware_version <= 1 ) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
 	{
-		if (RAM_test()==0)
-		{
-			global_mode[CALIBRATE] = 1;
-			do_factory_reset = 960000; //run normally for about 6 seconds before calibrating the CV jacks
-		}
-		else
-			while (1) blink_all_lights(50); //RAM Test failed: It's on the fritz!
+		global_mode[CALIBRATE] = 1;
+		do_factory_reset = 960000; //run normally for about 6 seconds before calibrating the CV jacks
 	}
 	else if (flash_firmware_version < FW_VERSION ) //If we detect a recently upgraded firmware version
 	{
