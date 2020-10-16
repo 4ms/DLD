@@ -12,12 +12,12 @@ extern "C" {
 
 
 class DLDGateInChecker : public IGateInChecker {
-	const uint8_t kNumGateIns = 5;
+	static const uint8_t kNumGateIns = 5;
 	const unsigned kNumRepeats = 100;
 
 public:
 	DLDGateInChecker() 
-		: IGateInChecker(kNumGateIns)
+		: IGateInChecker(5)
 	{
 		out_B_val = 0;
 		set_codec_callback(manual_control_audio_outs_cb);
@@ -41,8 +41,14 @@ private:
 protected:
 	virtual void _set_test_signal(bool newstate) {
 		out_B_val = newstate ? 31000 : 0;
-		if (newstate) LED_REV1_ON;
-		else LED_REV1_OFF;
+		if (newstate) {
+			LED_LOOP1_ON;
+			LED_LOOP2_OFF;
+		}
+		else {
+			LED_LOOP1_OFF;
+			LED_LOOP2_ON;
+		}
 		delay_ms(1); //allow for latency of DAC output
 	}
 
@@ -72,7 +78,7 @@ protected:
 			else if (indicator_num==3)
 				LED_INF2_ON;
 			else if (indicator_num==4)
-				LED_REV1_OFF;
+				LED_REV1_ON;
 		} else {
 			if (indicator_num==0) 
 				LED_PINGBUT_OFF;
@@ -90,7 +96,6 @@ protected:
 	virtual void _set_error_indicator(uint8_t channel, ErrorType err) {
 		switch (err) {
 			case ErrorType::None:
-				all_leds_off();
 				break;
 
 			case ErrorType::MultipleHighs:
@@ -107,15 +112,19 @@ protected:
 				break;
 
 			case ErrorType::StuckHigh:
+				all_leds_on();
 				LED_LOOP1_ON;
-				//flash_ping_until_pressed();
-				//delay_ms(150);
+				LED_LOOP2_OFF;
+				flash_ping_until_pressed();
+				delay_ms(150);
 				break;
 
 			case ErrorType::StuckLow:
+				all_leds_on();
+				LED_LOOP1_OFF;
 				LED_LOOP2_ON;
-				// flash_ping_until_pressed();
-				// delay_ms(150);
+				flash_ping_until_pressed();
+				delay_ms(150);
 				break;
 		}
 	}
