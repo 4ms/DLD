@@ -13,8 +13,8 @@ static void show_multiple_nonzeros_error();
 extern uint16_t potadc_buffer[NUM_POT_ADCS];
 extern uint16_t cvadc_buffer[NUM_CV_ADCS];
 
-static CenterFlatRamp flatRampWaveBiPolar; 
-static CenterFlatRamp flatRampWaveUniPolar; 
+static CenterFlatRamp flatRampWaveBiPolar;
+static CenterFlatRamp flatRampWaveUniPolar;
 
 void send_LFOs_to_audio_outs() {
 	flatRampWaveBiPolar.init(2.f, 0.2f, five_volts, neg_five_volts, 0.f, 48000.f);
@@ -74,7 +74,7 @@ bool check_max_one_cv_is_nonzero(uint16_t width) {
 	if (cvadc_buffer[TIME2_CV] > (2048+width/2))
 		num_nonzero++;
 
-	return (num_nonzero <= 1); 
+	return (num_nonzero <= 1);
 }
 
 void test_pots_and_CV() {
@@ -84,8 +84,8 @@ void test_pots_and_CV() {
 		.center_val = 2048,
 		.center_width = 200,
 		.center_check_counts = 100000,
-		.min_val = 40, //about 28mV
-		.max_val = 3980, //about 3288mV
+		.min_val = 80,
+		.max_val = 3920,
 	};
 	AdcRangeChecker checker {bounds};
 
@@ -110,7 +110,7 @@ void test_pots_and_CV() {
 		bool done = false;
 		bool zeroes_ok = true;
 		uint8_t cur_adc = adc_map[adc_i];
-		
+
 		checker.reset();
 
 		while (!done) {
