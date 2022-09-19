@@ -1,14 +1,34 @@
 BINARYNAME = main
 
+ifeq ($(TARGET),)
+$(warning Specify TARGET=f446 or TARGET=f427. Assuming f446)
+endif
+
+TARGET ?= f446
+
+ifeq ($(TARGET),f427)
 STARTUP = startup_stm32f427_modern.s
 SYSTEM = system_stm32f4xx.c
 LOADFILE = stm32f427_modern.ld
-
-DEVICE = stm32/device
+DEVICE = stm32/device/f427
 CORE = stm32/core
-PERIPH = stm32/periph
-
-BUILDDIR = build
+PERIPH = stm32/periph/stdperiph
+BUILDDIR = build/f427
+target_incs = -Iinc/f427
+target_srcs = $(wildcard src/f427/*.c)
+target_defs = -D'__FPU_PRESENT=1' -DUSE_STDPERIPH_DRIVER
+else ifeq ($(TARGET),f446)
+STARTUP = startup_stm32f446xx.s
+SYSTEM = system_stm32f4xx.c
+LOADFILE = STM32F446ZCHx_FLASH.ld
+DEVICE = stm32/device/f446
+CORE = stm32/core
+PERIPH = stm32/periph/STM32F4xx_HAL_Driver
+BUILDDIR = build/f446
+target_incs = -Iinc/f446
+target_srcs = $(wildcard src/f446/*.c)
+target_defs = -DSTM32F446xx -DUSE_HAL_DRIVER
+endif
 
 SOURCES += $(wildcard $(PERIPH)/src/*.c)
 SOURCES += $(DEVICE)/src/$(STARTUP)
@@ -20,6 +40,7 @@ SOURCES += $(wildcard libhwtests/src/*.cpp)
 SOURCES += $(wildcard hardware_tests/src/*.c)
 SOURCES += $(wildcard hardware_tests/src/*.cc)
 SOURCES += $(wildcard hardware_tests/src/*.cpp)
+SOURCES += $(target_srcs)
 
 OBJECTS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(SOURCES))))
 DEPS = $(OBJECTS:.o=.d)
@@ -30,18 +51,19 @@ DEPS = $(OBJECTS:.o=.d)
 INCLUDES += -I$(DEVICE)/include \
 			-I$(CORE)/include \
 			-I$(PERIPH)/include \
+			-I$(PERIPH)/Inc \
 			-Iinc \
 			-Ilibhwtests/inc \
 			-Ihardware_tests/inc \
+			$(target_incs)
 
 ELF = $(BUILDDIR)/$(BINARYNAME).elf
 HEX = $(BUILDDIR)/$(BINARYNAME).hex
 BIN = $(BUILDDIR)/$(BINARYNAME).bin
 
-CCACHE = ccache
 ARCH = arm-none-eabi
-CC = $(CCACHE) $(ARCH)-gcc
-CXX = $(CCACHE) $(ARCH)-g++
+CC = $(ARCH)-gcc
+CXX = $(ARCH)-g++
 LD = $(ARCH)-g++
 AS = $(ARCH)-as
 OBJCPY = $(ARCH)-objcopy
@@ -78,7 +100,8 @@ CFLAGS = -g2
 CFLAGS += -mlittle-endian -mthumb 
 CFLAGS += -mcpu=cortex-m4 
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16 
-CFLAGS += -DARM_MATH_CM4 -D'__FPU_PRESENT=1' -DUSE_STDPERIPH_DRIVER
+CFLAGS += -DARM_MATH_CM4 
+CFLAGS += $(target_defs)
 CFLAGS += -I. $(INCLUDES)
 CFLAGS += -fno-exceptions -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -ffreestanding
@@ -119,7 +142,7 @@ $(ELF): $(OBJECTS)
 $(BUILDDIR)/%.o: %.c $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
 	@echo "Compiling:" $<
-	@$(CC) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
+	$(CC) -c $(DEPFLAGS) $(OPTFLAGS) $(CFLAGS) $< -o $@
 
 $(BUILDDIR)/%.o: %.cc $(BUILDDIR)/%.d
 	@mkdir -p $(dir $@)
