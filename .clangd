@@ -1,0 +1,9 @@
+CompileFlags:
+	Add: [ 
+	-DSTM32F446xx,
+	-DUSE_HAL_DRIVER,
+	-Istm32/device/f446/include,
+	-Istm32/periph/STM32F4xx_HAL_Driver/Inc,
+	-Isrc/f446]
+	Remove: [-f*,
+	-Isrc/f427]
