@@ -26,55 +26,51 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "globals.h"
-#include "gpiof4.h"
-#include "sdram.h"
-#include "leds.h"
 #include "dig_pins.h"
+#include "globals.h"
+#include "leds.h"
+#include "sdram.h"
 
-uint32_t RAM_test(void){
+uint32_t RAM_test(void) {
 
 	uint32_t addr;
 	uint32_t i;
 	uint16_t rd0;
 	uint16_t rd1;
-	volatile uint32_t fail=0;
+	volatile uint32_t fail = 0;
 
-	addr=SDRAM_BASE;
-	for (i=0;i<(SDRAM_SIZE/2);i++){
+	addr = SDRAM_BASE;
+	for (i = 0; i < (SDRAM_SIZE / 2); i++) {
 		LED_REV1_ON;
-		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
-
+		SDRAM_Wait();
 		LED_REV1_OFF;
 
-		rd1 = (uint16_t)((i) & 0x0000FFFF);
+		rd1 = (uint16_t)((i)&0x0000FFFF);
 		*((uint16_t *)addr) = rd1;
 
-		addr+=2;
+		addr += 2;
 	}
 
-	addr=SDRAM_BASE;
-	for (i=0;i<(SDRAM_SIZE/2);i++){
+	addr = SDRAM_BASE;
+	for (i = 0; i < (SDRAM_SIZE / 2); i++) {
 		LED_REV2_ON;
-		while(FMC_GetFlagStatus(FMC_Bank2_SDRAM, FMC_FLAG_Busy) != RESET){;}
+		SDRAM_Wait();
 		LED_REV2_OFF;
 
 		rd1 = *((uint16_t *)addr);
 
-		rd0=(uint16_t)((i) & 0x0000FFFF);
+		rd0 = (uint16_t)((i)&0x0000FFFF);
 		if (rd1 != rd0)
 			fail++;
 
-		addr+=2;
+		addr += 2;
 	}
 
-	return(fail);
+	return (fail);
 }
 
-
-void RAM_startup_test(void)
-{
-	volatile register uint32_t ram_errors=0;
+void RAM_startup_test(void) {
+	volatile register uint32_t ram_errors = 0;
 
 	LED_LOOP1_OFF;
 	LED_LOOP2_OFF;
@@ -94,7 +90,6 @@ void RAM_startup_test(void)
 	LED_INF1_ON;
 	LED_INF2_ON;
 
-
 	//Display the number of bad memory addresses using the seven lights (up to 127 can be shown)
 	//If there's 128 or more bad memory addresses, then flash all the lights
 	if (ram_errors & 1)
@@ -112,13 +107,9 @@ void RAM_startup_test(void)
 	if (ram_errors & 64)
 		LED_REV2_OFF;
 
-	while (1)
-	{
-		if (ram_errors >= 128)
-		{
+	while (1) {
+		if (ram_errors >= 128) {
 			blink_all_lights(50);
 		}
 	}
-
-
 }
