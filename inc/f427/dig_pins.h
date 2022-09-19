@@ -61,7 +61,6 @@
 #define INF1JACK_GPIO GPIOD
 #define INF1JACK ((INF1JACK_GPIO->IDR & INF1JACK_pin))
 
-
 #define INF2BUT_pin GPIO_Pin_9
 #define INF2BUT_GPIO GPIOA
 #define INF2BUT (!(INF2BUT_GPIO->IDR & INF2BUT_pin))
@@ -69,7 +68,6 @@
 #define INF2JACK_pin GPIO_Pin_6
 #define INF2JACK_GPIO GPIOG
 #define INF2JACK ((INF2JACK_GPIO->IDR & INF2JACK_pin))
-
 
 #define REV_RCC RCC_AHB1Periph_GPIOD
 
@@ -81,8 +79,6 @@
 #define REV2JACK_GPIO GPIOD
 #define REV2JACK ((REV2JACK_GPIO->IDR & REV2JACK_pin))
 
-
-
 #define REVBUT_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOG
 
 #define REV1BUT_pin GPIO_Pin_10
@@ -92,7 +88,6 @@
 #define REV2BUT_pin GPIO_Pin_1
 #define REV2BUT_GPIO GPIOA
 #define REV2BUT (!(REV2BUT_GPIO->IDR & REV2BUT_pin))
-
 
 #define TIMESW_RCC RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE
 
@@ -105,14 +100,17 @@
 #define TIMESW_CH1_T1_GPIO GPIOG
 #define TIMESW_CH1_T2_pin GPIO_Pin_12
 #define TIMESW_CH1_T2_GPIO GPIOG
-#define TIMESW_CH1 (((TIMESW_CH1_T2_GPIO->IDR & TIMESW_CH1_T2_pin) ? 0b10:0b00) | ((TIMESW_CH1_T1_GPIO->IDR & TIMESW_CH1_T1_pin) ? 0b01:0b00))
+#define TIMESW_CH1                                                                                                     \
+	(((TIMESW_CH1_T2_GPIO->IDR & TIMESW_CH1_T2_pin) ? 0b10 : 0b00) |                                                   \
+	 ((TIMESW_CH1_T1_GPIO->IDR & TIMESW_CH1_T1_pin) ? 0b01 : 0b00))
 
 #define TIMESW_CH2_T1_pin GPIO_Pin_2
 #define TIMESW_CH2_T1_GPIO GPIOA
 #define TIMESW_CH2_T2_pin GPIO_Pin_2
 #define TIMESW_CH2_T2_GPIO GPIOB
-#define TIMESW_CH2 (((TIMESW_CH2_T2_GPIO->IDR & TIMESW_CH2_T2_pin) ? 0b10:0b00) | ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01:0b00))
-
+#define TIMESW_CH2                                                                                                     \
+	(((TIMESW_CH2_T2_GPIO->IDR & TIMESW_CH2_T2_pin) ? 0b10 : 0b00) |                                                   \
+	 ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01 : 0b00))
 
 #define JUMPER_RCC (RCC_AHB1Periph_GPIOC /*| RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOB*/)
 
@@ -137,7 +135,6 @@
 
 #define DCINPUT_JUMPER JUMPER_1
 #define MODE_24BIT_JUMPER JUMPER_2
-
 
 //OUTPUTS
 
@@ -194,7 +191,6 @@
 #define LED_REV2_ON LED_REV2_GPIO->BSRRL = LED_REV2_pin
 #define LED_REV2_OFF LED_REV2_GPIO->BSRRH = LED_REV2_pin
 
-
 //LOOP LEDs
 #define LED_RCC RCC_AHB1Periph_GPIOA
 
@@ -205,7 +201,6 @@
 #define LED_LOOP1_OFF LED_GPIO->BSRRH = LED_LOOP1
 #define LED_LOOP2_ON LED_GPIO->BSRRL = LED_LOOP2
 #define LED_LOOP2_OFF LED_GPIO->BSRRH = LED_LOOP2
-
 
 //DEBUG pins
 #define DEBUG_RCC (RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOA)
@@ -237,7 +232,10 @@
 #define DEBUG4_OFF DEBUG4_GPIO->BSRRH = DEBUG4
 */
 
+#define INFREVBUTTONJACK_PINGBUT_TIM TIM4
+#define INFREVBUTTONJACK_PINGBUT_TIM_RCC RCC_APB1Periph_TIM4
+#define INFREVBUTTONJACK_PINGBUT_TIM_IRQn TIM4_IRQn
+#define INFREVBUTTONJACK_PINGBUT_IRQHandler TIM4_IRQHandler
 void init_dig_inouts(void);
-
 
 #endif /* INOUTS_H_ */
