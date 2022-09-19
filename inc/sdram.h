@@ -16,5 +16,6 @@
 #define SDRAM_SIZE 0x02000000
 
 void SDRAM_Init(void);
+void SDRAM_Wait(void);
 
 #endif /* SDRAM_H_ */
