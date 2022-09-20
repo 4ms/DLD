@@ -48,11 +48,19 @@ void init_inputread_timer(void) {
 	TIM_Cmd(TIM10, ENABLE);
 }
 
+// Defined in button_jacks.c
 void ping_jack_read(void);
+void buttons_jacks_read(void);
 
 void TIM1_UP_TIM10_IRQHandler(void) {
 	if (TIM_GetITStatus(TIM10, TIM_IT_Update) != RESET) {
 		ping_jack_read();
 		TIM_ClearITPendingBit(TIM10, TIM_IT_Update);
 	}
+}
+
+void TIM4_IRQHandler(void) {
+	// Clear TIM update interrupt
+	TIM_ClearITPendingBit(INFREVBUTTONJACK_PINGBUT_TIM, TIM_IT_Update);
+	buttons_jacks_read();
 }
