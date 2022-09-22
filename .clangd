@@ -4,7 +4,8 @@ CompileFlags:
 	-DUSE_HAL_DRIVER,
 	-Istm32/device/f446/include,
 	-Istm32/periph/STM32F4xx_HAL_Driver/Inc,
-	-Isrc/f446]
+	-Isrc/f446,
+	]
 
 	Remove: [
 	-f*,
@@ -13,3 +14,5 @@ CompileFlags:
 	-Istm32/periph/stdperiph/include,
 	-Istm32/periph/stdperiph/Inc,
 	]
+
+	Compiler: arm-none-eabi-gcc
