@@ -1,0 +1,57 @@
+BasedOnStyle : "LLVM"
+Standard : "c++20"
+UseTab : "Always"
+TabWidth : 4
+IndentWidth : 4
+ColumnLimit : 120
+AccessModifierOffset : -4
+AlignAfterOpenBracket: "Align"
+AlignOperands : "AlignAfterOperator"
+AllowAllArgumentsOnNextLine : "true"
+AllowShortBlocksOnASingleLine : "true"
+AllowShortFunctionsOnASingleLine: "false"
+AllowShortIfStatementsOnASingleLine : "Never"
+AlwaysBreakTemplateDeclarations : "true"
+BinPackArguments: false
+BinPackParameters: false
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: MultiLine
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: true
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakBeforeBraces: "Custom"
+BreakBeforeConceptDeclarations : true
+BreakBeforeTernaryOperators : true
+BreakConstructorInitializers : "BeforeComma"
+BreakInheritanceList : "AfterColon"
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth : 4
+IndentCaseLabels : "true"
+IndentPPDirectives : "None"
+LambdaBodyIndentation : "OuterScope"
+ReflowComments : "false"
+SpaceAfterCStyleCast : "false"
+SpaceAfterTemplateKeyword : "false"
+SpaceBeforeAssignmentOperators : "true"
+SpaceBeforeCtorInitializerColon : "true"
+SpaceBeforeInheritanceColon : "true"
+SpaceBeforeCtorInitializerColon : "true"
+SpaceBeforeAssignmentOperators : "true"
+SpaceAfterTemplateKeyword : "false"
+SpaceAfterCStyleCast : "false"
+SpaceBeforeParens : "ControlStatements"
+SpaceBeforeRangeBasedForLoopColon : "true"
+SpaceInEmptyParentheses : "false"
+SpacesInAngles : "false"
+SpacesInCStyleCastParentheses : "false"
