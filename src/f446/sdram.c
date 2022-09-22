@@ -32,9 +32,7 @@ void MX_FMC_Init(void) {
 	SdramTiming.RPDelay = 16;
 	SdramTiming.RCDDelay = 16;
 
-	if (HAL_SDRAM_Init(&hsdram1, &SdramTiming) != HAL_OK) {
-		Error_Handler();
-	}
+	HAL_SDRAM_Init(&hsdram1, &SdramTiming);
 }
 
 static uint32_t FMC_Initialized = 0;

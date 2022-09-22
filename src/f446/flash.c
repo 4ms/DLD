@@ -52,14 +52,14 @@ FlashStatus flash_erase_sector(uint32_t address) {
 	FlashStatus status;
 
 	HAL_FLASH_Unlock();
-	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
-					FLASH_FLAG_PGSERR);
+	// FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
+	// 				FLASH_FLAG_PGSERR);
 	for (i = 0; i < 12; ++i) {
 		if (address == kSectorBaseAddress[i]) {
-			status = FLASH_EraseSector(i * 8, VoltageRange_3);
+			// status = HAL_FLASHEx_EraseSector(i * 8, VoltageRange_3);
 		}
 	}
-	FLASH_Lock();
+	HAL_FLASH_Lock();
 
 	return status;
 }
@@ -70,34 +70,34 @@ FlashStatus flash_open_erase_sector(uint32_t address) {
 
 	for (i = 0; i < 12; ++i) {
 		if (address == kSectorBaseAddress[i]) {
-			status = FLASH_EraseSector(i * 8, VoltageRange_3);
+			// status = HAL_FLASHEx_Erase(i * 8, VoltageRange_3);
 		}
 	}
 	return status;
 }
 
 void flash_begin_open_program(void) {
-	FLASH_Unlock();
-	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
-					FLASH_FLAG_PGSERR);
+	HAL_FLASH_Unlock();
+	// FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
+	// 				FLASH_FLAG_PGSERR);
 }
 
 FlashStatus flash_open_program_byte(uint8_t byte, uint32_t address) {
 	if (address < kSectorBaseAddress[1])
-		return FLASH_ERROR_PROGRAM;
+		return HAL_FLASH_ERROR_PGP;
 	else
-		return FLASH_ProgramByte(address, byte);
+		return HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, address, byte);
 }
 
 FlashStatus flash_open_program_word(uint32_t word, uint32_t address) {
 	if (address < kSectorBaseAddress[1])
-		return FLASH_ERROR_PROGRAM;
+		return HAL_FLASH_ERROR_PGP;
 	else
-		return FLASH_ProgramWord(address, word);
+		return HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address, word);
 }
 
 void flash_end_open_program(void) {
-	FLASH_Lock();
+	HAL_FLASH_Lock();
 }
 
 // size is in # of bytes
@@ -106,7 +106,7 @@ FlashStatus flash_open_program_array(uint8_t *arr, uint32_t address, uint32_t si
 
 	while (size--) {
 		if (address >= kSectorBaseAddress[1])
-			status = FLASH_ProgramByte(address, *arr);
+			status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, address, *arr);
 		*arr++;
 		address++;
 	}

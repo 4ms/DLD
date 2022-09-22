@@ -2,10 +2,10 @@
 #include "stm32f4xx.h"
 #include "timekeeper.h"
 
-volatile uint32_t ping_tmr;
-volatile uint32_t ping_ledbut_tmr;
-volatile uint32_t clkout_trigger_tmr;
-volatile uint32_t loopled_tmr[2];
+extern volatile uint32_t ping_tmr;
+extern volatile uint32_t ping_ledbut_tmr;
+extern volatile uint32_t clkout_trigger_tmr;
+extern volatile uint32_t loopled_tmr[2];
 
 void init_timekeeper(void) {
 	//NVIC_InitTypeDef nvic;
