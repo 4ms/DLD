@@ -28,24 +28,25 @@
 
 #include <stm32f4xx.h>
 
-#include "globals.h"
-#include "i2s.h"
-#include "adc.h"
-#include "looping_delay.h"
-#include "params.h"
-#include "timekeeper.h"
-#include "sdram.h"
-#include "calibration.h"
-#include "flash_user.h"
-#include "leds.h"
-#include "system_settings.h"
-#include "buttons_jacks.h"
-#include "dig_pins.h"
-#include "codec_CS4271.h"
 #include "RAM_test.h"
+#include "adc.h"
+#include "buttons_jacks.h"
+#include "calibration.h"
+#include "codec_CS4271.h"
+#include "dig_pins.h"
+#include "flash_user.h"
+#include "globals.h"
 #include "hardware_tests.h"
+#include "i2s.h"
+#include "leds.h"
+#include "looping_delay.h"
+#include "nvic.h"
+#include "params.h"
+#include "sdram.h"
+#include "system_settings.h"
+#include "timekeeper.h"
 
-uint32_t g_error=0;
+uint32_t g_error = 0;
 
 __IO uint16_t potadc_buffer[NUM_POT_ADCS];
 __IO uint16_t cvadc_buffer[NUM_CV_ADCS];
@@ -54,28 +55,27 @@ extern uint8_t global_mode[NUM_GLOBAL_MODES];
 
 extern uint32_t flash_firmware_version;
 
-void check_errors(void){
-
+void check_errors(void) {
 }
 
-uint8_t check_bootloader_keys(void)
-{
+uint8_t check_bootloader_keys(void) {
 	uint32_t dly;
-	uint32_t button_debounce=0;
+	uint32_t button_debounce = 0;
 
-	dly=32000;
-	while(dly--){
-		if (BOOTLOADER_BUTTONS) button_debounce++;
-		else button_debounce=0;
+	dly = 32000;
+	while (dly--) {
+		if (BOOTLOADER_BUTTONS)
+			button_debounce++;
+		else
+			button_debounce = 0;
 	}
-	return (button_debounce>15000);
+	return (button_debounce > 15000);
 }
 
-int main(void)
-{
-	uint32_t do_factory_reset=0;
+int main(void) {
+	uint32_t do_factory_reset = 0;
 
-	NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x8000);
+	set_vect_table();
 
 	Codecs_Deinit();
 
@@ -114,8 +114,8 @@ int main(void)
 	delay();
 
 	Codec_GPIO_Init();
-	Codec_B_AudioInterface_Init(I2S_AudioFreq_48k);
-	Codec_A_AudioInterface_Init(I2S_AudioFreq_48k);
+	Codec_B_AudioInterface_Init(48000);
+	Codec_A_AudioInterface_Init(48000);
 
 	init_audio_dma();
 
@@ -133,16 +133,14 @@ int main(void)
 
 	flash_firmware_version = load_flash_params();
 
-	if (ENTER_CALIBRATE_BUTTONS)
+	if (ENTER_CALIBRATE_BUTTONS) {
+		global_mode[CALIBRATE] = 1;
+	} else if (flash_firmware_version <=
+			   1) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
 	{
 		global_mode[CALIBRATE] = 1;
-	}
-	else if (flash_firmware_version <= 1 ) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
-	{
-		global_mode[CALIBRATE] = 1;
-		do_factory_reset = 960000; //run normally for about 6 seconds before calibrating the CV jacks
-	}
-	else if (flash_firmware_version < FW_VERSION ) //If we detect a recently upgraded firmware version
+		do_factory_reset = 960000;					//run normally for about 6 seconds before calibrating the CV jacks
+	} else if (flash_firmware_version < FW_VERSION) //If we detect a recently upgraded firmware version
 	{
 		set_firmware_version();
 		store_params_into_sram();
@@ -156,15 +154,12 @@ int main(void)
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
 
-	while(1) {
+	while (1) {
 
-		if (global_mode[QUANTIZE_MODE_CHANGES]==0)
-		{
+		if (global_mode[QUANTIZE_MODE_CHANGES] == 0) {
 			process_mode_flags(0);
 			process_mode_flags(1);
-		}
-		else
-		{
+		} else {
 			process_ping_changed(0);
 			process_ping_changed(1);
 		}
@@ -176,69 +171,66 @@ int main(void)
 				factory_reset(1);
 	}
 
-	return(1);
+	return (1);
 }
 
 /* exception handlers - so we know what's failing */
-void NMI_Handler(void)
-{
-	while(1){};
+void NMI_Handler(void) {
+	while (1) {
+	};
 }
 
-void HardFault_Handler(void)
-{
+void HardFault_Handler(void) {
 	uint8_t foobar;
-	uint32_t hfsr,dfsr,afsr,bfar,mmfar,cfsr;
+	uint32_t hfsr, dfsr, afsr, bfar, mmfar, cfsr;
 
-	foobar=0;
-	mmfar=SCB->MMFAR;
-	bfar=SCB->BFAR;
+	foobar = 0;
+	mmfar = SCB->MMFAR;
+	bfar = SCB->BFAR;
 
-	hfsr=SCB->HFSR;
-	afsr=SCB->AFSR;
-	dfsr=SCB->DFSR;
-	cfsr=SCB->CFSR;
+	hfsr = SCB->HFSR;
+	afsr = SCB->AFSR;
+	dfsr = SCB->DFSR;
+	cfsr = SCB->CFSR;
 
-
-	if (foobar){
+	if (foobar) {
 		return;
 	} else {
-		while(1){};
+		while (1) {
+		};
 	}
 }
 
-void SysTick_Handler(void)
-{
+void SysTick_Handler(void) {
 	return;
 }
 
-void MemManage_Handler(void)
-{
-	while(1){};
+void MemManage_Handler(void) {
+	while (1) {
+	};
 }
 
-void BusFault_Handler(void)
-{
-	while(1){};
+void BusFault_Handler(void) {
+	while (1) {
+	};
 }
 
-void UsageFault_Handler(void)
-{
-	while(1){};
+void UsageFault_Handler(void) {
+	while (1) {
+	};
 }
 
-void SVC_Handler(void)
-{
-	while(1){};
+void SVC_Handler(void) {
+	while (1) {
+	};
 }
 
-void DebugMon_Handler(void)
-{
-	while(1){};
+void DebugMon_Handler(void) {
+	while (1) {
+	};
 }
 
-void PendSV_Handler(void)
-{
-	while(1){};
+void PendSV_Handler(void) {
+	while (1) {
+	};
 }
-

@@ -246,13 +246,10 @@ void ping_jack_read(void) {
 // and high for a certain number of cycles. We shift 0's and 1's down a 16-bit variable (State[]) to indicate high/low status.
 // takes 2-3us
 // runs at 27kHz
-void INFREVBUTTONJACK_PINGBUT_IRQHandler(void) {
+void buttons_jacks_read(void) {
 	static uint16_t State[10] = {0, 0, 0, 0xFFFF, 0xFFFF, 0, 0, 0xFFFF, 0xFFFF, 0}; // Current debounce status
 	uint16_t t;
 	static uint32_t ch1_clear_ctr = 0, ch2_clear_ctr = 0, ch1_contrev_ctr = 0, ch2_contrev_ctr = 0;
-
-	// Clear TIM update interrupt
-	TIM_ClearITPendingBit(INFREVBUTTONJACK_PINGBUT_TIM, TIM_IT_Update);
 
 	// Check Ping Button
 

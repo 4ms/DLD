@@ -52,9 +52,9 @@ void init_dig_inouts(void) {
 	GPIO_InitTypeDef gpio = {0};
 
 	//Configure outputs
-	gpio.Mode = GPIO_MODE_OUT;
+	gpio.Mode = GPIO_MODE_OUTPUT;
 	gpio.Speed = GPIO_SPEED_FREQ_MEDIUM;
-	gpio.OType = GPIO_OType_PP;
+	gpio.OType = GPIO_OTYPE_PP;
 	gpio.Pull = GPIO_NOPULL;
 
 	//LEDs

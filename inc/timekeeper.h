@@ -26,7 +26,6 @@
  * -----------------------------------------------------------------------------
  */
 
-
 #ifndef TIMEKEEPER_H_
 #define TIMEKEEPER_H_
 #include <stm32f4xx.h>
@@ -42,5 +41,7 @@ void reset_clkout_trigger_tmr(void);
 void reset_loopled_tmr(uint8_t channel);
 void init_adc_param_update_timer(void);
 
+void update_on_sampleclock(void);
+void update_adc_params(void);
 
 #endif /* TIMEKEEPER_H_ */
