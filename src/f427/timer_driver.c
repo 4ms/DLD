@@ -2,10 +2,10 @@
 #include "stm32f4xx.h"
 #include "timekeeper.h"
 
-volatile uint32_t ping_tmr;
-volatile uint32_t ping_ledbut_tmr;
-volatile uint32_t clkout_trigger_tmr;
-volatile uint32_t loopled_tmr[2];
+extern volatile uint32_t ping_tmr;
+extern volatile uint32_t ping_ledbut_tmr;
+extern volatile uint32_t clkout_trigger_tmr;
+extern volatile uint32_t loopled_tmr[2];
 
 void init_timekeeper(void) {
 	NVIC_InitTypeDef nvic;
@@ -17,7 +17,8 @@ void init_timekeeper(void) {
 	loopled_tmr[0] = 0;
 	loopled_tmr[1] = 0;
 
-	//Set Priority Grouping mode to 2-bits for priority and 2-bits for sub-priority
+	// Set Priority Grouping mode to 2-bits for priority and 2-bits for
+	// sub-priority
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
@@ -57,8 +58,8 @@ void init_adc_param_update_timer(void) {
 	nvic.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvic);
 
-	//168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
-	//20000 and 0x1 ==> works well
+	// 168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
+	// 20000 and 0x1 ==> works well
 
 	TIM_TimeBaseStructInit(&tim);
 	tim.TIM_Period = 30000;
@@ -74,7 +75,7 @@ void init_adc_param_update_timer(void) {
 }
 
 void adc_param_update_IRQHandler(void) {
-	//Takes 7-8us
+	// Takes 7-8us
 	if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
 		update_adc_params();
 		TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
