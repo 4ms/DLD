@@ -32,6 +32,7 @@
 #include "adc.h"
 #include "buttons_jacks.h"
 #include "calibration.h"
+#include "codec.h"
 #include "codec_CS4271.h"
 #include "dig_pins.h"
 #include "flash_user.h"

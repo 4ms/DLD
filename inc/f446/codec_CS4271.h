@@ -33,7 +33,6 @@
 /* I2C clock speed configuration (in Hz)  */
 #define CODEC_I2C_SPEED 50000
 
-// Uncomment defines below to select standard for audio communication between Codec and I2S peripheral
 #define USE_I2S_STANDARD_PHILLIPS
 //#define USE_I2S_STANDARD_MSB
 //#define USE_I2S_STANDARD_LSB
@@ -41,15 +40,15 @@
 //#define USE_DEFAULT_TIMEOUT_CALLBACK
 
 // For CS4271
-#define CODECA_RESET_RCC RCC_AHB1Periph_GPIOB
-#define CODECA_RESET_pin GPIO_PIN_4
-#define CODECA_RESET_GPIO GPIOB
+#define CODECA_RESET_RCC_ENABLE __HAL_RCC_GPIOD_CLK_ENABLE
+#define CODECA_RESET_pin GPIO_PIN_2
+#define CODECA_RESET_GPIO GPIOD
 #define CODECA_RESET_HIGH CODECA_RESET_GPIO->BSRR = CODECA_RESET_pin
 #define CODECA_RESET_LOW CODECA_RESET_GPIO->BSRR = (CODECA_RESET_pin << 16)
 
-#define CODECB_RESET_RCC RCC_AHB1Periph_GPIOD
-#define CODECB_RESET_pin GPIO_PIN_12
-#define CODECB_RESET_GPIO GPIOD
+#define CODECB_RESET_RCC_ENABLE __HAL_RCC_GPIOG_CLK_ENABLE
+#define CODECB_RESET_pin GPIO_PIN_3
+#define CODECB_RESET_GPIO GPIOG
 #define CODECB_RESET_HIGH CODECB_RESET_GPIO->BSRR = CODECB_RESET_pin
 #define CODECB_RESET_LOW CODECB_RESET_GPIO->BSRR = (CODECB_RESET_pin << 16)
 
@@ -175,32 +174,28 @@ Hardware Configuration defines parameters
 #define AUDIO_I2S3_EXT_DMA_FLAG_TE DMA_FLAG_TEIF2
 #define AUDIO_I2S3_EXT_DMA_FLAG_DME DMA_FLAG_DMEIF2
 
-#define AUDIO_MAL_DMA_PERIPH_DATA_SIZE DMA_PeripheralDataSize_HalfWord
-#define AUDIO_MAL_DMA_MEM_DATA_SIZE DMA_MemoryDataSize_HalfWord
-#define DMA_MAX_SZE 0xFFFF
-
 /* I2S DMA Stream definitions */
 
 /* I2C peripheral configuration defines (control interface of the audio codec) */
 #define CODECB_I2C I2C2
-#define CODECB_I2C_CLK RCC_APB1Periph_I2C2
-#define CODECB_I2C_GPIO_CLOCK RCC_AHB1Periph_GPIOB
-#define CODECB_I2C_GPIO_AF GPIO_AF_I2C2
+#define CODECB_I2C_CLK __HAL_RCC_I2C2_CLK_ENABLE
+#define CODECB_I2C_GPIO_CLOCK __HAL_RCC_GPIOB_CLK_ENABLE
+#define CODECB_I2C_GPIO_AF GPIO_AF4_I2C2
 #define CODECB_I2C_GPIO GPIOB
 #define CODECB_I2C_SCL_PIN GPIO_PIN_10
 #define CODECB_I2C_SDA_PIN GPIO_PIN_11
-#define CODECB_I2C_SCL_PINSRC GPIO_PinSource10
-#define CODECB_I2C_SDA_PINSRC GPIO_PinSource11
+// #define CODECB_I2C_SCL_PINSRC GPIO_PinSource10
+// #define CODECB_I2C_SDA_PINSRC GPIO_PinSource11
 
 #define CODECA_I2C I2C1
-#define CODECA_I2C_CLK RCC_APB1Periph_I2C1
+#define CODECA_I2C_CLK __HAL_RCC_I2C1_CLK_ENABLE
 #define CODECA_I2C_GPIO_CLOCK RCC_AHB1Periph_GPIOB
-#define CODECA_I2C_GPIO_AF GPIO_AF_I2C1
+#define CODECA_I2C_GPIO_AF GPIO_AF4_I2C1
 #define CODECA_I2C_GPIO GPIOB
 #define CODECA_I2C_SCL_PIN GPIO_PIN_8
 #define CODECA_I2C_SDA_PIN GPIO_PIN_9
-#define CODECA_I2C_SCL_PINSRC GPIO_PinSource8
-#define CODECA_I2C_SDA_PINSRC GPIO_PinSource9
+// #define CODECA_I2C_SCL_PINSRC GPIO_PinSource8
+// #define CODECA_I2C_SDA_PINSRC GPIO_PinSource9
 
 /* Maximum Timeout values for flags and events waiting loops. These timeouts are
    not based on accurate values, they just guarantee that the application will 
@@ -210,16 +205,11 @@ Hardware Configuration defines parameters
 #define CODEC_FLAG_TIMEOUT ((uint32_t)0x1000)
 #define CODEC_LONG_TIMEOUT ((uint32_t)(300 * CODEC_FLAG_TIMEOUT))
 
-uint32_t Codec_A_Register_Setup(uint8_t enable_DCinput);
-uint32_t Codec_B_Register_Setup(uint8_t enable_DCinput);
-
 void Codec_A_CtrlInterface_Init(void);
 void Codec_B_CtrlInterface_Init(void);
 
 void Codec_A_AudioInterface_Init(uint32_t AudioFreq);
 void Codec_B_AudioInterface_Init(uint32_t AudioFreq);
-
-uint32_t Codec_Reset(I2C_TypeDef *CODEC, uint8_t master_slave, uint8_t enable_DCinput);
 
 uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_TypeDef *CODEC);
 

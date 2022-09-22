@@ -1,12 +1,13 @@
 #include "hardware_test_audio.h"
-#include "hardware_test_util.h"
 #include "CodecCallbacks.h"
+#include "hardware_test_util.h"
 extern "C" {
-#include "dig_pins.h"
-#include "leds.h"
-#include "globals.h"
+#include "codec.h"
 #include "codec_CS4271.h"
+#include "dig_pins.h"
+#include "globals.h"
 #include "i2s.h"
+#include "leds.h"
 }
 
 static void setup_outs_as_LFOs(void);
@@ -28,7 +29,6 @@ static void setup_outs_as_LFOs(void);
 //	codecb_ackfail = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_AF);
 //	codecb_buserr = I2C_GetFlagStatus(CODECB_I2C, I2C_FLAG_BERR);
 //}
-
 
 void test_codec_init(void) {
 	all_leds_off();
@@ -54,7 +54,7 @@ void test_codec_init(void) {
 	LED_REV2_ON;
 	err = Codec_B_Register_Setup(DCINPUT_JUMPER);
 	if (err) {
-		const uint32_t bailout_time=50; //5 seconds
+		const uint32_t bailout_time = 50; //5 seconds
 		uint32_t ctr = bailout_time;
 		while (ctr) {
 			LED_LOOP2_ON;
@@ -63,7 +63,7 @@ void test_codec_init(void) {
 			delay_ms(50);
 			if (hardwaretest_continue_button())
 				ctr--;
-			else 
+			else
 				ctr = bailout_time;
 		}
 	}
@@ -73,18 +73,18 @@ void test_codec_init(void) {
 	err = Codec_A_Register_Setup(DCINPUT_JUMPER);
 	if (err) {
 		while (1) {
-		const uint32_t bailout_time=50; //5 seconds
-		uint32_t ctr = bailout_time;
-		while (ctr) {
-			LED_LOOP1_ON;
-			delay_ms(50);
-			LED_LOOP1_OFF;
-			delay_ms(50);
-			if (hardwaretest_continue_button())
-				ctr--;
-			else 
-				ctr = bailout_time;
-		}
+			const uint32_t bailout_time = 50; //5 seconds
+			uint32_t ctr = bailout_time;
+			while (ctr) {
+				LED_LOOP1_ON;
+				delay_ms(50);
+				LED_LOOP1_OFF;
+				delay_ms(50);
+				if (hardwaretest_continue_button())
+					ctr--;
+				else
+					ctr = bailout_time;
+			}
 		}
 	}
 	LED_REV1_OFF;
@@ -101,7 +101,7 @@ void test_audio_out(void) {
 	LED_REV1_ON;
 	LED_REV2_ON;
 
-	float max = ((1<<15)-1);
+	float max = ((1 << 15) - 1);
 	float min = -max - 1.0f;
 
 	testWaves[0].init(100, 0.2, max, min, 0, SAMPLERATE);
@@ -118,10 +118,13 @@ void test_audio_out(void) {
 	Start_I2SDMA_Channel1();
 	Start_I2SDMA_Channel2();
 
-	uint8_t continue_armed=0;
+	uint8_t continue_armed = 0;
 	while (1) {
-		if (hardwaretest_continue_button()) {LED_PINGBUT_ON; continue_armed = 1;}
-		else if (!hardwaretest_continue_button() && continue_armed) break;
+		if (hardwaretest_continue_button()) {
+			LED_PINGBUT_ON;
+			continue_armed = 1;
+		} else if (!hardwaretest_continue_button() && continue_armed)
+			break;
 		delay_ms(80);
 	}
 
@@ -142,7 +145,7 @@ void test_audio_in(void) {
 	LED_INF1_ON;
 	LED_INF2_ON;
 
-	float max = ((1<<15)-1) / 2.0f;
+	float max = ((1 << 15) - 1) / 2.0f;
 	float min = -max - 1.0f;
 
 	testWaves[0].init(200, 0.2, max, min, 0, SAMPLERATE);
@@ -159,4 +162,3 @@ void test_audio_in(void) {
 	LED_INF1_OFF;
 	LED_INF2_OFF;
 }
-
