@@ -5,5 +5,11 @@ CompileFlags:
 	-Istm32/device/f446/include,
 	-Istm32/periph/STM32F4xx_HAL_Driver/Inc,
 	-Isrc/f446]
-	Remove: [-f*,
-	-Isrc/f427]
+
+	Remove: [
+	-f*,
+	-Iinc/f427,
+	-Istm32/device/f427/include,
+	-Istm32/periph/stdperiph/include,
+	-Istm32/periph/stdperiph/Inc,
+	]
