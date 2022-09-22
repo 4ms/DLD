@@ -29,22 +29,26 @@
 #include "flash.h"
 #include "globals.h"
 
-static uint32_t kSectorBaseAddress[] = {0x08000000,
-										0x08004000,
-										0x08008000,
-										0x0800C000,
-										0x08010000,
-										0x08020000,
-										0x08040000,
-										0x08060000,
-										0x08080000,
-										0x080A0000,
-										0x080C0000,
-										0x080E0000};
+typedef unsigned FlashStatus;
 
-FLASH_Status flash_erase_sector(uint32_t address) {
+static uint32_t kSectorBaseAddress[] = {
+	0x08000000,
+	0x08004000,
+	0x08008000,
+	0x0800C000,
+	0x08010000,
+	0x08020000,
+	0x08040000,
+	0x08060000,
+	0x08080000,
+	0x080A0000,
+	0x080C0000,
+	0x080E0000,
+};
+
+FlashStatus flash_erase_sector(uint32_t address) {
 	uint8_t i;
-	FLASH_Status status;
+	FlashStatus status;
 
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
@@ -59,9 +63,9 @@ FLASH_Status flash_erase_sector(uint32_t address) {
 	return status;
 }
 
-FLASH_Status flash_open_erase_sector(uint32_t address) {
+FlashStatus flash_open_erase_sector(uint32_t address) {
 	uint8_t i;
-	FLASH_Status status;
+	FlashStatus status;
 
 	for (i = 0; i < 12; ++i) {
 		if (address == kSectorBaseAddress[i]) {
@@ -77,14 +81,14 @@ void flash_begin_open_program(void) {
 					FLASH_FLAG_PGSERR);
 }
 
-FLASH_Status flash_open_program_byte(uint8_t byte, uint32_t address) {
+FlashStatus flash_open_program_byte(uint8_t byte, uint32_t address) {
 	if (address < kSectorBaseAddress[1])
 		return FLASH_ERROR_PROGRAM;
 	else
 		return FLASH_ProgramByte(address, byte);
 }
 
-FLASH_Status flash_open_program_word(uint32_t word, uint32_t address) {
+FlashStatus flash_open_program_word(uint32_t word, uint32_t address) {
 	if (address < kSectorBaseAddress[1])
 		return FLASH_ERROR_PROGRAM;
 	else
@@ -95,9 +99,9 @@ void flash_end_open_program(void) {
 	FLASH_Lock();
 }
 
-//size is in # of bytes
-FLASH_Status flash_open_program_array(uint8_t *arr, uint32_t address, uint32_t size) {
-	FLASH_Status status;
+// size is in # of bytes
+FlashStatus flash_open_program_array(uint8_t *arr, uint32_t address, uint32_t size) {
+	FlashStatus status;
 
 	while (size--) {
 		if (address >= kSectorBaseAddress[1])
@@ -108,7 +112,7 @@ FLASH_Status flash_open_program_array(uint8_t *arr, uint32_t address, uint32_t s
 	return status;
 }
 
-//size in # of bytes
+// size in # of bytes
 void flash_read_array(uint8_t *arr, uint32_t address, uint32_t size) {
 
 	while (size--) {
