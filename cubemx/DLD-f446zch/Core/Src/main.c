@@ -102,6 +102,7 @@ int main(void)
   MX_SAI2_Init();
   MX_DMA_Init();
   MX_UART4_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
