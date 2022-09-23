@@ -66,7 +66,7 @@ void Start_I2SDMA_Channel1(void) {
 	HAL_NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
 }
 void Start_I2SDMA_Channel2(void) {
-	HAL_NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
+	HAL_NVIC_EnableIRQ(CODECB_RX_DMA_IRQ);
 }
 
 void DeInit_I2S_Clock(void) {
@@ -85,12 +85,12 @@ void DeInit_I2SDMA_Channel1(void) {
 }
 
 void DeInit_I2SDMA_Channel2(void) {
-	// RCC_AHB1PeriphClockCmd(AUDIO_I2S2_DMA_CLOCK, DISABLE);
-	// DMA_Cmd(AUDIO_I2S2_DMA_STREAM, DISABLE);
-	// DMA_DeInit(AUDIO_I2S2_DMA_STREAM);
+	// RCC_AHB1PeriphClockCmd(CODECB_TX_DMA_CLOCK, DISABLE);
+	// DMA_Cmd(CODECB_TX_DMA_STREAM, DISABLE);
+	// DMA_DeInit(CODECB_TX_DMA_STREAM);
 
-	// DMA_Cmd(AUDIO_I2S2_EXT_DMA_STREAM, DISABLE);
-	// DMA_DeInit(AUDIO_I2S2_EXT_DMA_STREAM);
+	// DMA_Cmd(CODECB_RX_DMA_STREAM, DISABLE);
+	// DMA_DeInit(CODECB_RX_DMA_STREAM);
 }
 
 void Init_I2SDMA_Channel1(void) {
@@ -180,14 +180,14 @@ void Init_I2SDMA_Channel2(void) {
 	//uint32_t Size = codec_BUFF_LEN;
 
 	///* Enable the DMA clock */
-	//RCC_AHB1PeriphClockCmd(AUDIO_I2S2_DMA_CLOCK, ENABLE);
+	//RCC_AHB1PeriphClockCmd(CODECB_TX_DMA_CLOCK, ENABLE);
 
 	///* Configure the TX DMA Stream */
-	//DMA_Cmd(AUDIO_I2S2_DMA_STREAM, DISABLE);
-	//DMA_DeInit(AUDIO_I2S2_DMA_STREAM);
+	//DMA_Cmd(CODECB_TX_DMA_STREAM, DISABLE);
+	//DMA_DeInit(CODECB_TX_DMA_STREAM);
 
-	//dma_ch2tx.DMA_Channel = AUDIO_I2S2_DMA_CHANNEL;
-	//dma_ch2tx.DMA_PeripheralBaseAddr = AUDIO_I2S2_DMA_DREG;
+	//dma_ch2tx.DMA_Channel = CODECB_TX_DMA_CHANNEL;
+	//dma_ch2tx.DMA_PeripheralBaseAddr = CODECB_TX_DMA_DREG;
 	//dma_ch2tx.DMA_Memory0BaseAddr = (uint32_t)&ch2tx_buffer;
 	//dma_ch2tx.DMA_DIR = DMA_DIR_MemoryToPeripheral;
 	//dma_ch2tx.DMA_BufferSize = (uint32_t)Size;
@@ -201,21 +201,21 @@ void Init_I2SDMA_Channel2(void) {
 	//dma_ch2tx.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
 	//dma_ch2tx.DMA_MemoryBurst = DMA_MemoryBurst_Single;
 	//dma_ch2tx.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	//DMA_Init(AUDIO_I2S2_DMA_STREAM, &dma_ch2tx);
+	//DMA_Init(CODECB_TX_DMA_STREAM, &dma_ch2tx);
 
 	////Try TX error checking:
-	//DMA_ITConfig(AUDIO_I2S2_DMA_STREAM, DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
+	//DMA_ITConfig(CODECB_TX_DMA_STREAM, DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
 
 	///* Enable the I2S DMA request */
 	//SPI_I2S_DMACmd(CODECB_I2S, SPI_I2S_DMAReq_Tx, ENABLE);
 
 	///* Configure the RX DMA Stream */
-	//DMA_Cmd(AUDIO_I2S2_EXT_DMA_STREAM, DISABLE);
-	//DMA_DeInit(AUDIO_I2S2_EXT_DMA_STREAM);
+	//DMA_Cmd(CODECB_RX_DMA_STREAM, DISABLE);
+	//DMA_DeInit(CODECB_RX_DMA_STREAM);
 
 	///* Set the parameters to be configured */
-	//dma_ch2rx.DMA_Channel = AUDIO_I2S2_EXT_DMA_CHANNEL;
-	//dma_ch2rx.DMA_PeripheralBaseAddr = AUDIO_I2S2_EXT_DMA_DREG;
+	//dma_ch2rx.DMA_Channel = CODECB_RX_DMA_CHANNEL;
+	//dma_ch2rx.DMA_PeripheralBaseAddr = CODECB_RX_DMA_DREG;
 	//dma_ch2rx.DMA_Memory0BaseAddr = (uint32_t)&ch2rx_buffer;
 	//dma_ch2rx.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	//dma_ch2rx.DMA_BufferSize = (uint32_t)Size;
@@ -229,32 +229,32 @@ void Init_I2SDMA_Channel2(void) {
 	//dma_ch2rx.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
 	//dma_ch2rx.DMA_MemoryBurst = DMA_MemoryBurst_Single;
 	//dma_ch2rx.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	//DMA_Init(AUDIO_I2S2_EXT_DMA_STREAM, &dma_ch2rx);
+	//DMA_Init(CODECB_RX_DMA_STREAM, &dma_ch2rx);
 
-	//DMA_ITConfig(AUDIO_I2S2_EXT_DMA_STREAM, DMA_IT_TC | DMA_IT_HT | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
+	//DMA_ITConfig(CODECB_RX_DMA_STREAM, DMA_IT_TC | DMA_IT_HT | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
 
 	///* I2S RX DMA IRQ Channel configuration */
 
-	//nvic_i2s2ext.NVIC_IRQChannel = AUDIO_I2S2_EXT_DMA_IRQ;
+	//nvic_i2s2ext.NVIC_IRQChannel = CODECB_RX_DMA_IRQ;
 	//nvic_i2s2ext.NVIC_IRQChannelPreemptionPriority = 1; //was 2
 	//nvic_i2s2ext.NVIC_IRQChannelSubPriority = 1;
 	//nvic_i2s2ext.NVIC_IRQChannelCmd = ENABLE;
 
 	//NVIC_Init(&nvic_i2s2ext);
 
-	////NVIC_EnableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
-	//NVIC_DisableIRQ(AUDIO_I2S2_EXT_DMA_IRQ);
+	////NVIC_EnableIRQ(CODECB_RX_DMA_IRQ);
+	//NVIC_DisableIRQ(CODECB_RX_DMA_IRQ);
 
 	//SPI_I2S_DMACmd(CODECB_I2S_EXT, SPI_I2S_DMAReq_Rx, ENABLE);
 
 	//ch2tx_buffer_start = (uint32_t)&ch2tx_buffer;
 	//ch2rx_buffer_start = (uint32_t)&ch2rx_buffer;
 
-	//DMA_Init(AUDIO_I2S2_DMA_STREAM, &dma_ch2tx);
-	//DMA_Init(AUDIO_I2S2_EXT_DMA_STREAM, &dma_ch2rx);
+	//DMA_Init(CODECB_TX_DMA_STREAM, &dma_ch2tx);
+	//DMA_Init(CODECB_RX_DMA_STREAM, &dma_ch2rx);
 
-	//DMA_Cmd(AUDIO_I2S2_DMA_STREAM, ENABLE);
-	//DMA_Cmd(AUDIO_I2S2_EXT_DMA_STREAM, ENABLE);
+	//DMA_Cmd(CODECB_TX_DMA_STREAM, ENABLE);
+	//DMA_Cmd(CODECB_RX_DMA_STREAM, ENABLE);
 
 	//I2S_Cmd(CODECB_I2S, ENABLE);
 	//I2S_Cmd(CODECB_I2S_EXT, ENABLE);
@@ -268,20 +268,20 @@ void DMA1_Stream3_IRQHandler(void) {
 	uint16_t sz;
 	uint32_t err = 0;
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_FE) != RESET)
-	// 	err = AUDIO_I2S2_EXT_DMA_FLAG_FE;
+	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_FE) != RESET)
+	// 	err = CODECB_RX_DMA_FLAG_FE;
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_TE) != RESET)
-	// 	err = AUDIO_I2S2_EXT_DMA_FLAG_TE;
+	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_TE) != RESET)
+	// 	err = CODECB_RX_DMA_FLAG_TE;
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_DME) != RESET)
-	// 	err = AUDIO_I2S2_EXT_DMA_FLAG_DME;
+	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_DME) != RESET)
+	// 	err = CODECB_RX_DMA_FLAG_DME;
 
 	// if (err)
 	// 	err++; //debug breakpoint
 
 	// /* Transfer complete interrupt */
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_TC) != RESET) {
+	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_TC) != RESET) {
 	// 	/* Point to 2nd half of buffers */
 	// 	sz = codec_BUFF_LEN / 2;
 	// 	src = (int16_t *)(ch2rx_buffer_start) + sz;
@@ -289,11 +289,11 @@ void DMA1_Stream3_IRQHandler(void) {
 
 	// 	audio_callback(src, dst, sz / 2, 1); //channel2
 
-	// 	DMA_ClearFlag(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_TC);
+	// 	DMA_ClearFlag(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_TC);
 	// }
 
 	// /* Half Transfer complete interrupt */
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_HT) != RESET) {
+	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_HT) != RESET) {
 	// 	/* Point to 1st half of buffers */
 	// 	sz = codec_BUFF_LEN / 2;
 	// 	src = (int16_t *)(ch2rx_buffer_start);
@@ -301,7 +301,7 @@ void DMA1_Stream3_IRQHandler(void) {
 
 	// 	audio_callback(src, dst, sz / 2, 1); //channel2
 
-	// 	DMA_ClearFlag(AUDIO_I2S2_EXT_DMA_STREAM, AUDIO_I2S2_EXT_DMA_FLAG_HT);
+	// 	DMA_ClearFlag(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_HT);
 	// }
 }
 
@@ -311,19 +311,19 @@ void DMA1_Stream3_IRQHandler(void) {
 void DMA1_Stream4_IRQHandler(void) {
 	// uint32_t err = 0;
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_DMA_STREAM, AUDIO_I2S2_DMA_FLAG_FE) != RESET) {
-	// 	err = AUDIO_I2S2_DMA_FLAG_FE;
-	// 	DMA_ClearFlag(AUDIO_I2S2_DMA_STREAM, AUDIO_I2S2_DMA_FLAG_FE);
+	// if (DMA_GetFlagStatus(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_FE) != RESET) {
+	// 	err = CODECB_TX_DMA_FLAG_FE;
+	// 	DMA_ClearFlag(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_FE);
 	// }
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_DMA_STREAM, AUDIO_I2S2_DMA_FLAG_TE) != RESET) {
-	// 	err = AUDIO_I2S2_DMA_FLAG_TE;
-	// 	DMA_ClearFlag(AUDIO_I2S2_DMA_STREAM, AUDIO_I2S2_DMA_FLAG_TE);
+	// if (DMA_GetFlagStatus(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_TE) != RESET) {
+	// 	err = CODECB_TX_DMA_FLAG_TE;
+	// 	DMA_ClearFlag(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_TE);
 	// }
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S2_DMA_STREAM, AUDIO_I2S2_DMA_FLAG_DME) != RESET) {
-	// 	err = AUDIO_I2S2_DMA_FLAG_DME;
-	// 	DMA_ClearFlag(AUDIO_I2S2_DMA_STREAM, AUDIO_I2S2_DMA_FLAG_DME);
+	// if (DMA_GetFlagStatus(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_DME) != RESET) {
+	// 	err = CODECB_TX_DMA_FLAG_DME;
+	// 	DMA_ClearFlag(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_DME);
 	// }
 	// if (err)
 	// 	err++; //debug breakpoint
