@@ -34,10 +34,14 @@
 #include "looping_delay.h"
 #include "timekeeper.h"
 
-DMA_InitTypeDef dma_ch1tx, dma_ch1rx;
-DMA_InitTypeDef dma_ch2tx, dma_ch2rx;
-
-// NVIC_InitTypeDef nvic_i2s2ext, nvic_i2s3ext, NVIC_InitStructure;
+extern SAI_HandleTypeDef hsai_BlockA1;
+extern SAI_HandleTypeDef hsai_BlockB1;
+extern SAI_HandleTypeDef hsai_BlockA2;
+extern SAI_HandleTypeDef hsai_BlockB2;
+DMA_HandleTypeDef hdma_sai1_a;
+DMA_HandleTypeDef hdma_sai1_b;
+DMA_HandleTypeDef hdma_sai2_a;
+DMA_HandleTypeDef hdma_sai2_b;
 
 volatile int16_t ch1tx_buffer[codec_BUFF_LEN];
 volatile int16_t ch1rx_buffer[codec_BUFF_LEN];
@@ -57,16 +61,20 @@ void set_codec_callback(void (*cb)(int16_t *, int16_t *, uint16_t, uint8_t)) {
 void init_audio_dma(void) {
 	// RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
 	// RCC_PLLI2SCmd(ENABLE);
-
 	Init_I2SDMA_Channel2();
 	Init_I2SDMA_Channel1();
 }
 
 void Start_I2SDMA_Channel1(void) {
-	HAL_NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
+	HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)ch1tx_buffer, codec_BUFF_LEN);
+	HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t *)ch1rx_buffer, codec_BUFF_LEN);
+	HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 }
+
 void Start_I2SDMA_Channel2(void) {
-	HAL_NVIC_EnableIRQ(CODECB_RX_DMA_IRQ);
+	HAL_SAI_Transmit_DMA(&hsai_BlockA2, (uint8_t *)ch2tx_buffer, codec_BUFF_LEN);
+	HAL_SAI_Receive_DMA(&hsai_BlockB2, (uint8_t *)ch2rx_buffer, codec_BUFF_LEN);
+	HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 }
 
 void DeInit_I2S_Clock(void) {
@@ -75,327 +83,234 @@ void DeInit_I2S_Clock(void) {
 }
 
 void DeInit_I2SDMA_Channel1(void) {
-	// RCC_AHB1PeriphClockCmd(AUDIO_I2S3_DMA_CLOCK, DISABLE);
-
+	// __HAL_RCC_SAI1_CLK_DISABLE();
+	__HAL_RCC_DMA2_CLK_DISABLE();
+	HAL_DMA_DeInit(&hdma_sai1_a);
+	HAL_DMA_DeInit(&hdma_sai1_b);
 	// DMA_Cmd(AUDIO_I2S3_DMA_STREAM, DISABLE);
-	// DMA_DeInit(AUDIO_I2S3_DMA_STREAM);
-
 	// DMA_Cmd(AUDIO_I2S3_EXT_DMA_STREAM, DISABLE);
-	// DMA_DeInit(AUDIO_I2S3_EXT_DMA_STREAM);
 }
 
 void DeInit_I2SDMA_Channel2(void) {
-	// RCC_AHB1PeriphClockCmd(CODECB_TX_DMA_CLOCK, DISABLE);
+	// __HAL_RCC_SAI2_CLK_DISABLE();
+	__HAL_RCC_DMA2_CLK_DISABLE();
+	HAL_DMA_DeInit(&hdma_sai2_a);
+	HAL_DMA_DeInit(&hdma_sai2_b);
 	// DMA_Cmd(CODECB_TX_DMA_STREAM, DISABLE);
-	// DMA_DeInit(CODECB_TX_DMA_STREAM);
-
 	// DMA_Cmd(CODECB_RX_DMA_STREAM, DISABLE);
-	// DMA_DeInit(CODECB_RX_DMA_STREAM);
+}
+
+void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
+	__HAL_RCC_DMA2_CLK_ENABLE();
+
+	if (saiHandle->Instance == SAI1_Block_A) {
+		hdma_sai1_a.Instance = DMA2_Stream1;
+		hdma_sai1_a.Init.Channel = DMA_CHANNEL_0;
+		hdma_sai1_a.Init.Direction = DMA_MEMORY_TO_PERIPH;
+		hdma_sai1_a.Init.PeriphInc = DMA_PINC_DISABLE;
+		hdma_sai1_a.Init.MemInc = DMA_MINC_ENABLE;
+		hdma_sai1_a.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+		hdma_sai1_a.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai1_a.Init.Mode = DMA_CIRCULAR;
+		hdma_sai1_a.Init.Priority = DMA_PRIORITY_HIGH;
+		hdma_sai1_a.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+		HAL_DMA_DeInit(&hdma_sai1_a);
+
+		if (HAL_DMA_Init(&hdma_sai1_a) != HAL_OK) {
+			// __BKPT();
+		}
+
+		// TODO: mdrivlib links before calling deinit
+		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai1_a);
+		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai1_a);
+	}
+
+	if (saiHandle->Instance == SAI1_Block_B) {
+		hdma_sai1_b.Instance = DMA2_Stream5;
+		hdma_sai1_b.Init.Channel = DMA_CHANNEL_0;
+		hdma_sai1_b.Init.Direction = DMA_PERIPH_TO_MEMORY;
+		hdma_sai1_b.Init.PeriphInc = DMA_PINC_DISABLE;
+		hdma_sai1_b.Init.MemInc = DMA_MINC_ENABLE;
+		hdma_sai1_b.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+		hdma_sai1_b.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai1_b.Init.Mode = DMA_CIRCULAR;
+		hdma_sai1_b.Init.Priority = DMA_PRIORITY_HIGH;
+		hdma_sai1_b.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+		HAL_DMA_DeInit(&hdma_sai1_b);
+
+		if (HAL_DMA_Init(&hdma_sai1_b) != HAL_OK) {
+			// __BKPT();
+		}
+
+		// TODO: mdrivlib links before calling deinit
+		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai1_b);
+		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai1_b);
+	}
+
+	if (saiHandle->Instance == SAI2_Block_A) {
+		hdma_sai2_a.Instance = DMA2_Stream4;
+		hdma_sai2_a.Init.Channel = DMA_CHANNEL_3;
+		hdma_sai2_a.Init.Direction = DMA_MEMORY_TO_PERIPH;
+		hdma_sai2_a.Init.PeriphInc = DMA_PINC_DISABLE;
+		hdma_sai2_a.Init.MemInc = DMA_MINC_ENABLE;
+		hdma_sai2_a.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+		hdma_sai2_a.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai2_a.Init.Mode = DMA_CIRCULAR;
+		hdma_sai2_a.Init.Priority = DMA_PRIORITY_HIGH;
+		hdma_sai2_a.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+		HAL_DMA_DeInit(&hdma_sai2_a);
+
+		if (HAL_DMA_Init(&hdma_sai2_a) != HAL_OK) {
+			// __BKPT();
+		}
+		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai2_a);
+		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai2_a);
+	}
+
+	if (saiHandle->Instance == SAI2_Block_B) {
+		hdma_sai2_b.Instance = DMA2_Stream6;
+		hdma_sai2_b.Init.Channel = DMA_CHANNEL_3;
+		hdma_sai2_b.Init.Direction = DMA_PERIPH_TO_MEMORY;
+		hdma_sai2_b.Init.PeriphInc = DMA_PINC_DISABLE;
+		hdma_sai2_b.Init.MemInc = DMA_MINC_ENABLE;
+		hdma_sai2_b.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+		hdma_sai2_b.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai2_b.Init.Mode = DMA_CIRCULAR;
+		hdma_sai2_b.Init.Priority = DMA_PRIORITY_HIGH;
+		hdma_sai2_b.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+		HAL_DMA_DeInit(&hdma_sai2_b);
+
+		if (HAL_DMA_Init(&hdma_sai2_b) != HAL_OK) {
+			// __BKPT();
+		}
+		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai2_b);
+		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai2_b);
+	}
 }
 
 void Init_I2SDMA_Channel1(void) {
 	//uint32_t Size = codec_BUFF_LEN;
-
-	///* Enable the DMA clock */
-	//RCC_AHB1PeriphClockCmd(AUDIO_I2S3_DMA_CLOCK, ENABLE);
-
-	///* Configure the TX DMA Stream */
-	//DMA_Cmd(AUDIO_I2S3_DMA_STREAM, DISABLE);
-	//DMA_DeInit(AUDIO_I2S3_DMA_STREAM);
-
-	//dma_ch1tx.DMA_Channel = AUDIO_I2S3_DMA_CHANNEL;
-	//dma_ch1tx.DMA_PeripheralBaseAddr = AUDIO_I2S3_DMA_DREG;
 	//dma_ch1tx.DMA_Memory0BaseAddr = (uint32_t)&ch1tx_buffer;
-	//dma_ch1tx.DMA_DIR = DMA_DIR_MemoryToPeripheral;
 	//dma_ch1tx.DMA_BufferSize = (uint32_t)Size;
-	//dma_ch1tx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	//dma_ch1tx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	//dma_ch1tx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	//dma_ch1tx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	//dma_ch1tx.DMA_Mode = DMA_Mode_Circular;
-	//dma_ch1tx.DMA_Priority = DMA_Priority_High;
-	//dma_ch1tx.DMA_FIFOMode = DMA_FIFOMode_Disable;
-	//dma_ch1tx.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
-	//dma_ch1tx.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-	//dma_ch1tx.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	//DMA_Init(AUDIO_I2S3_DMA_STREAM, &dma_ch1tx);
-
-	////Try TX error checking:
 	//DMA_ITConfig(AUDIO_I2S3_DMA_STREAM, DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
-
-	///* Enable the I2S DMA request */
-	//SPI_I2S_DMACmd(CODECA_I2S, SPI_I2S_DMAReq_Tx, ENABLE);
-
-	///* Configure the RX DMA Stream */
-	//DMA_Cmd(AUDIO_I2S3_EXT_DMA_STREAM, DISABLE);
-	//DMA_DeInit(AUDIO_I2S3_EXT_DMA_STREAM);
-
-	///* Set the parameters to be configured */
-	//dma_ch1rx.DMA_Channel = AUDIO_I2S3_EXT_DMA_CHANNEL;
-	//dma_ch1rx.DMA_PeripheralBaseAddr = AUDIO_I2S3_EXT_DMA_DREG;
 	//dma_ch1rx.DMA_Memory0BaseAddr = (uint32_t)&ch1rx_buffer;
-	//dma_ch1rx.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	//dma_ch1rx.DMA_BufferSize = (uint32_t)Size;
-	//dma_ch1rx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	//dma_ch1rx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	//dma_ch1rx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	//dma_ch1rx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	//dma_ch1rx.DMA_Mode = DMA_Mode_Circular;
-	//dma_ch1rx.DMA_Priority = DMA_Priority_High;
-	//dma_ch1rx.DMA_FIFOMode = DMA_FIFOMode_Disable;
-	//dma_ch1rx.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
-	//dma_ch1rx.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-	//dma_ch1rx.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	//DMA_Init(AUDIO_I2S3_EXT_DMA_STREAM, &dma_ch1rx);
-
 	//DMA_ITConfig(AUDIO_I2S3_EXT_DMA_STREAM, DMA_IT_TC | DMA_IT_HT | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
 
-	//// I2S RX DMA IRQ Channel configuration
-	//nvic_i2s3ext.NVIC_IRQChannel = AUDIO_I2S3_EXT_DMA_IRQ;
-	//nvic_i2s3ext.NVIC_IRQChannelPreemptionPriority = 1; //was 2
-	//nvic_i2s3ext.NVIC_IRQChannelSubPriority = 0;
-	//nvic_i2s3ext.NVIC_IRQChannelCmd = ENABLE;
-
-	//NVIC_Init(&nvic_i2s3ext);
-
-	////NVIC_EnableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
-	//NVIC_DisableIRQ(AUDIO_I2S3_EXT_DMA_IRQ);
-
-	//SPI_I2S_DMACmd(CODECA_I2S_EXT, SPI_I2S_DMAReq_Rx, ENABLE);
-
-	//ch1tx_buffer_start = (uint32_t)&ch1tx_buffer;
-	//ch1rx_buffer_start = (uint32_t)&ch1rx_buffer;
-
-	//DMA_Init(AUDIO_I2S3_DMA_STREAM, &dma_ch1tx);
-	//DMA_Init(AUDIO_I2S3_EXT_DMA_STREAM, &dma_ch1rx);
-
-	//DMA_Cmd(AUDIO_I2S3_DMA_STREAM, ENABLE);
-	//DMA_Cmd(AUDIO_I2S3_EXT_DMA_STREAM, ENABLE);
-
-	//I2S_Cmd(CODECA_I2S, ENABLE);
-	//I2S_Cmd(CODECA_I2S_EXT, ENABLE);
+	ch1tx_buffer_start = (uint32_t)&ch1tx_buffer;
+	ch1rx_buffer_start = (uint32_t)&ch1rx_buffer;
+	HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 1, 0);
+	HAL_NVIC_DisableIRQ(DMA2_Stream5_IRQn);
 }
 
 void Init_I2SDMA_Channel2(void) {
+	ch2tx_buffer_start = (uint32_t)&ch2tx_buffer;
+	ch2rx_buffer_start = (uint32_t)&ch2rx_buffer;
+	HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 1, 1);
+	HAL_NVIC_DisableIRQ(DMA2_Stream6_IRQn);
+
 	//uint32_t Size = codec_BUFF_LEN;
 
-	///* Enable the DMA clock */
-	//RCC_AHB1PeriphClockCmd(CODECB_TX_DMA_CLOCK, ENABLE);
-
-	///* Configure the TX DMA Stream */
-	//DMA_Cmd(CODECB_TX_DMA_STREAM, DISABLE);
-	//DMA_DeInit(CODECB_TX_DMA_STREAM);
-
-	//dma_ch2tx.DMA_Channel = CODECB_TX_DMA_CHANNEL;
-	//dma_ch2tx.DMA_PeripheralBaseAddr = CODECB_TX_DMA_DREG;
-	//dma_ch2tx.DMA_Memory0BaseAddr = (uint32_t)&ch2tx_buffer;
-	//dma_ch2tx.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-	//dma_ch2tx.DMA_BufferSize = (uint32_t)Size;
-	//dma_ch2tx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	//dma_ch2tx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	//dma_ch2tx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	//dma_ch2tx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	//dma_ch2tx.DMA_Mode = DMA_Mode_Circular;
-	//dma_ch2tx.DMA_Priority = DMA_Priority_High;
-	//dma_ch2tx.DMA_FIFOMode = DMA_FIFOMode_Disable;
-	//dma_ch2tx.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
-	//dma_ch2tx.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-	//dma_ch2tx.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	//DMA_Init(CODECB_TX_DMA_STREAM, &dma_ch2tx);
-
-	////Try TX error checking:
-	//DMA_ITConfig(CODECB_TX_DMA_STREAM, DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
-
-	///* Enable the I2S DMA request */
-	//SPI_I2S_DMACmd(CODECB_I2S, SPI_I2S_DMAReq_Tx, ENABLE);
-
-	///* Configure the RX DMA Stream */
-	//DMA_Cmd(CODECB_RX_DMA_STREAM, DISABLE);
-	//DMA_DeInit(CODECB_RX_DMA_STREAM);
-
-	///* Set the parameters to be configured */
-	//dma_ch2rx.DMA_Channel = CODECB_RX_DMA_CHANNEL;
-	//dma_ch2rx.DMA_PeripheralBaseAddr = CODECB_RX_DMA_DREG;
-	//dma_ch2rx.DMA_Memory0BaseAddr = (uint32_t)&ch2rx_buffer;
-	//dma_ch2rx.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	//dma_ch2rx.DMA_BufferSize = (uint32_t)Size;
-	//dma_ch2rx.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	//dma_ch2rx.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	//dma_ch2rx.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	//dma_ch2rx.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	//dma_ch2rx.DMA_Mode = DMA_Mode_Circular;
-	//dma_ch2rx.DMA_Priority = DMA_Priority_High;
-	//dma_ch2rx.DMA_FIFOMode = DMA_FIFOMode_Disable;
-	//dma_ch2rx.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
-	//dma_ch2rx.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-	//dma_ch2rx.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	//DMA_Init(CODECB_RX_DMA_STREAM, &dma_ch2rx);
-
 	//DMA_ITConfig(CODECB_RX_DMA_STREAM, DMA_IT_TC | DMA_IT_HT | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
-
-	///* I2S RX DMA IRQ Channel configuration */
-
-	//nvic_i2s2ext.NVIC_IRQChannel = CODECB_RX_DMA_IRQ;
-	//nvic_i2s2ext.NVIC_IRQChannelPreemptionPriority = 1; //was 2
-	//nvic_i2s2ext.NVIC_IRQChannelSubPriority = 1;
-	//nvic_i2s2ext.NVIC_IRQChannelCmd = ENABLE;
-
-	//NVIC_Init(&nvic_i2s2ext);
-
-	////NVIC_EnableIRQ(CODECB_RX_DMA_IRQ);
-	//NVIC_DisableIRQ(CODECB_RX_DMA_IRQ);
-
-	//SPI_I2S_DMACmd(CODECB_I2S_EXT, SPI_I2S_DMAReq_Rx, ENABLE);
-
-	//ch2tx_buffer_start = (uint32_t)&ch2tx_buffer;
-	//ch2rx_buffer_start = (uint32_t)&ch2rx_buffer;
-
-	//DMA_Init(CODECB_TX_DMA_STREAM, &dma_ch2tx);
-	//DMA_Init(CODECB_RX_DMA_STREAM, &dma_ch2rx);
-
-	//DMA_Cmd(CODECB_TX_DMA_STREAM, ENABLE);
-	//DMA_Cmd(CODECB_RX_DMA_STREAM, ENABLE);
-
-	//I2S_Cmd(CODECB_I2S, ENABLE);
-	//I2S_Cmd(CODECB_I2S_EXT, ENABLE);
 }
 
-/**
-  * I2S2 DMA interrupt for RX data CodecB
-  */
-void DMA1_Stream3_IRQHandler(void) {
+// DMA interrupt for RX data CodecB (sai2b)
+void DMA2_Stream6_IRQHandler(void) {
 	int16_t *src, *dst;
 	uint16_t sz;
 	uint32_t err = 0;
 
-	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_FE) != RESET)
-	// 	err = CODECB_RX_DMA_FLAG_FE;
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_TEIF2_6) != RESET)
+		err = 1;
 
-	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_TE) != RESET)
-	// 	err = CODECB_RX_DMA_FLAG_TE;
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_DMEIF2_6) != RESET)
+		err = 10;
 
-	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_DME) != RESET)
-	// 	err = CODECB_RX_DMA_FLAG_DME;
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_FEIF2_6) != RESET)
+		err = 100;
 
-	// if (err)
-	// 	err++; //debug breakpoint
+	//  Transfer complete interrupt
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_TCIF2_6) != RESET) {
+		sz = codec_BUFF_LEN / 2;
+		src = (int16_t *)(ch2rx_buffer_start) + sz;
+		dst = (int16_t *)(ch2tx_buffer_start) + sz;
 
-	// /* Transfer complete interrupt */
-	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_TC) != RESET) {
-	// 	/* Point to 2nd half of buffers */
-	// 	sz = codec_BUFF_LEN / 2;
-	// 	src = (int16_t *)(ch2rx_buffer_start) + sz;
-	// 	dst = (int16_t *)(ch2tx_buffer_start) + sz;
+		audio_callback(src, dst, sz / 2, 1); //channel2
 
-	// 	audio_callback(src, dst, sz / 2, 1); //channel2
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_b, DMA_FLAG_TCIF2_6);
+	}
 
-	// 	DMA_ClearFlag(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_TC);
-	// }
+	//  Half Transfer complete interrupt
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_HTIF2_6) != RESET) {
+		// Point to 1st half of buffers
+		sz = codec_BUFF_LEN / 2;
+		src = (int16_t *)(ch2rx_buffer_start);
+		dst = (int16_t *)(ch2tx_buffer_start);
 
-	// /* Half Transfer complete interrupt */
-	// if (DMA_GetFlagStatus(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_HT) != RESET) {
-	// 	/* Point to 1st half of buffers */
-	// 	sz = codec_BUFF_LEN / 2;
-	// 	src = (int16_t *)(ch2rx_buffer_start);
-	// 	dst = (int16_t *)(ch2tx_buffer_start);
+		audio_callback(src, dst, sz / 2, 1); //channel2
 
-	// 	audio_callback(src, dst, sz / 2, 1); //channel2
-
-	// 	DMA_ClearFlag(CODECB_RX_DMA_STREAM, CODECB_RX_DMA_FLAG_HT);
-	// }
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_b, DMA_FLAG_HTIF2_6);
+	}
 }
 
-/*
- * I2S2 DMA interrupt for TX data CodecB
- */
-void DMA1_Stream4_IRQHandler(void) {
-	// uint32_t err = 0;
+// DMA interrupt for TX data CodecB (sai2a)
+void DMA2_Stream4_IRQHandler(void) {
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_a, DMA_FLAG_TEIF0_4) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_a, DMA_FLAG_TEIF0_4);
 
-	// if (DMA_GetFlagStatus(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_FE) != RESET) {
-	// 	err = CODECB_TX_DMA_FLAG_FE;
-	// 	DMA_ClearFlag(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_FE);
-	// }
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_a, DMA_FLAG_DMEIF0_4) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_a, DMA_FLAG_DMEIF0_4);
 
-	// if (DMA_GetFlagStatus(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_TE) != RESET) {
-	// 	err = CODECB_TX_DMA_FLAG_TE;
-	// 	DMA_ClearFlag(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_TE);
-	// }
-
-	// if (DMA_GetFlagStatus(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_DME) != RESET) {
-	// 	err = CODECB_TX_DMA_FLAG_DME;
-	// 	DMA_ClearFlag(CODECB_TX_DMA_STREAM, CODECB_TX_DMA_FLAG_DME);
-	// }
-	// if (err)
-	// 	err++; //debug breakpoint
+	if (__HAL_DMA_GET_FLAG(&hdma_sai2_a, DMA_FLAG_FEIF0_4) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_a, DMA_FLAG_FEIF0_4);
 }
 
-/**
-  * I2S3 DMA interrupt for RX data Codec A
-  */
-void DMA1_Stream2_IRQHandler(void) {
-	//int16_t *src, *dst;
-	//uint16_t sz;
-	//uint32_t err = 0;
-	////uint32_t i;
+// DMA interrupt for RX data Codec A
+void DMA2_Stream5_IRQHandler(void) {
+	int16_t *src, *dst;
+	uint16_t sz;
 
-	//if (DMA_GetFlagStatus(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_FE) != RESET)
-	//	err = AUDIO_I2S3_EXT_DMA_FLAG_FE;
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_b, DMA_FLAG_TEIF1_5) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_b, DMA_FLAG_TEIF1_5);
 
-	//if (DMA_GetFlagStatus(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_TE) != RESET)
-	//	err = AUDIO_I2S3_EXT_DMA_FLAG_TE;
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_b, DMA_FLAG_DMEIF1_5) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_b, DMA_FLAG_DMEIF1_5);
 
-	//if (DMA_GetFlagStatus(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_DME) != RESET)
-	//	err = AUDIO_I2S3_EXT_DMA_FLAG_DME;
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_b, DMA_FLAG_FEIF1_5) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_b, DMA_FLAG_FEIF1_5);
 
-	//if (err)
-	//	err++; //debug breakpoint
+	//  Transfer complete interrupt
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_b, DMA_FLAG_TCIF1_5) != RESET) {
+		sz = codec_BUFF_LEN / 2;
+		src = (int16_t *)(ch1rx_buffer_start) + sz;
+		dst = (int16_t *)(ch1tx_buffer_start) + sz;
 
-	///* Transfer complete interrupt */
-	//if (DMA_GetFlagStatus(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_TC) != RESET) {
-	//	/* Point to 2nd half of buffers */
-	//	sz = codec_BUFF_LEN / 2;
-	//	src = (int16_t *)(ch1rx_buffer_start) + sz;
-	//	dst = (int16_t *)(ch1tx_buffer_start) + sz;
+		audio_callback(src, dst, sz / 2, 0); //channel1
 
-	//	audio_callback(src, dst, sz / 2, 0); //channel 1
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_b, DMA_FLAG_TCIF1_5);
+	}
 
-	//	DMA_ClearFlag(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_TC);
-	//}
+	//  Half Transfer complete interrupt
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_b, DMA_FLAG_HTIF1_5) != RESET) {
+		// Point to 1st half of buffers
+		sz = codec_BUFF_LEN / 2;
+		src = (int16_t *)(ch1rx_buffer_start);
+		dst = (int16_t *)(ch1tx_buffer_start);
 
-	///* Half Transfer complete interrupt */
-	//if (DMA_GetFlagStatus(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_HT) != RESET) {
-	//	/* Point to 1st half of buffers */
-	//	sz = codec_BUFF_LEN / 2;
-	//	src = (int16_t *)(ch1rx_buffer_start);
-	//	dst = (int16_t *)(ch1tx_buffer_start);
+		audio_callback(src, dst, sz / 2, 0); //channel1
 
-	//	audio_callback(src, dst, sz / 2, 0); //channel 1
-
-	//	DMA_ClearFlag(AUDIO_I2S3_EXT_DMA_STREAM, AUDIO_I2S3_EXT_DMA_FLAG_HT);
-	//}
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_b, DMA_FLAG_HTIF1_5);
+	}
 }
 
-/*
- * I2S2 DMA interrupt for TX data CodecA
- */
-void DMA1_Stream5_IRQHandler(void) {
-	// uint32_t err = 0;
+// DMA interrupt for TX data CodecA
+void DMA2_Stream1_IRQHandler(void) {
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_a, DMA_FLAG_TEIF1_5) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_a, DMA_FLAG_TEIF1_5);
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S3_DMA_STREAM, AUDIO_I2S3_DMA_FLAG_FE) != RESET) {
-	// 	err = AUDIO_I2S3_DMA_FLAG_FE;
-	// 	DMA_ClearFlag(AUDIO_I2S3_DMA_STREAM, AUDIO_I2S3_DMA_FLAG_FE);
-	// }
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_a, DMA_FLAG_DMEIF1_5) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_a, DMA_FLAG_DMEIF1_5);
 
-	// if (DMA_GetFlagStatus(AUDIO_I2S3_DMA_STREAM, AUDIO_I2S3_DMA_FLAG_TE) != RESET) {
-	// 	err = AUDIO_I2S3_DMA_FLAG_TE;
-	// 	DMA_ClearFlag(AUDIO_I2S3_DMA_STREAM, AUDIO_I2S3_DMA_FLAG_TE);
-	// }
-
-	// if (DMA_GetFlagStatus(AUDIO_I2S3_DMA_STREAM, AUDIO_I2S3_DMA_FLAG_DME) != RESET) {
-	// 	err = AUDIO_I2S3_DMA_FLAG_DME;
-	// 	DMA_ClearFlag(AUDIO_I2S3_DMA_STREAM, AUDIO_I2S3_DMA_FLAG_DME);
-	// }
-
-	// if (err)
-	// 	err++; //debug breakpoint
+	if (__HAL_DMA_GET_FLAG(&hdma_sai1_a, DMA_FLAG_FEIF1_5) != RESET)
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai1_a, DMA_FLAG_FEIF1_5);
 }

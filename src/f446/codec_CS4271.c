@@ -34,6 +34,11 @@
 I2C_HandleTypeDef hal_i2c1;
 I2C_HandleTypeDef hal_i2c2;
 
+SAI_HandleTypeDef hsai_BlockA1;
+SAI_HandleTypeDef hsai_BlockB1;
+SAI_HandleTypeDef hsai_BlockA2;
+SAI_HandleTypeDef hsai_BlockB2;
+
 static volatile uint32_t CODECTimeout = CODEC_LONG_TIMEOUT;
 static uint32_t Codec_TIMEOUT_UserCallback(void) {
 	return 1;
@@ -118,176 +123,112 @@ void Codec_A_CtrlInterface_Init(void) {
 }
 
 void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
-	// I2S_InitTypeDef I2S_InitStructure;
+	__HAL_RCC_SAI2_CLK_ENABLE();
+	hsai_BlockA2.Instance = SAI2_Block_A;
+	hsai_BlockA2.Init.AudioMode = SAI_MODESLAVE_TX;
+	hsai_BlockA2.Init.Synchro = SAI_SYNCHRONOUS_EXT_SAI1;
+	hsai_BlockA2.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+	hsai_BlockA2.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+	hsai_BlockA2.Init.MonoStereoMode = SAI_STEREOMODE;
+	hsai_BlockA2.Init.CompandingMode = SAI_NOCOMPANDING;
+	hsai_BlockA2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+	HAL_SAI_DeInit(&hsai_BlockA2);
 
-	//CODEC B: Right channel of DLD (I2S2, I2C2)
+	if (HAL_SAI_InitProtocol(&hsai_BlockA2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
+		// __BKPT();
+	}
 
-	/* Enable the CODEC_I2S peripheral clock */
-	// RCC_APB1PeriphClockCmd(CODECB_I2S_CLK, ENABLE);
+	hsai_BlockB2.Instance = SAI2_Block_B;
+	hsai_BlockB2.Init.AudioMode = SAI_MODESLAVE_RX;
+	hsai_BlockB2.Init.Synchro = SAI_SYNCHRONOUS;
+	hsai_BlockB2.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+	hsai_BlockB2.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+	hsai_BlockB2.Init.MonoStereoMode = SAI_STEREOMODE;
+	hsai_BlockB2.Init.CompandingMode = SAI_NOCOMPANDING;
+	hsai_BlockB2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+	HAL_SAI_DeInit(&hsai_BlockB2);
 
-	/* CODEC_I2S peripheral configuration for master TX */
-	// SPI_I2S_DeInit(CODECB_I2S);
-	// I2S_InitStructure.I2S_AudioFreq = AudioFreq;
-	// I2S_InitStructure.I2S_Standard = I2S_STANDARD;
-	// I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_24b;
-	// I2S_InitStructure.I2S_CPOL = I2S_CPOL_Low;
-
-	// if (CODECB_MODE == CODEC_IS_MASTER)
-	// 	I2S_InitStructure.I2S_Mode = I2S_Mode_SlaveTx;
-	// else
-	// 	I2S_InitStructure.I2S_Mode = I2S_Mode_MasterTx;
-
-	// if (CODECB_MODE == CODEC_IS_MASTER)
-	// 	I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
-	// else {
-	// 	if (CODECB_MCLK_SRC == MCLK_SRC_STM)
-	// 		I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
-	// 	else
-	// 		I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
-	// }
-	// /* Initialize the I2S main channel for TX */
-	// I2S_Init(CODECB_I2S, &I2S_InitStructure);
-
-	// /* Initialize the I2S extended channel for RX */
-	// I2S_FullDuplexConfig(CODECB_I2S_EXT, &I2S_InitStructure);
-
-	// I2S_Cmd(CODECB_I2S, ENABLE);
-	// I2S_Cmd(CODECB_I2S_EXT, ENABLE);
+	if (HAL_SAI_InitProtocol(&hsai_BlockB2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
+		// __BKPT();
+	}
 }
 
 void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
-	// I2S_InitTypeDef I2S_InitStructure;
-
 	// CODEC A: DLD Left Channel
-	// Enable the CODEC_I2S peripheral clock
-	// RCC_APB1PeriphClockCmd(CODECA_I2S_CLK, ENABLE);
 
-	// CODECA_I2S peripheral configuration for master TX
-	// SPI_I2S_DeInit(CODECA_I2S);
-	// I2S_InitStructure.I2S_AudioFreq = AudioFreq;
-	// I2S_InitStructure.I2S_Standard = I2S_STANDARD;
-	// I2S_InitStructure.I2S_DataFormat = I2S_DataFormat_24b;
-	// I2S_InitStructure.I2S_CPOL = I2S_CPOL_High;
+	__HAL_RCC_SAI1_CLK_ENABLE();
 
-	// if (CODECA_MODE == CODEC_IS_MASTER)
-	// 	I2S_InitStructure.I2S_Mode = I2S_Mode_SlaveTx;
-	// else
-	// 	I2S_InitStructure.I2S_Mode = I2S_Mode_MasterTx;
+	/* Peripheral DMA init*/
 
-	// if (CODECA_MODE == CODEC_IS_MASTER)
-	// 	I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
-	// else {
-	// 	if (CODECA_MCLK_SRC == MCLK_SRC_STM)
-	// 		I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Enable;
-	// 	else
-	// 		I2S_InitStructure.I2S_MCLKOutput = I2S_MCLKOutput_Disable;
-	// }
+	hsai_BlockA1.Instance = SAI1_Block_A;
+	hsai_BlockA1.Init.AudioMode = SAI_MODEMASTER_TX;
+	hsai_BlockA1.Init.Synchro = SAI_ASYNCHRONOUS;
+	hsai_BlockA1.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+	hsai_BlockA1.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
+	hsai_BlockA1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+	hsai_BlockA1.Init.ClockSource = SAI_CLKSOURCE_NA;
+	hsai_BlockA1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
+	hsai_BlockA1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+	hsai_BlockA1.Init.MonoStereoMode = SAI_STEREOMODE;
+	hsai_BlockA1.Init.CompandingMode = SAI_NOCOMPANDING;
+	hsai_BlockA1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+	HAL_SAI_DeInit(&hsai_BlockA1);
 
-	// // Initialize the I2S main channel for TX
-	// I2S_Init(CODECA_I2S, &I2S_InitStructure);
+	if (HAL_SAI_InitProtocol(&hsai_BlockA1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
+		// __BKPT();
+	}
 
-	// // Initialize the I2S extended channel for RX
-	// I2S_FullDuplexConfig(CODECA_I2S_EXT, &I2S_InitStructure);
+	hsai_BlockB1.Instance = SAI1_Block_B;
+	hsai_BlockB1.Init.AudioMode = SAI_MODESLAVE_RX;
+	hsai_BlockB1.Init.Synchro = SAI_SYNCHRONOUS;
+	hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+	hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+	hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+	hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
+	hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
+	hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+	HAL_SAI_DeInit(&hsai_BlockB1);
 
-	// I2S_Cmd(CODECA_I2S, ENABLE);
-	// I2S_Cmd(CODECA_I2S_EXT, ENABLE);
+	if (HAL_SAI_InitProtocol(&hsai_BlockB1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
+		// __BKPT();
+	}
 }
 
 void Codec_GPIO_Init(void) {
 	GPIO_InitTypeDef gpio;
 
-	/* Enable I2S and I2C GPIO clocks */
-	// RCC_AHB1PeriphClockCmd(CODECB_I2C_GPIO_CLOCK | CODECB_SAI_GPIO_CLOCK, ENABLE);
-	// RCC_AHB1PeriphClockCmd(CODECA_I2C_GPIO_CLOCK | CODECA_SAI_GPIO_CLOCK, ENABLE);
+	// PE2     ------> SAI1_MCLK_A
+	// PE4     ------> SAI1_FS_A
+	// PE5     ------> SAI1_SCK_A
+	// PE6     ------> SAI1_SD_A
+	gpio.Pin = GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_LOW;
+	gpio.Alternate = GPIO_AF6_SAI1;
+	HAL_GPIO_Init(GPIOE, &gpio);
 
-	// /* CODEC_I2C SCL and SDA pins configuration -------------------------------------*/
-	// gpio.GPIO_Mode = GPIO_Mode_AF;
-	// gpio.GPIO_Speed = GPIO_Speed_50MHz;
-	// gpio.GPIO_OType = GPIO_OType_OD;
-	// gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	// PE3     ------> SAI1_SD_B
+	gpio.Pin = GPIO_PIN_3;
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_LOW;
+	gpio.Alternate = GPIO_AF6_SAI1;
+	HAL_GPIO_Init(GPIOE, &gpio);
 
-	// gpio.GPIO_Pin = CODECB_I2C_SCL_PIN | CODECB_I2C_SDA_PIN;
-	// GPIO_Init(CODECB_I2C_GPIO, &gpio);
-	// gpio.GPIO_Pin = CODECA_I2C_SCL_PIN | CODECA_I2C_SDA_PIN;
-	// GPIO_Init(CODECA_I2C_GPIO, &gpio);
+	// PD11     ------> SAI2_SD_A
+	gpio.Pin = GPIO_PIN_11;
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_LOW;
+	gpio.Alternate = GPIO_AF10_SAI2;
+	HAL_GPIO_Init(GPIOD, &gpio);
 
-	// /* Connect pins to I2C peripheral */
-	// GPIO_PinAFConfig(CODECA_I2C_GPIO, CODECA_I2C_SCL_PINSRC, CODECA_I2C_GPIO_AF);
-	// GPIO_PinAFConfig(CODECA_I2C_GPIO, CODECA_I2C_SDA_PINSRC, CODECA_I2C_GPIO_AF);
-
-	// GPIO_PinAFConfig(CODECB_I2C_GPIO, CODECB_I2C_SCL_PINSRC, CODECB_I2C_GPIO_AF);
-	// GPIO_PinAFConfig(CODECB_I2C_GPIO, CODECB_I2C_SDA_PINSRC, CODECB_I2C_GPIO_AF);
-
-	// /* CODEC_I2S output pins configuration: WS, SCK SD0 SDI MCK pins ------------------*/
-	// gpio.GPIO_Mode = GPIO_Mode_AF;
-	// gpio.GPIO_Speed = GPIO_Speed_100MHz;
-	// gpio.GPIO_OType = GPIO_OType_PP;
-	// gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	// gpio.GPIO_Pin = CODECB_SAI_WS_PIN;
-	// GPIO_Init(CODECB_SAI_GPIO_WS, &gpio);
-	// gpio.GPIO_Pin = CODECB_SAI_SDI_PIN;
-	// GPIO_Init(CODECB_SAI_GPIO_SDI, &gpio);
-	// gpio.GPIO_Pin = CODECB_SAI_SCK_PIN;
-	// GPIO_Init(CODECB_SAI_GPIO_SCK, &gpio);
-	// gpio.GPIO_Pin = CODECB_SAI_SDO_PIN;
-	// GPIO_Init(CODECB_SAI_GPIO_SDO, &gpio);
-
-	// gpio.GPIO_Pin = CODECA_SAI_WS_PIN;
-	// GPIO_Init(CODECA_SAI_GPIO_WS, &gpio);
-	// gpio.GPIO_Pin = CODECA_SAI_SDI_PIN;
-	// GPIO_Init(CODECA_SAI_GPIO_SDI, &gpio);
-	// gpio.GPIO_Pin = CODECA_SAI_SCK_PIN;
-	// GPIO_Init(CODECA_SAI_GPIO_SCK, &gpio);
-	// gpio.GPIO_Pin = CODECA_SAI_SDO_PIN;
-	// GPIO_Init(CODECA_SAI_GPIO_SDO, &gpio);
-
-	// GPIO_PinAFConfig(CODECB_SAI_GPIO_WS, CODECB_SAI_WS_PINSRC, CODECB_SAI_GPIO_AF);
-	// GPIO_PinAFConfig(CODECB_SAI_GPIO_SCK, CODECB_SAI_SCK_PINSRC, CODECB_SAI_GPIO_AF);
-	// GPIO_PinAFConfig(CODECB_SAI_GPIO_SDO, CODECB_SAI_SDO_PINSRC, CODECB_SAI_GPIO_AF);
-	// GPIO_PinAFConfig(CODECB_SAI_GPIO_SDI, CODECB_SAI_SDI_PINSRC, CODECB_I2Sext_GPIO_AF);
-
-	// GPIO_PinAFConfig(CODECA_SAI_GPIO_WS, CODECA_SAI_WS_PINSRC, CODECA_SAI_GPIO_AF);
-	// GPIO_PinAFConfig(CODECA_SAI_GPIO_SCK, CODECA_SAI_SCK_PINSRC, CODECA_SAI_GPIO_AF);
-	// GPIO_PinAFConfig(CODECA_SAI_GPIO_SDO, CODECA_SAI_SDO_PINSRC, CODECA_SAI_GPIO_AF);
-	// GPIO_PinAFConfig(CODECA_SAI_GPIO_SDI, CODECA_SAI_SDI_PINSRC, CODECA_I2Sext_GPIO_AF);
-
-	// if (CODECA_MCLK_SRC == MCLK_SRC_STM) {
-
-	// 	gpio.GPIO_Mode = GPIO_Mode_AF;
-	// 	gpio.GPIO_Speed = GPIO_Speed_100MHz;
-	// 	gpio.GPIO_OType = GPIO_OType_PP;
-	// 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	// 	gpio.GPIO_Pin = CODECA_SAI_MCK_PIN;
-	// 	GPIO_Init(CODECA_SAI_MCK_GPIO, &gpio);
-	// 	GPIO_PinAFConfig(CODECA_SAI_MCK_GPIO, CODECA_SAI_MCK_PINSRC, CODECA_SAI_GPIO_AF);
-
-	// } else if (CODECA_MCLK_SRC == MCLK_SRC_EXTERNAL) {
-
-	// 	gpio.GPIO_Mode = GPIO_Mode_IN;
-	// 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	// 	gpio.GPIO_Pin = CODECA_SAI_MCK_PIN;
-	// 	GPIO_Init(CODECA_SAI_MCK_GPIO, &gpio);
-	// }
-
-	// if (CODECB_MCLK_SRC == MCLK_SRC_STM) {
-	// 	gpio.GPIO_Mode = GPIO_Mode_AF;
-	// 	gpio.GPIO_Speed = GPIO_Speed_100MHz;
-	// 	gpio.GPIO_OType = GPIO_OType_PP;
-	// 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	// 	gpio.GPIO_Pin = CODECB_SAI_MCK_PIN;
-	// 	GPIO_Init(CODECB_SAI_MCK_GPIO, &gpio);
-	// 	GPIO_PinAFConfig(CODECB_SAI_MCK_GPIO, CODECB_SAI_MCK_PINSRC, CODECB_SAI_GPIO_AF);
-
-	// } else if (CODECB_MCLK_SRC == MCLK_SRC_EXTERNAL) {
-
-	// 	gpio.GPIO_Mode = GPIO_Mode_IN;
-	// 	gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-	// 	gpio.GPIO_Pin = CODECB_SAI_MCK_PIN;
-	// 	GPIO_Init(CODECB_SAI_MCK_GPIO, &gpio);
-	// }
+	// PG10     ------> SAI2_SD_B
+	gpio.Pin = GPIO_PIN_10;
+	gpio.Mode = GPIO_MODE_AF_PP;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_LOW;
+	gpio.Alternate = GPIO_AF10_SAI2;
+	HAL_GPIO_Init(GPIOG, &gpio);
 }
