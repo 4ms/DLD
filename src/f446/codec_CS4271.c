@@ -93,6 +93,7 @@ uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_Ty
  * Initializes I2C peripheral for both codecs
  */
 void Codec_B_CtrlInterface_Init(void) {
+	__HAL_RCC_I2C2_CLK_ENABLE();
 	hal_i2c1.Instance = I2C2;
 	hal_i2c1.Init.ClockSpeed = 50000;
 	hal_i2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
@@ -108,6 +109,7 @@ void Codec_B_CtrlInterface_Init(void) {
 }
 
 void Codec_A_CtrlInterface_Init(void) {
+	__HAL_RCC_I2C1_CLK_ENABLE();
 	hal_i2c1.Instance = I2C1;
 	hal_i2c1.Init.ClockSpeed = 50000;
 	hal_i2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
@@ -196,6 +198,24 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 
 void Codec_GPIO_Init(void) {
 	GPIO_InitTypeDef gpio;
+
+	// PB9     ------> I2C1_SDA
+	// PB8     ------> I2C1_SCL
+	gpio.Pin = GPIO_PIN_9 | GPIO_PIN_8;
+	gpio.Mode = GPIO_MODE_AF_OD;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	gpio.Alternate = GPIO_AF4_I2C1;
+	HAL_GPIO_Init(GPIOB, &gpio);
+
+	// PB10     ------> I2C2_SCL
+	// PB11     ------> I2C2_SDA
+	gpio.Pin = GPIO_PIN_10 | GPIO_PIN_11;
+	gpio.Mode = GPIO_MODE_AF_OD;
+	gpio.Pull = GPIO_NOPULL;
+	gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	gpio.Alternate = GPIO_AF4_I2C2;
+	HAL_GPIO_Init(GPIOB, &gpio);
 
 	// PE2     ------> SAI1_MCLK_A
 	// PE4     ------> SAI1_FS_A
