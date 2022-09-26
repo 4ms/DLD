@@ -30,18 +30,18 @@
 #endif
 
 /* Codec audio Standards */
-#ifdef USE_I2S_STANDARD_PHILLIPS
-#define CODEC_STANDARD 0x04
-#define I2S_STANDARD I2S_Standard_Phillips
-#elif defined(USE_I2S_STANDARD_MSB)
-#define CODEC_STANDARD 0x00
-#define I2S_STANDARD I2S_STANDARD_MSB
-#elif defined(USE_I2S_STANDARD_LSB)
-#define CODEC_STANDARD 0x08
-#define I2S_STANDARD I2S_Standard_LSB
-#else
-#error "Error: No audio communication standard selected !"
-#endif /* I2S_STANDARD */
+// #ifdef USE_I2S_STANDARD_PHILLIPS
+// #define CODEC_STANDARD 0x04
+// #define I2S_STANDARD I2S_Standard_Phillips
+// #elif defined(USE_I2S_STANDARD_MSB)
+// #define CODEC_STANDARD 0x00
+// #define I2S_STANDARD I2S_STANDARD_MSB
+// #elif defined(USE_I2S_STANDARD_LSB)
+// #define CODEC_STANDARD 0x08
+// #define I2S_STANDARD I2S_Standard_LSB
+// #else
+// #error "Error: No audio communication standard selected !"
+// #endif /* I2S_STANDARD */
 
 #define CS4271_ADDR_0 0b0010000
 #define CS4271_ADDR_1 0b0010001
@@ -52,8 +52,8 @@
  */
 #define CODEC_ADDRESS (CS4271_ADDR_0 << 1)
 
-#define CS4271_NUM_REGS                                                                                                \
-	6 /* we only initialize the first 6 registers, the 7th is for pre/post-init and the 8th is read-only */
+#define CS4271_NUM_REGS 6
+/* we only initialize the first 6 registers, the 7th is for pre/post-init and the 8th is read-only */
 
 #define CS4271_REG_MODECTRL1 1
 #define CS4271_REG_DACCTRL 2
