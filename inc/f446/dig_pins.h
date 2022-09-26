@@ -102,10 +102,10 @@
 	 ((TIMESW_CH2_T1_GPIO->IDR & TIMESW_CH2_T1_pin) ? 0b01 : 0b00))
 
 // Jumper 1 (aka DEBUG3) is not connected, so init its pins as JUMPER 2
-// And always return 1 (no jumper installed)
+// And always return 0 (no jumper installed)
 #define JUMPER_1_GPIO GPIOD
 #define JUMPER_1_pin GPIO_PIN_12
-#define JUMPER_1 (1)
+#define JUMPER_1 (0)
 
 // DEBUG2
 #define JUMPER_2_GPIO GPIOD
