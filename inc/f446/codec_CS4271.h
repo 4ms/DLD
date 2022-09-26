@@ -33,11 +33,36 @@
 /* I2C clock speed configuration (in Hz)  */
 #define CODEC_I2C_SPEED 50000
 
-#define USE_I2S_STANDARD_PHILLIPS
-//#define USE_I2S_STANDARD_MSB
-//#define USE_I2S_STANDARD_LSB
+#define CODECA_I2C I2C1
+#define CODECA_I2C_CLK __HAL_RCC_I2C1_CLK_ENABLE
+#define CODECA_I2C_GPIO_CLOCK RCC_AHB1Periph_GPIOB
+#define CODECA_I2C_GPIO_AF GPIO_AF4_I2C1
+#define CODECA_I2C_GPIO GPIOB
+#define CODECA_I2C_SCL_PIN GPIO_PIN_8
+#define CODECA_I2C_SDA_PIN GPIO_PIN_9
 
-//#define USE_DEFAULT_TIMEOUT_CALLBACK
+#define CODECB_I2C I2C2
+#define CODECB_I2C_CLK __HAL_RCC_I2C2_CLK_ENABLE
+#define CODECB_I2C_GPIO_CLOCK __HAL_RCC_GPIOB_CLK_ENABLE
+#define CODECB_I2C_GPIO_AF GPIO_AF4_I2C2
+#define CODECB_I2C_GPIO GPIOB
+#define CODECB_I2C_SCL_PIN GPIO_PIN_10
+#define CODECB_I2C_SDA_PIN GPIO_PIN_11
+
+// CODEC A: SAI1_SD_A/B: DLD Left Side
+#define CODECA_RESET_RCC_ENABLE __HAL_RCC_GPIOD_CLK_ENABLE
+#define CODECA_RESET_pin GPIO_PIN_2
+#define CODECA_RESET_GPIO GPIOD
+#define CODECA_RESET_HIGH CODECA_RESET_GPIO->BSRR = CODECA_RESET_pin
+#define CODECA_RESET_LOW CODECA_RESET_GPIO->BSRR = (CODECA_RESET_pin << 16)
+
+// CODEC B (DLD side B)
+// CODECB is SAI2, synced to SAI1 [on sch: I2S2 synced to I2S3]
+#define CODECB_RESET_RCC_ENABLE __HAL_RCC_GPIOG_CLK_ENABLE
+#define CODECB_RESET_pin GPIO_PIN_3
+#define CODECB_RESET_GPIO GPIOG
+#define CODECB_RESET_HIGH CODECB_RESET_GPIO->BSRR = CODECB_RESET_pin
+#define CODECB_RESET_LOW CODECB_RESET_GPIO->BSRR = (CODECB_RESET_pin << 16)
 
 // #define CODECA_TX_IRQHandler DMA2_Stream1_IRQHandler
 // #define CODECA_TX_DMA_STREAM DMA2_Stream1
@@ -50,14 +75,6 @@
 // #define CODECB_RX_IRQHandler DMA2_Stream6_IRQHandler
 // #define CODECB_RX_DMA_IRQ DMA2_Stream6_IRQn
 // #define CODECB_RX_DMA_STREAM DMA2_Stream6
-
-// CODEC B (DLD side B)
-// CODECB is SAI2, synced to SAI1 [on sch: I2S2 synced to I2S3]
-#define CODECB_RESET_RCC_ENABLE __HAL_RCC_GPIOG_CLK_ENABLE
-#define CODECB_RESET_pin GPIO_PIN_3
-#define CODECB_RESET_GPIO GPIOG
-#define CODECB_RESET_HIGH CODECB_RESET_GPIO->BSRR = CODECB_RESET_pin
-#define CODECB_RESET_LOW CODECB_RESET_GPIO->BSRR = (CODECB_RESET_pin << 16)
 
 // SAI2_SD_A: Channel 2 TX (DAC)
 // #define CODECB_SAI_GPIO_SDO GPIOD
@@ -90,13 +107,6 @@
 
 ///////////////
 // DLD Side A:
-#define CODECA_RESET_RCC_ENABLE __HAL_RCC_GPIOD_CLK_ENABLE
-#define CODECA_RESET_pin GPIO_PIN_2
-#define CODECA_RESET_GPIO GPIOD
-#define CODECA_RESET_HIGH CODECA_RESET_GPIO->BSRR = CODECA_RESET_pin
-#define CODECA_RESET_LOW CODECA_RESET_GPIO->BSRR = (CODECA_RESET_pin << 16)
-
-// SAI1_SD_A: DLD Left Side TX (DAC)
 // #define CODECA_SAI_GPIO_WS GPIOE
 // #define CODECA_SAI_WS_PIN GPIO_PIN_4
 // #define CODECA_SAI_WS_AF GPIO_AF6_SAI1
@@ -128,44 +138,6 @@
 // #define CODECA_SAI_SDI_PIN GPIO_PIN_3
 // #define CODECA_SAI_SDI_AF GPIO_AF6_SAI1
 
-// #define AUDIO_I2S3_EXT_DMA_STREAM DMA1_Stream2
-// #define AUDIO_I2S3_EXT_DMA_DREG CODECA_I2S_EXT_ADDRESS
-// #define AUDIO_I2S3_EXT_DMA_CHANNEL DMA_Channel_2
-// #define AUDIO_I2S3_EXT_DMA_IRQ DMA1_Stream2_IRQn
-// #define AUDIO_I2S3_EXT_DMA_FLAG_TC DMA_FLAG_TCIF2
-// #define AUDIO_I2S3_EXT_DMA_FLAG_HT DMA_FLAG_HTIF2
-// #define AUDIO_I2S3_EXT_DMA_FLAG_FE DMA_FLAG_FEIF2
-// #define AUDIO_I2S3_EXT_DMA_FLAG_TE DMA_FLAG_TEIF2
-// #define AUDIO_I2S3_EXT_DMA_FLAG_DME DMA_FLAG_DMEIF2
-
-/* I2S DMA Stream definitions */
-
-/* I2C peripheral configuration defines (control interface of the audio codec) */
-#define CODECB_I2C I2C2
-#define CODECB_I2C_CLK __HAL_RCC_I2C2_CLK_ENABLE
-#define CODECB_I2C_GPIO_CLOCK __HAL_RCC_GPIOB_CLK_ENABLE
-#define CODECB_I2C_GPIO_AF GPIO_AF4_I2C2
-#define CODECB_I2C_GPIO GPIOB
-#define CODECB_I2C_SCL_PIN GPIO_PIN_10
-#define CODECB_I2C_SDA_PIN GPIO_PIN_11
-// #define CODECB_I2C_SCL_PINSRC GPIO_PinSource10
-// #define CODECB_I2C_SDA_PINSRC GPIO_PinSource11
-
-#define CODECA_I2C I2C1
-#define CODECA_I2C_CLK __HAL_RCC_I2C1_CLK_ENABLE
-#define CODECA_I2C_GPIO_CLOCK RCC_AHB1Periph_GPIOB
-#define CODECA_I2C_GPIO_AF GPIO_AF4_I2C1
-#define CODECA_I2C_GPIO GPIOB
-#define CODECA_I2C_SCL_PIN GPIO_PIN_8
-#define CODECA_I2C_SDA_PIN GPIO_PIN_9
-// #define CODECA_I2C_SCL_PINSRC GPIO_PinSource8
-// #define CODECA_I2C_SDA_PINSRC GPIO_PinSource9
-
-/* Maximum Timeout values for flags and events waiting loops. These timeouts are
-   not based on accurate values, they just guarantee that the application will 
-   not remain stuck if the I2C communication is corrupted.
-   You may modify these timeout values depending on CPU frequency and application
-   conditions (interrupts routines ...). */
 #define CODEC_FLAG_TIMEOUT ((uint32_t)0x1000)
 #define CODEC_LONG_TIMEOUT ((uint32_t)(300 * CODEC_FLAG_TIMEOUT))
 
