@@ -84,18 +84,18 @@ void DeInit_I2S_Clock(void) {
 
 void DeInit_I2SDMA_Channel1(void) {
 	// __HAL_RCC_SAI1_CLK_DISABLE();
-	__HAL_RCC_DMA2_CLK_DISABLE();
-	HAL_DMA_DeInit(&hdma_sai1_a);
-	HAL_DMA_DeInit(&hdma_sai1_b);
+	// __HAL_RCC_DMA2_CLK_DISABLE();
+	// HAL_DMA_DeInit(&hdma_sai1_a);
+	// HAL_DMA_DeInit(&hdma_sai1_b);
 	// DMA_Cmd(AUDIO_I2S3_DMA_STREAM, DISABLE);
 	// DMA_Cmd(AUDIO_I2S3_EXT_DMA_STREAM, DISABLE);
 }
 
 void DeInit_I2SDMA_Channel2(void) {
 	// __HAL_RCC_SAI2_CLK_DISABLE();
-	__HAL_RCC_DMA2_CLK_DISABLE();
-	HAL_DMA_DeInit(&hdma_sai2_a);
-	HAL_DMA_DeInit(&hdma_sai2_b);
+	// __HAL_RCC_DMA2_CLK_DISABLE();
+	// HAL_DMA_DeInit(&hdma_sai2_a);
+	// HAL_DMA_DeInit(&hdma_sai2_b);
 	// DMA_Cmd(CODECB_TX_DMA_STREAM, DISABLE);
 	// DMA_Cmd(CODECB_RX_DMA_STREAM, DISABLE);
 }
