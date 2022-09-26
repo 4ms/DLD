@@ -26,8 +26,8 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "i2s.h"
 #include "globals.h"
+#include "i2s.h"
 #include "stm32f4xx.h"
 
 #include "codec_CS4271.h"
@@ -66,14 +66,10 @@ void init_audio_dma(void) {
 }
 
 void Start_I2SDMA_Channel1(void) {
-	HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)ch1tx_buffer, codec_BUFF_LEN);
-	HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t *)ch1rx_buffer, codec_BUFF_LEN);
 	HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 }
 
 void Start_I2SDMA_Channel2(void) {
-	HAL_SAI_Transmit_DMA(&hsai_BlockA2, (uint8_t *)ch2tx_buffer, codec_BUFF_LEN);
-	HAL_SAI_Receive_DMA(&hsai_BlockB2, (uint8_t *)ch2rx_buffer, codec_BUFF_LEN);
 	HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 }
 
@@ -117,7 +113,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai1_a);
 
 		if (HAL_DMA_Init(&hdma_sai1_a) != HAL_OK) {
-			// __BKPT();
+			__BKPT();
 		}
 
 		// TODO: mdrivlib links before calling deinit
@@ -139,7 +135,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai1_b);
 
 		if (HAL_DMA_Init(&hdma_sai1_b) != HAL_OK) {
-			// __BKPT();
+			__BKPT();
 		}
 
 		// TODO: mdrivlib links before calling deinit
@@ -161,7 +157,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai2_a);
 
 		if (HAL_DMA_Init(&hdma_sai2_a) != HAL_OK) {
-			// __BKPT();
+			__BKPT();
 		}
 		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai2_a);
 		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai2_a);
@@ -181,7 +177,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai2_b);
 
 		if (HAL_DMA_Init(&hdma_sai2_b) != HAL_OK) {
-			// __BKPT();
+			__BKPT();
 		}
 		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai2_b);
 		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai2_b);
@@ -189,18 +185,18 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 }
 
 void Init_I2SDMA_Channel1(void) {
-	//uint32_t Size = codec_BUFF_LEN;
-	//dma_ch1tx.DMA_Memory0BaseAddr = (uint32_t)&ch1tx_buffer;
-	//dma_ch1tx.DMA_BufferSize = (uint32_t)Size;
-	//DMA_ITConfig(AUDIO_I2S3_DMA_STREAM, DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
-	//dma_ch1rx.DMA_Memory0BaseAddr = (uint32_t)&ch1rx_buffer;
-	//dma_ch1rx.DMA_BufferSize = (uint32_t)Size;
-	//DMA_ITConfig(AUDIO_I2S3_EXT_DMA_STREAM, DMA_IT_TC | DMA_IT_HT | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
 
 	ch1tx_buffer_start = (uint32_t)&ch1tx_buffer;
 	ch1rx_buffer_start = (uint32_t)&ch1rx_buffer;
 	HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 1, 0);
 	HAL_NVIC_DisableIRQ(DMA2_Stream5_IRQn);
+
+	__HAL_DMA_ENABLE_IT(&hdma_sai1_b, DMA_IT_DME);
+	__HAL_DMA_ENABLE_IT(&hdma_sai1_b, DMA_IT_FE);
+	__HAL_DMA_ENABLE_IT(&hdma_sai1_b, DMA_IT_TE);
+
+	HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)ch1tx_buffer, codec_BUFF_LEN);
+	HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t *)ch1rx_buffer, codec_BUFF_LEN);
 }
 
 void Init_I2SDMA_Channel2(void) {
@@ -211,7 +207,12 @@ void Init_I2SDMA_Channel2(void) {
 
 	//uint32_t Size = codec_BUFF_LEN;
 
-	//DMA_ITConfig(CODECB_RX_DMA_STREAM, DMA_IT_TC | DMA_IT_HT | DMA_IT_FE | DMA_IT_TE | DMA_IT_DME, ENABLE);
+	__HAL_DMA_ENABLE_IT(&hdma_sai2_b, DMA_IT_DME);
+	__HAL_DMA_ENABLE_IT(&hdma_sai2_b, DMA_IT_FE);
+	__HAL_DMA_ENABLE_IT(&hdma_sai2_b, DMA_IT_TE);
+
+	HAL_SAI_Transmit_DMA(&hsai_BlockA2, (uint8_t *)ch2tx_buffer, codec_BUFF_LEN);
+	HAL_SAI_Receive_DMA(&hsai_BlockB2, (uint8_t *)ch2rx_buffer, codec_BUFF_LEN);
 }
 
 // DMA interrupt for RX data CodecB (sai2b)
@@ -221,13 +222,13 @@ void DMA2_Stream6_IRQHandler(void) {
 	uint32_t err = 0;
 
 	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_TEIF2_6) != RESET)
-		err = 1;
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_b, DMA_FLAG_TEIF2_6);
 
 	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_DMEIF2_6) != RESET)
-		err = 10;
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_b, DMA_FLAG_DMEIF2_6);
 
 	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_FEIF2_6) != RESET)
-		err = 100;
+		__HAL_DMA_CLEAR_FLAG(&hdma_sai2_b, DMA_FLAG_FEIF2_6);
 
 	//  Transfer complete interrupt
 	if (__HAL_DMA_GET_FLAG(&hdma_sai2_b, DMA_FLAG_TCIF2_6) != RESET) {
