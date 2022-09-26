@@ -44,6 +44,7 @@
 #include "nvic.h"
 #include "params.h"
 #include "sdram.h"
+#include "system.h"
 #include "system_settings.h"
 #include "timekeeper.h"
 
@@ -77,6 +78,7 @@ int main(void) {
 	uint32_t do_factory_reset = 0;
 
 	set_vect_table();
+	system_clock_init();
 
 	Codecs_Deinit();
 
