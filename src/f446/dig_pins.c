@@ -57,8 +57,10 @@ void init_dig_inouts(void) {
 	gpio.Pull = GPIO_NOPULL;
 
 	// LEDs
-	gpio.Pin = LED_LOOP1 | LED_LOOP2;
-	HAL_GPIO_Init(LED_GPIO, &gpio);
+	gpio.Pin = LED_LOOP1;
+	HAL_GPIO_Init(LED_LOOP1_GPIO, &gpio);
+	gpio.Pin = LED_LOOP2;
+	HAL_GPIO_Init(LED_LOOP2_GPIO, &gpio);
 
 	gpio.Pin = LED_PINGBUT_pin;
 	HAL_GPIO_Init(LED_PINGBUT_GPIO, &gpio);
