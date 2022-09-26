@@ -26,7 +26,6 @@
  * -----------------------------------------------------------------------------
  */
 
-
 #ifndef GLOBALS_H_
 #define GLOBALS_H_
 
@@ -60,20 +59,24 @@
 //#define USE_VCXO
 
 //About 45ms delay
-#define delay()						\
-do {							\
-  register unsigned int i;				\
-  for (i = 0; i < 1000000; ++i)				\
-    __asm__ __volatile__ ("nop\n\t":::"memory");	\
-} while (0)
+#define delay()                                                                                                        \
+	do {                                                                                                               \
+		register unsigned int i;                                                                                       \
+		for (i = 0; i < 1000000; ++i)                                                                                  \
+			__asm__ __volatile__("nop\n\t" ::: "memory");                                                              \
+	} while (0)
 
+#ifdef STM32F446xx
+#define LOOPSPERMS 12000
+#else
+#define LOOPSPERMS 25000
+#endif
 
-#define delay_ms(x)						\
-do {							\
-  register unsigned int i;				\
-  for (i = 0; i < (25000*x); ++i)				\
-    __asm__ __volatile__ ("nop\n\t":::"memory");	\
-} while (0)
-
+#define delay_ms(x)                                                                                                    \
+	do {                                                                                                               \
+		register unsigned int i;                                                                                       \
+		for (i = 0; i < (LOOPSPERMS * x); ++i)                                                                         \
+			__asm__ __volatile__("nop\n\t" ::: "memory");                                                              \
+	} while (0)
 
 #endif /* GLOBALS_H_ */
