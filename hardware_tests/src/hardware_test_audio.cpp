@@ -36,13 +36,13 @@ void test_codec_init(void) {
 
 	Codec_GPIO_Init();
 
-	LED_LOOP2_ON;
-	Codec_B_AudioInterface_Init(SAMPLERATE);
-	LED_LOOP2_OFF;
-
 	LED_LOOP1_ON;
 	Codec_A_AudioInterface_Init(SAMPLERATE);
 	LED_LOOP1_OFF;
+
+	LED_LOOP2_ON;
+	Codec_B_AudioInterface_Init(SAMPLERATE);
+	LED_LOOP2_OFF;
 
 	LED_LOOP1_ON;
 	LED_LOOP2_ON;

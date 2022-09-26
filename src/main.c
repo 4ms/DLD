@@ -117,8 +117,8 @@ int main(void) {
 	delay();
 
 	Codec_GPIO_Init();
-	Codec_B_AudioInterface_Init(48000);
 	Codec_A_AudioInterface_Init(48000);
+	Codec_B_AudioInterface_Init(48000);
 
 	init_audio_dma();
 
