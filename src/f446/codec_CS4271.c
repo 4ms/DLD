@@ -105,7 +105,6 @@ void Codec_B_CtrlInterface_Init(void) {
 	hal_i2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
 	HAL_I2C_DeInit(&hal_i2c1);
 	HAL_I2C_Init(&hal_i2c1);
-	__HAL_I2C_ENABLE(&hal_i2c1);
 }
 
 void Codec_A_CtrlInterface_Init(void) {
@@ -121,7 +120,6 @@ void Codec_A_CtrlInterface_Init(void) {
 	hal_i2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
 	HAL_I2C_DeInit(&hal_i2c1);
 	HAL_I2C_Init(&hal_i2c1);
-	__HAL_I2C_ENABLE(&hal_i2c1);
 }
 
 void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
