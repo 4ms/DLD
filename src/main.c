@@ -205,7 +205,9 @@ void HardFault_Handler(void) {
 }
 
 void SysTick_Handler(void) {
-	return;
+#ifdef STM32F446xx
+	HAL_IncTick();
+#endif
 }
 
 void MemManage_Handler(void) {
