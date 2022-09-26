@@ -168,14 +168,14 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockA1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
 	hsai_BlockA1.Init.ClockSource = SAI_CLKSOURCE_NA;
 	hsai_BlockA1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
-	hsai_BlockA1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+	hsai_BlockA1.Init.SynchroExt = SAI_SYNCEXT_OUTBLOCKA_ENABLE;
 	hsai_BlockA1.Init.MonoStereoMode = SAI_STEREOMODE;
 	hsai_BlockA1.Init.CompandingMode = SAI_NOCOMPANDING;
 	hsai_BlockA1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockA1);
 
 	if (HAL_SAI_InitProtocol(&hsai_BlockA1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
-		// __BKPT();
+		__BKPT();
 	}
 
 	hsai_BlockB1.Instance = SAI1_Block_B;
@@ -183,14 +183,14 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockB1.Init.Synchro = SAI_SYNCHRONOUS;
 	hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
 	hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
-	hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+	hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_OUTBLOCKA_ENABLE;
 	hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
 	hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
 	hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockB1);
 
 	if (HAL_SAI_InitProtocol(&hsai_BlockB1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
-		// __BKPT();
+		__BKPT();
 	}
 }
 
