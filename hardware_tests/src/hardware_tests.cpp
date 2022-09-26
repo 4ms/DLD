@@ -27,19 +27,19 @@
  */
 
 extern "C" {
-#include "dig_pins.h"
 #include "RAM_test.h"
+#include "dig_pins.h"
 #include "flash.h"
 #include "globals.h"
 #include "leds.h"
 #include "sdram.h"
 }
-#include "hardware_tests.h"
-#include "hardware_test_audio.h"
-#include "hardware_test_switches_buttons.h"
 #include "hardware_test_adc.h"
+#include "hardware_test_audio.h"
 #include "hardware_test_gates.h"
+#include "hardware_test_switches_buttons.h"
 #include "hardware_test_util.h"
+#include "hardware_tests.h"
 
 #include "LEDTester.h"
 
@@ -48,8 +48,7 @@ static void test_RAM(void);
 
 static void animate_success(void);
 
-void do_hardware_test(void)
-{
+void do_hardware_test(void) {
 	pause_until_button_released();
 
 	test_single_leds();
@@ -79,11 +78,9 @@ void animate_success(void) {
 	chase_all_lights(100);
 }
 
-
 // The continue button is pressed to illuminate each LED, one at a time
 // At the end, all leds turn on
-void test_single_leds(void)
-{
+void test_single_leds(void) {
 	const uint8_t numLEDs = 7;
 	LEDTester check{numLEDs};
 
@@ -112,18 +109,17 @@ void test_RAM(void) {
 
 	uint32_t errs = RAM_test();
 
-	if (errs>0) {
-		const uint32_t bailout_time=100; //5 seconds
+	if (errs > 0) {
+		const uint32_t bailout_time = 100; //5 seconds
 		uint32_t ctr = bailout_time;
 		while (ctr) {
 			blink_all_lights(50);
 			if (hardwaretest_continue_button())
 				ctr--;
-			else 
+			else
 				ctr = bailout_time;
 		}
 	}
 
 	flash_ping_until_pressed();
 }
-
