@@ -120,6 +120,7 @@ void Codec_A_CtrlInterface_Init(void) {
 	hal_i2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
 	HAL_I2C_DeInit(&hal_i2c1);
 	HAL_I2C_Init(&hal_i2c1);
+	__HAL_I2C_ENABLE(&hal_i2c1);
 }
 
 void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
@@ -134,8 +135,8 @@ void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockA2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockA2);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockA2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
-		// __BKPT();
+	if (HAL_SAI_InitProtocol(&hsai_BlockA2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
+		__BKPT();
 	}
 
 	hsai_BlockB2.Instance = SAI2_Block_B;
@@ -148,8 +149,8 @@ void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockB2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockB2);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockB2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
-		// __BKPT();
+	if (HAL_SAI_InitProtocol(&hsai_BlockB2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
+		__BKPT();
 	}
 }
 
@@ -174,7 +175,7 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockA1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockA1);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockA1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
+	if (HAL_SAI_InitProtocol(&hsai_BlockA1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
 		__BKPT();
 	}
 
@@ -189,7 +190,7 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockB1);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockB1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK) {
+	if (HAL_SAI_InitProtocol(&hsai_BlockB1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
 		__BKPT();
 	}
 }
@@ -202,7 +203,7 @@ void Codec_GPIO_Init(void) {
 	gpio.Pin = GPIO_PIN_9 | GPIO_PIN_8;
 	gpio.Mode = GPIO_MODE_AF_OD;
 	gpio.Pull = GPIO_NOPULL;
-	gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	gpio.Speed = GPIO_SPEED_FREQ_HIGH;
 	gpio.Alternate = GPIO_AF4_I2C1;
 	HAL_GPIO_Init(GPIOB, &gpio);
 
@@ -211,7 +212,7 @@ void Codec_GPIO_Init(void) {
 	gpio.Pin = GPIO_PIN_10 | GPIO_PIN_11;
 	gpio.Mode = GPIO_MODE_AF_OD;
 	gpio.Pull = GPIO_NOPULL;
-	gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	gpio.Speed = GPIO_SPEED_FREQ_HIGH;
 	gpio.Alternate = GPIO_AF4_I2C2;
 	HAL_GPIO_Init(GPIOB, &gpio);
 
