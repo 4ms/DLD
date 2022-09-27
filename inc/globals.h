@@ -67,7 +67,7 @@
 	} while (0)
 
 #ifdef STM32F446xx
-#define LOOPSPERMS 12000
+#define LOOPSPERMS 20000
 #else
 #define LOOPSPERMS 25000
 #endif
