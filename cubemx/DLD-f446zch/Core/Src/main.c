@@ -22,6 +22,7 @@
 #include "dma.h"
 #include "i2c.h"
 #include "sai.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 #include "fmc.h"
@@ -102,7 +103,7 @@ int main(void)
   MX_SAI2_Init();
   MX_DMA_Init();
   MX_UART4_Init();
-  MX_ADC2_Init();
+  MX_TIM9_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
