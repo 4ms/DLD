@@ -36,7 +36,7 @@
 #include "globals.h"
 #include "params.h"
 #include "sdram.h"
-#include "timer.h"
+#include "timers.h"
 
 extern const float epp_lut[4096];
 extern float param[NUM_CHAN][NUM_PARAMS];
