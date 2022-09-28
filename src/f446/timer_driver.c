@@ -7,76 +7,84 @@ extern volatile uint32_t ping_ledbut_tmr;
 extern volatile uint32_t clkout_trigger_tmr;
 extern volatile uint32_t loopled_tmr[2];
 
+#define LRCLK_EXTI_LINE EXTI_LINE_4
+
 void init_timekeeper(void) {
-	//NVIC_InitTypeDef nvic;
-	//EXTI_InitTypeDef EXTI_InitStructure;
+	ping_tmr = 0;
+	ping_ledbut_tmr = 0;
+	clkout_trigger_tmr = 0;
+	loopled_tmr[0] = 0;
+	loopled_tmr[1] = 0;
 
-	//ping_tmr = 0;
-	//ping_ledbut_tmr = 0;
-	//clkout_trigger_tmr = 0;
-	//loopled_tmr[0] = 0;
-	//loopled_tmr[1] = 0;
+	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_2);
 
-	////Set Priority Grouping mode to 2-bits for priority and 2-bits for sub-priority
-	//NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	__HAL_RCC_SYSCFG_CLK_ENABLE();
 
-	//RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+	// Rising edge of PE4
+	EXTI_ConfigTypeDef exticonf = {
+		.Line = LRCLK_EXTI_LINE,
+		.Mode = EXTI_MODE_INTERRUPT,
+		.Trigger = EXTI_TRIGGER_RISING,
+		.GPIOSel = EXTI_GPIOE,
+	};
 
-	//SYSCFG_EXTILineConfig(EXTI_CLOCK_GPIO, EXTI_CLOCK_pin);
-	//EXTI_InitStructure.EXTI_Line = EXTI_CLOCK_line;
-	//EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	//EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-	//EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	//EXTI_Init(&EXTI_InitStructure);
+	EXTI_HandleTypeDef lrclk_exti;
+	HAL_EXTI_SetConfigLine(&lrclk_exti, &exticonf);
 
-	//nvic.NVIC_IRQChannel = EXTI_CLOCK_IRQ;
-	//nvic.NVIC_IRQChannelPreemptionPriority = 0;
-	//nvic.NVIC_IRQChannelSubPriority = 0;
-	//nvic.NVIC_IRQChannelCmd = ENABLE;
-
-	//NVIC_Init(&nvic);
+	HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 }
 
 // Sample Clock EXTI line (I2S2 LRCLK)
-void EXTI_Handler(void) {
-	// if (EXTI_GetITStatus(EXTI_CLOCK_line) != RESET) {
-	// 	update_on_sampleclock();
-	// 	EXTI_ClearITPendingBit(EXTI_CLOCK_line);
-	// }
+void EXTI4_IRQHandler(void) {
+	// Compute line mask
+	const uint32_t maskline = (1uL << (LRCLK_EXTI_LINE & EXTI_PIN_MASK));
+
+	if ((EXTI->PR & maskline) != 0x00u) {
+		// Clear pending bit
+		EXTI->PR = maskline;
+		update_on_sampleclock();
+	}
 }
+
+static TIM_HandleTypeDef htim9;
 
 void init_adc_param_update_timer(void) {
-	//TIM_TimeBaseInitTypeDef tim;
+	__HAL_RCC_TIM9_CLK_ENABLE();
 
-	//NVIC_InitTypeDef nvic;
-	//RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE);
+	TIM_ClockConfigTypeDef sClockSourceConfig = {0};
 
-	//nvic.NVIC_IRQChannel = TIM1_BRK_TIM9_IRQn;
-	//nvic.NVIC_IRQChannelPreemptionPriority = 3;
-	//nvic.NVIC_IRQChannelSubPriority = 2;
-	//nvic.NVIC_IRQChannelCmd = ENABLE;
-	//NVIC_Init(&nvic);
+	//168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
+	//180MHz / prescale=3 ---> 45MHz / 32142 ---> 1.4kHz
 
-	////168MHz / prescale=3 ---> 42MHz / 30000 ---> 1.4kHz
-	////20000 and 0x1 ==> works well
+	htim9.Instance = TIM9;
+	htim9.Init.Prescaler = 3;
+	htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim9.Init.Period = 32142;
+	htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim9.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+	if (HAL_TIM_Base_Init(&htim9) != HAL_OK) {
+		__BKPT();
+	}
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	if (HAL_TIM_ConfigClockSource(&htim9, &sClockSourceConfig) != HAL_OK) {
+		__BKPT();
+	}
 
-	//TIM_TimeBaseStructInit(&tim);
-	//tim.TIM_Period = 30000;
-	//tim.TIM_Prescaler = 0x3;
-	//tim.TIM_ClockDivision = 0;
-	//tim.TIM_CounterMode = TIM_CounterMode_Up;
-
-	//TIM_TimeBaseInit(TIM9, &tim);
+	HAL_NVIC_SetPriority(TIM1_BRK_TIM9_IRQn, 3, 2);
+	HAL_NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
 
 	//TIM_ITConfig(TIM9, TIM_IT_Update, ENABLE);
-
 	//TIM_Cmd(TIM9, ENABLE);
+	HAL_TIM_Base_Start_IT(&htim9);
 }
 
-void adc_param_update_IRQHandler(void) {
+void TIM1_BRK_TIM9_IRQHandler(void) {
 	//Takes 7-8us
-	// if (TIM_GetITStatus(TIM9, TIM_IT_Update) != RESET) {
-	// 	update_adc_params();
-	// 	TIM_ClearITPendingBit(TIM9, TIM_IT_Update);
-	// }
+	if (__HAL_TIM_GET_FLAG(&htim9, TIM_FLAG_UPDATE) != RESET) {
+		if (__HAL_TIM_GET_IT_SOURCE(&htim9, TIM_IT_UPDATE) != RESET) {
+			update_adc_params();
+			__HAL_TIM_CLEAR_IT(&htim9, TIM_IT_UPDATE);
+		}
+	}
 }
