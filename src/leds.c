@@ -28,11 +28,11 @@
 
 #include "leds.h"
 #include "calibration.h"
+#include "dig_pins.h"
 #include "globals.h"
 #include "params.h"
 #include "system_settings.h"
-#include "timekeeper.h"
-#include <dig_pins.h>
+#include "timers.h"
 
 extern volatile uint32_t ping_ledbut_tmr;
 extern volatile uint32_t loopled_tmr[2];

@@ -26,7 +26,7 @@
  * -----------------------------------------------------------------------------
  */
 
-#include "timekeeper.h"
+#include "timers.h"
 #include "calibration.h"
 #include "dig_pins.h"
 #include "globals.h"
@@ -95,13 +95,17 @@ void reset_loopled_tmr(uint8_t channel) {
 }
 
 void update_on_sampleclock(void) {
+	DEBUG1_ON;
+
 	inc_tmrs();
 
 	if (!global_mode[SYSTEM_SETTINGS] && !global_mode[CALIBRATE])
 		update_channel_leds();
+	DEBUG1_OFF;
 }
 
 void update_adc_params(void) {
+	DEBUG0_ON;
 	process_adc();
 
 	if (global_mode[CALIBRATE]) {
@@ -120,4 +124,5 @@ void update_adc_params(void) {
 	update_ping_ledbut();
 	update_INF_REV_ledbut(0);
 	update_INF_REV_ledbut(1);
+	DEBUG0_OFF;
 }

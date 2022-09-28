@@ -46,7 +46,7 @@
 #include "sdram.h"
 #include "system.h"
 #include "system_settings.h"
-#include "timekeeper.h"
+#include "timers.h"
 
 uint32_t g_error = 0;
 
@@ -124,8 +124,8 @@ int main(void) {
 
 	global_mode[DCINPUT] = DCINPUT_JUMPER;
 
-	Codec_B_Register_Setup(global_mode[DCINPUT]);
 	Codec_A_Register_Setup(global_mode[DCINPUT]);
+	Codec_B_Register_Setup(global_mode[DCINPUT]);
 
 	global_mode[CALIBRATE] = 0;
 
@@ -138,11 +138,11 @@ int main(void) {
 
 	if (ENTER_CALIBRATE_BUTTONS) {
 		global_mode[CALIBRATE] = 1;
-	} else if (flash_firmware_version <=
-			   1) //If we detect a pre-production version of firmware, then check the RAM and do a factory reset
-	{
+	} else if (flash_firmware_version <= 1) {
+		// If we detect a pre-production version of firmware, then check the RAM and do a factory reset.
+		// Run normally for about 6 seconds before calibrating the CV jacks
 		global_mode[CALIBRATE] = 1;
-		do_factory_reset = 960000;					//run normally for about 6 seconds before calibrating the CV jacks
+		do_factory_reset = 960000;
 	} else if (flash_firmware_version < FW_VERSION) //If we detect a recently upgraded firmware version
 	{
 		set_firmware_version();

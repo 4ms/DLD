@@ -34,7 +34,7 @@
 #include "globals.h"
 #include "looping_delay.h"
 #include "params.h"
-#include "timekeeper.h"
+#include "timers.h"
 
 extern volatile uint32_t ping_tmr;
 

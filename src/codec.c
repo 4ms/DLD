@@ -1,5 +1,6 @@
 #include "codec_CS4271.h"
 #include "codec_CS4271_regs.h"
+#include "dig_pins.h"
 #include "globals.h"
 
 const uint8_t codec_init_data_slave_DCinput[] = {
