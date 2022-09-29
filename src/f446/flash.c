@@ -41,45 +41,44 @@ static uint32_t kSectorBaseAddress[] = {
 	0x08020000,
 	0x08040000,
 	0x08060000,
-	0x08080000,
-	0x080A0000,
-	0x080C0000,
-	0x080E0000,
 };
 
-FlashStatus flash_erase_sector(uint32_t address) {
-	uint8_t i;
-	FlashStatus status;
+static FlashStatus _erase_sector(uint32_t sector) {
+	FLASH_EraseInitTypeDef erase_conf = {
+		.TypeErase = FLASH_TYPEERASE_SECTORS,
+		.Banks = FLASH_BANK_1,
+		.Sector = sector,
+		.NbSectors = 1,
+		.VoltageRange = FLASH_VOLTAGE_RANGE_3,
+	};
 
+	uint32_t err;
+	return HAL_FLASHEx_Erase(&erase_conf, &err);
+}
+
+FlashStatus flash_erase_sector(uint32_t address) {
 	HAL_FLASH_Unlock();
-	// FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
-	// 				FLASH_FLAG_PGSERR);
-	for (i = 0; i < 12; ++i) {
+	for (uint32_t i = 0; i < 8; ++i) {
 		if (address == kSectorBaseAddress[i]) {
-			// status = HAL_FLASHEx_EraseSector(i * 8, VoltageRange_3);
+			return _erase_sector(i);
 		}
 	}
 	HAL_FLASH_Lock();
 
-	return status;
+	return 99; // address out of range
 }
 
 FlashStatus flash_open_erase_sector(uint32_t address) {
-	uint8_t i;
-	FlashStatus status;
-
-	for (i = 0; i < 12; ++i) {
+	for (uint32_t i = 0; i < 8; ++i) {
 		if (address == kSectorBaseAddress[i]) {
-			// status = HAL_FLASHEx_Erase(i * 8, VoltageRange_3);
+			return _erase_sector(i);
 		}
 	}
-	return status;
+	return 99; // address out of range
 }
 
 void flash_begin_open_program(void) {
 	HAL_FLASH_Unlock();
-	// FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR |
-	// 				FLASH_FLAG_PGSERR);
 }
 
 FlashStatus flash_open_program_byte(uint8_t byte, uint32_t address) {
