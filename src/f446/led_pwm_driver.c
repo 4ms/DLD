@@ -1,34 +1,42 @@
 #include "leds.h"
+#include "panic.h"
 #include "stm32f4xx.h"
 
+static TIM_HandleTypeDef htim2;
+
 void init_LED_PWM_IRQ(void) {
-	//TIM_TimeBaseInitTypeDef tim;
-	//NVIC_InitTypeDef nvic;
+	__HAL_RCC_TIM2_CLK_ENABLE();
 
-	//RCC_APB1PeriphClockCmd(LED_TIM_RCC, ENABLE);
+	TIM_ClockConfigTypeDef sClockSourceConfig = {0};
 
-	//nvic.NVIC_IRQChannel = LED_TIM_IRQn;
-	//nvic.NVIC_IRQChannelPreemptionPriority = 0;
-	//nvic.NVIC_IRQChannelSubPriority = 2;
-	//nvic.NVIC_IRQChannelCmd = ENABLE;
-	//NVIC_Init(&nvic);
+	//180MHz / 2(APB clock) / 1(prescaler) / 4687 = 19.2kHz
 
-	//TIM_TimeBaseStructInit(&tim);
-	////	tim.TIM_Period = 17500; //168MHz / 2 / 17500 = 4.8kHz (208.3us) ... / 32 =
-	//tim.TIM_Period = 4375; //168MHz / 2 / 4375 = 19.2kHz
-	//tim.TIM_Prescaler = 0;
-	//tim.TIM_ClockDivision = 0;
-	//tim.TIM_CounterMode = TIM_CounterMode_Up;
+	htim2.Instance = TIM2;
+	htim2.Init.Prescaler = 0;
+	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim2.Init.Period = 4687;
+	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+	if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
+		panic();
+	}
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK) {
+		panic();
+	}
 
-	//TIM_TimeBaseInit(LED_TIM, &tim);
-	//TIM_ITConfig(LED_TIM, TIM_IT_Update, ENABLE);
-	//TIM_Cmd(LED_TIM, ENABLE);
+	HAL_NVIC_SetPriority(TIM2_IRQn, 0, 2);
+	HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+	HAL_TIM_Base_Start_IT(&htim2);
 }
 
-//runs @ 208uS (4.8kHz), with 32 steps => 6.6ms PWM period = 150Hz
-void LED_PWM_IRQHandler(void) {
-	// if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
-	// 	update_led_pwm_handler();
-	// 	TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-	// }
+//runs @ 52uS (19.2kHz), with 32 steps => 1.6ms PWM period = 564Hz
+void TIM2_IRQHandler(void) {
+	if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_UPDATE) != RESET) {
+		if (__HAL_TIM_GET_IT_SOURCE(&htim2, TIM_IT_UPDATE) != RESET) {
+			update_led_pwm_handler();
+			__HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
+		}
+	}
 }
