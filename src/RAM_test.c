@@ -37,7 +37,7 @@ uint32_t RAM_test(void) {
 	uint32_t i;
 	uint16_t rd0;
 	uint16_t rd1;
-	volatile uint32_t fail = 0;
+	uint32_t fail = 0;
 
 	addr = SDRAM_BASE;
 	for (i = 0; i < (SDRAM_SIZE / 2); i++) {
@@ -66,11 +66,11 @@ uint32_t RAM_test(void) {
 		addr += 2;
 	}
 
-	return (fail);
+	return fail;
 }
 
 void RAM_startup_test(void) {
-	volatile register uint32_t ram_errors = 0;
+	uint32_t ram_errors = 0;
 
 	LED_LOOP1_OFF;
 	LED_LOOP2_OFF;

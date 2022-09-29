@@ -220,9 +220,10 @@ void update_INF_REV_ledbut(uint8_t channel) {
 	}
 }
 
+// 19.2kHz
 void update_led_pwm_handler(void) {
 	static uint32_t loop_led_PWM_ctr = 0;
-	//begin1: 300ns - 450ns
+	//begin1: F427: 300ns - 450ns; F446: 250ns - 420ns
 
 	if (loop_led_state[0] && (loop_led_PWM_ctr < global_param[LOOP_LED_BRIGHTNESS]))
 		LED_LOOP1_ON;
@@ -236,6 +237,4 @@ void update_led_pwm_handler(void) {
 
 	if (loop_led_PWM_ctr++ > 32)
 		loop_led_PWM_ctr = 0;
-
-	//end1: 300ns - 450ns
 }

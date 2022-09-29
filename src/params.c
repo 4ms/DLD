@@ -27,9 +27,6 @@
  * -----------------------------------------------------------------------------
  */
 
-#define QUANTIZE_TIMECV_CH1 1
-#define QUANTIZE_TIMECV_CH2 0
-
 #include "params.h"
 #include "adc.h"
 #include "dig_pins.h"
@@ -92,7 +89,7 @@ int32_t pot_delta[NUM_POT_ADCS];
 int32_t cv_delta[NUM_POT_ADCS];
 
 float set_fade_increment(uint32_t samples) {
-	return (1.0 / ((samples / (codec_BUFF_LEN >> 3)) + 1.0));
+	return (1.f / ((samples / (codec_BUFF_LEN >> 3)) + 1.f));
 }
 
 void init_params(void) {

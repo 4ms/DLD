@@ -29,13 +29,10 @@
 #ifndef __audio__
 #define __audio__
 
-//#define ARM_MATH_CM4
-
-#include <stm32f4xx.h>
 #include "sdram.h"
+#include <stm32f4xx.h>
 
-#define LOOP_SIZE (SDRAM_SIZE/2)
-
+#define LOOP_SIZE (SDRAM_SIZE / 2)
 
 void audio_buffer_init(void);
 void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t channel);
@@ -53,4 +50,3 @@ void change_inf_mode(uint8_t channel);
 void reverse_loop(uint8_t channel);
 
 #endif
-

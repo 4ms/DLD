@@ -94,18 +94,16 @@ void reset_loopled_tmr(uint8_t channel) {
 	//	}
 }
 
+// 48kHz
 void update_on_sampleclock(void) {
-	DEBUG1_ON;
-
 	inc_tmrs();
 
 	if (!global_mode[SYSTEM_SETTINGS] && !global_mode[CALIBRATE])
 		update_channel_leds();
-	DEBUG1_OFF;
 }
 
+// 1.4kHz
 void update_adc_params(void) {
-	DEBUG0_ON;
 	process_adc();
 
 	if (global_mode[CALIBRATE]) {
@@ -124,5 +122,4 @@ void update_adc_params(void) {
 	update_ping_ledbut();
 	update_INF_REV_ledbut(0);
 	update_INF_REV_ledbut(1);
-	DEBUG0_OFF;
 }

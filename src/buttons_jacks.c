@@ -63,7 +63,9 @@ uint32_t flag_acknowlegde_qcm = 0;
 //enum PingMethods PING_METHOD=IGNORE_PERCENT_DEVIATION;
 
 //Ping jack read
-//every 30us (33.3kHz), takes 0.3us if no ping
+//every 30us (33.3kHz)
+//F427: takes 0.3us if no ping
+//F446: takes 0.18us if no ping
 void ping_jack_read(void) {
 	static uint16_t State = 0; // Current debounce status
 	uint16_t t;
@@ -125,7 +127,7 @@ void ping_jack_read(void) {
 			case (IGNORE_PERCENT_DEVIATION):
 				//Only update if there is a variation >1%
 				t_f = (float)t_ping_tmr / (float)ping_time;
-				if (t_f > 1.01 || t_f < 0.99) {
+				if (t_f > 1.01f || t_f < 0.99f) {
 					CLKOUT_ON;
 					reset_clkout_trigger_tmr();
 
@@ -245,7 +247,7 @@ void ping_jack_read(void) {
 // Checks each button and digital input jack to see if it's been low for a certain number of cycles,
 // and high for a certain number of cycles. We shift 0's and 1's down a 16-bit variable (State[]) to indicate high/low status.
 // takes 2-3us
-// runs at 27kHz
+// runs at 27kHz, ends up being 14kHz on average
 void buttons_jacks_read(void) {
 	static uint16_t State[10] = {0, 0, 0, 0xFFFF, 0xFFFF, 0, 0, 0xFFFF, 0xFFFF, 0}; // Current debounce status
 	uint16_t t;
