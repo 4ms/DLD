@@ -123,6 +123,9 @@ void Codec_A_CtrlInterface_Init(void) {
 	__HAL_I2C_ENABLE(&hal_i2c1);
 }
 
+#define PROTOCOL SAI_PROTOCOL_DATASIZE_16BITEXTENDED
+#define STANDARD SAI_I2S_STANDARD
+
 void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	__HAL_RCC_SAI2_CLK_ENABLE();
 	hsai_BlockA2.Instance = SAI2_Block_A;
@@ -135,7 +138,7 @@ void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockA2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockA2);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockA2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
+	if (HAL_SAI_InitProtocol(&hsai_BlockA2, STANDARD, PROTOCOL, 2) != HAL_OK) {
 		__BKPT();
 	}
 
@@ -149,7 +152,7 @@ void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockB2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockB2);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockB2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
+	if (HAL_SAI_InitProtocol(&hsai_BlockB2, STANDARD, PROTOCOL, 2) != HAL_OK) {
 		__BKPT();
 	}
 }
@@ -175,7 +178,7 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockA1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockA1);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockA1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
+	if (HAL_SAI_InitProtocol(&hsai_BlockA1, STANDARD, PROTOCOL, 2) != HAL_OK) {
 		__BKPT();
 	}
 
@@ -190,7 +193,7 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
 	HAL_SAI_DeInit(&hsai_BlockB1);
 
-	if (HAL_SAI_InitProtocol(&hsai_BlockB1, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BITEXTENDED, 2) != HAL_OK) {
+	if (HAL_SAI_InitProtocol(&hsai_BlockB1, STANDARD, PROTOCOL, 2) != HAL_OK) {
 		__BKPT();
 	}
 }

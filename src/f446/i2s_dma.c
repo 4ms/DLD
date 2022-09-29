@@ -95,6 +95,9 @@ void DeInit_I2SDMA_Channel2(void) {
 	// DMA_Cmd(CODECB_TX_DMA_STREAM, DISABLE);
 	// DMA_Cmd(CODECB_RX_DMA_STREAM, DISABLE);
 }
+#define DMA_PDATAALIGN DMA_PDATAALIGN_WORD
+#define DMA_MDATAALIGN DMA_MDATAALIGN_WORD
+#define DMA_SIZE (codec_BUFF_LEN / 2)
 
 void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 	__HAL_RCC_DMA2_CLK_ENABLE();
@@ -105,8 +108,8 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		hdma_sai1_a.Init.Direction = DMA_MEMORY_TO_PERIPH;
 		hdma_sai1_a.Init.PeriphInc = DMA_PINC_DISABLE;
 		hdma_sai1_a.Init.MemInc = DMA_MINC_ENABLE;
-		hdma_sai1_a.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-		hdma_sai1_a.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai1_a.Init.PeriphDataAlignment = DMA_PDATAALIGN;
+		hdma_sai1_a.Init.MemDataAlignment = DMA_MDATAALIGN;
 		hdma_sai1_a.Init.Mode = DMA_CIRCULAR;
 		hdma_sai1_a.Init.Priority = DMA_PRIORITY_HIGH;
 		hdma_sai1_a.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
@@ -127,8 +130,8 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		hdma_sai1_b.Init.Direction = DMA_PERIPH_TO_MEMORY;
 		hdma_sai1_b.Init.PeriphInc = DMA_PINC_DISABLE;
 		hdma_sai1_b.Init.MemInc = DMA_MINC_ENABLE;
-		hdma_sai1_b.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-		hdma_sai1_b.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai1_b.Init.PeriphDataAlignment = DMA_PDATAALIGN;
+		hdma_sai1_b.Init.MemDataAlignment = DMA_MDATAALIGN;
 		hdma_sai1_b.Init.Mode = DMA_CIRCULAR;
 		hdma_sai1_b.Init.Priority = DMA_PRIORITY_HIGH;
 		hdma_sai1_b.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
@@ -149,8 +152,8 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		hdma_sai2_a.Init.Direction = DMA_MEMORY_TO_PERIPH;
 		hdma_sai2_a.Init.PeriphInc = DMA_PINC_DISABLE;
 		hdma_sai2_a.Init.MemInc = DMA_MINC_ENABLE;
-		hdma_sai2_a.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-		hdma_sai2_a.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai2_a.Init.PeriphDataAlignment = DMA_PDATAALIGN;
+		hdma_sai2_a.Init.MemDataAlignment = DMA_MDATAALIGN;
 		hdma_sai2_a.Init.Mode = DMA_CIRCULAR;
 		hdma_sai2_a.Init.Priority = DMA_PRIORITY_HIGH;
 		hdma_sai2_a.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
@@ -169,8 +172,8 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		hdma_sai2_b.Init.Direction = DMA_PERIPH_TO_MEMORY;
 		hdma_sai2_b.Init.PeriphInc = DMA_PINC_DISABLE;
 		hdma_sai2_b.Init.MemInc = DMA_MINC_ENABLE;
-		hdma_sai2_b.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-		hdma_sai2_b.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+		hdma_sai2_b.Init.PeriphDataAlignment = DMA_PDATAALIGN;
+		hdma_sai2_b.Init.MemDataAlignment = DMA_MDATAALIGN;
 		hdma_sai2_b.Init.Mode = DMA_CIRCULAR;
 		hdma_sai2_b.Init.Priority = DMA_PRIORITY_HIGH;
 		hdma_sai2_b.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
@@ -195,8 +198,8 @@ void Init_I2SDMA_Channel1(void) {
 	__HAL_DMA_ENABLE_IT(&hdma_sai1_b, DMA_IT_FE);
 	__HAL_DMA_ENABLE_IT(&hdma_sai1_b, DMA_IT_TE);
 
-	HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)ch1tx_buffer, codec_BUFF_LEN);
-	HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t *)ch1rx_buffer, codec_BUFF_LEN);
+	HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)ch1tx_buffer, DMA_SIZE);
+	HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t *)ch1rx_buffer, DMA_SIZE);
 }
 
 void Init_I2SDMA_Channel2(void) {
@@ -211,8 +214,8 @@ void Init_I2SDMA_Channel2(void) {
 	__HAL_DMA_ENABLE_IT(&hdma_sai2_b, DMA_IT_FE);
 	__HAL_DMA_ENABLE_IT(&hdma_sai2_b, DMA_IT_TE);
 
-	HAL_SAI_Transmit_DMA(&hsai_BlockA2, (uint8_t *)ch2tx_buffer, codec_BUFF_LEN);
-	HAL_SAI_Receive_DMA(&hsai_BlockB2, (uint8_t *)ch2rx_buffer, codec_BUFF_LEN);
+	HAL_SAI_Transmit_DMA(&hsai_BlockA2, (uint8_t *)ch2tx_buffer, DMA_SIZE);
+	HAL_SAI_Receive_DMA(&hsai_BlockB2, (uint8_t *)ch2rx_buffer, DMA_SIZE);
 }
 
 // DMA interrupt for RX data CodecB (sai2b)
