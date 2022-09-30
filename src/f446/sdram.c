@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "panic.h"
 #include "stm32f4xx.h"
 
 static SDRAM_HandleTypeDef hsdram1;
@@ -29,7 +30,7 @@ void SDRAM_Init(void) {
 
 	HAL_StatusTypeDef err = HAL_SDRAM_Init(&hsdram1, &SdramTiming);
 	if (err != HAL_OK)
-		__BKPT();
+		panic();
 
 	// Initialization step 3
 	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)

@@ -1,4 +1,5 @@
 #include "dig_pins.h"
+#include "panic.h"
 #include "stm32f4xx.h"
 #include "timers.h"
 
@@ -64,18 +65,16 @@ void init_adc_param_update_timer(void) {
 	htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim9.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
 	if (HAL_TIM_Base_Init(&htim9) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
 	if (HAL_TIM_ConfigClockSource(&htim9, &sClockSourceConfig) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 
 	HAL_NVIC_SetPriority(TIM1_BRK_TIM9_IRQn, 3, 2);
 	HAL_NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
 
-	//TIM_ITConfig(TIM9, TIM_IT_Update, ENABLE);
-	//TIM_Cmd(TIM9, ENABLE);
 	HAL_TIM_Base_Start_IT(&htim9);
 }
 

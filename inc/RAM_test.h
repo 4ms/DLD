@@ -30,10 +30,8 @@
 #define RAM_TEST_H_
 #include <stm32f4xx.h>
 
-
 uint32_t RAM_test(void);
+uint32_t RAM_test2(void);
 void RAM_startup_test(void);
-
-
 
 #endif /* RAM_TEST_H_ */

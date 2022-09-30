@@ -32,6 +32,7 @@
 
 #include "codec_CS4271.h"
 #include "looping_delay.h"
+#include "panic.h"
 #include "timers.h"
 
 extern SAI_HandleTypeDef hsai_BlockA1;
@@ -116,7 +117,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai1_a);
 
 		if (HAL_DMA_Init(&hdma_sai1_a) != HAL_OK) {
-			__BKPT();
+			panic();
 		}
 
 		// TODO: mdrivlib links before calling deinit
@@ -138,7 +139,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai1_b);
 
 		if (HAL_DMA_Init(&hdma_sai1_b) != HAL_OK) {
-			__BKPT();
+			panic();
 		}
 
 		// TODO: mdrivlib links before calling deinit
@@ -160,7 +161,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai2_a);
 
 		if (HAL_DMA_Init(&hdma_sai2_a) != HAL_OK) {
-			__BKPT();
+			panic();
 		}
 		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai2_a);
 		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai2_a);
@@ -180,7 +181,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *saiHandle) {
 		HAL_DMA_DeInit(&hdma_sai2_b);
 
 		if (HAL_DMA_Init(&hdma_sai2_b) != HAL_OK) {
-			__BKPT();
+			panic();
 		}
 		__HAL_LINKDMA(saiHandle, hdmarx, hdma_sai2_b);
 		__HAL_LINKDMA(saiHandle, hdmatx, hdma_sai2_b);

@@ -1,3 +1,4 @@
+#include "panic.h"
 #include "stm32f4xx.h"
 
 void system_clock_init(void) {
@@ -17,10 +18,10 @@ void system_clock_init(void) {
 	RCC_OscInitStruct.PLL.PLLQ = 2;
 	RCC_OscInitStruct.PLL.PLLR = 2;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 	if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLRCLK;
@@ -29,7 +30,7 @@ void system_clock_init(void) {
 	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
 	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 
 	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
@@ -43,7 +44,7 @@ void system_clock_init(void) {
 	PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
 	PeriphClkInitStruct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLSAI;
 	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 
 	HAL_Init();

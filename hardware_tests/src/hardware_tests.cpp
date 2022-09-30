@@ -107,7 +107,7 @@ void test_RAM(void) {
 
 	SDRAM_Init();
 
-	uint32_t errs = RAM_test();
+	uint32_t errs = RAM_test2();
 
 	if (errs > 0) {
 		const uint32_t bailout_time = 100; //5 seconds

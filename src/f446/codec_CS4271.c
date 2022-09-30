@@ -30,6 +30,7 @@
 #include "codec_CS4271_regs.h"
 #include "globals.h"
 #include "i2s.h"
+#include "panic.h"
 
 I2C_HandleTypeDef hal_i2c1;
 I2C_HandleTypeDef hal_i2c2;
@@ -139,7 +140,7 @@ void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	HAL_SAI_DeInit(&hsai_BlockA2);
 
 	if (HAL_SAI_InitProtocol(&hsai_BlockA2, STANDARD, PROTOCOL, 2) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 
 	hsai_BlockB2.Instance = SAI2_Block_B;
@@ -153,7 +154,7 @@ void Codec_B_AudioInterface_Init(uint32_t AudioFreq) {
 	HAL_SAI_DeInit(&hsai_BlockB2);
 
 	if (HAL_SAI_InitProtocol(&hsai_BlockB2, STANDARD, PROTOCOL, 2) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 }
 
@@ -179,7 +180,7 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	HAL_SAI_DeInit(&hsai_BlockA1);
 
 	if (HAL_SAI_InitProtocol(&hsai_BlockA1, STANDARD, PROTOCOL, 2) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 
 	hsai_BlockB1.Instance = SAI1_Block_B;
@@ -194,7 +195,7 @@ void Codec_A_AudioInterface_Init(uint32_t AudioFreq) {
 	HAL_SAI_DeInit(&hsai_BlockB1);
 
 	if (HAL_SAI_InitProtocol(&hsai_BlockB1, STANDARD, PROTOCOL, 2) != HAL_OK) {
-		__BKPT();
+		panic();
 	}
 }
 

@@ -69,6 +69,33 @@ uint32_t RAM_test(void) {
 	return fail;
 }
 
+uint32_t RAM_test2(void) {
+	uint32_t addr;
+	uint16_t check;
+	uint16_t rd1;
+	uint32_t fail = 0;
+
+	const uint16_t freq = 12345;
+	rd1 = 0;
+	for (uint32_t addr = SDRAM_BASE; addr < (SDRAM_BASE + SDRAM_SIZE); addr += 2) {
+		rd1 += freq;
+		*((uint16_t *)addr) = rd1;
+	}
+
+	addr = SDRAM_BASE;
+	check = 0;
+	for (uint32_t addr = SDRAM_BASE; addr < (SDRAM_BASE + SDRAM_SIZE); addr += 2) {
+		rd1 = *((uint16_t *)addr);
+		check += freq;
+		if (rd1 != check) {
+			fail++;
+			__BKPT();
+		}
+	}
+
+	return fail;
+}
+
 void RAM_startup_test(void) {
 	uint32_t ram_errors = 0;
 
