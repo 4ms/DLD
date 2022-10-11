@@ -89,7 +89,6 @@ uint32_t RAM_test2(void) {
 		check += freq;
 		if (rd1 != check) {
 			fail++;
-			__BKPT();
 		}
 	}
 
