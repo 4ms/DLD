@@ -855,7 +855,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 							  wr_buff,
 							  sz / 2,
 							  1,
-							  1.0 - write_fade_pos[channel]); //write in the opposite direction of [REV]
+							  1.0f - write_fade_pos[channel]); //write in the opposite direction of [REV]
 		} else if (write_fade_state[channel] == WRITE_FADE_UP) {
 			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz / 2, 0, write_fade_pos[channel]);
 			write_addr[channel] = fade_dest_write_addr[channel];
@@ -866,7 +866,7 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 
 	} else if (mode[channel][INF] == INF_TRANSITIONING_ON) {
 		if (write_fade_state[channel] == WRITE_FADE_DOWN) {
-			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz / 2, 0, 1.0 - write_fade_pos[channel]);
+			memory_fade_write(fade_dest_write_addr, channel, wr_buff, sz / 2, 0, 1.0f - write_fade_pos[channel]);
 			write_addr[channel] = fade_dest_write_addr[channel];
 		}
 	}
