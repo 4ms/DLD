@@ -36,52 +36,67 @@ void SDRAM_Init(void) {
 	if (err != HAL_OK)
 		panic();
 
-	// Initialization step 3
-	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)
-		;
-	//PALL command (Pre-charge all banks)
-	FMC_Bank5_6->SDCMR = 1 | FMC_SDCMR_CTB2 | (1 << 5);
+	{ // Initialization step 3
+		FMC_SDRAM_CommandTypeDef cmd = {
+			.CommandMode = FMC_SDRAM_CMD_CLK_ENABLE,	 //MODE 0b001<<0
+			.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK2, //CTB2 1<<3
+			.AutoRefreshNumber = 2,						 //(2-1) << 5
+			.ModeRegisterDefinition = 0,
+		};
+		if (HAL_SDRAM_SendCommand(&hsdram1, &cmd, 0xFFFFFF) != HAL_OK)
+			panic();
+	}
 
 	// Initialization step 4
 	delay_ms(1);
 
 	// Initialization step 5
-	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)
-		;
-	// 2 = PALL (All Bank Precharge) command
-	// SDRAM bank 2
-	// 1<<5 = 2 Auto-refresh cycles
-	FMC_Bank5_6->SDCMR = 2 | FMC_SDCMR_CTB2 | (1 << 5);
+	{
+		FMC_SDRAM_CommandTypeDef cmd = {
+			.CommandMode = FMC_SDRAM_CMD_PALL,			 //MODE 0b010 << 0
+			.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK2, //CTB2 1<<3
+			.AutoRefreshNumber = 2,						 //(2-1) << 5
+			.ModeRegisterDefinition = 0,
+		};
+		if (HAL_SDRAM_SendCommand(&hsdram1, &cmd, 0xFFFFFF) != HAL_OK)
+			panic();
+	}
 
-	// Initialization step 6
-	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)
-		;
-	// 3 = Auto-refresh command
-	// SDRAM bank 2
-	// 4<<5 = 5 Auto-refresh cycles
-	FMC_Bank5_6->SDCMR = 3 | FMC_SDCMR_CTB2 | (4 << 5);
+	{ // Initialization step 6
+		FMC_SDRAM_CommandTypeDef cmd = {
+			.CommandMode = FMC_SDRAM_CMD_AUTOREFRESH_MODE, //MODE 0b011 << 0
+			.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK2,   //CTB2 1<<3
+			.AutoRefreshNumber = 5,						   //(5-1) << 5
+			.ModeRegisterDefinition = 0,
+		};
+		if (HAL_SDRAM_SendCommand(&hsdram1, &cmd, 0xFFFFFF) != HAL_OK)
+			panic();
+	}
 
-	// Initialization step 7
-	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)
-		;
-	// 4 = Load Mode Register
-	// SDRAM bank 2
-	// 1<<5 = 2 Auto-refresh cycles
-	// Mode Register = 0x231: burst length 2, burst type sequential, CAS latency 3 clocks, Write burst mode single bit, normal operation mode
-	// Mode Register = 0x030: burst length 1, burst type sequential, CAS latency 3 clocks, Write burst mode = single location access, normal operation mode
-	FMC_Bank5_6->SDCMR = 4 | FMC_SDCMR_CTB2 | (1 << 5) | (0x231 << 9);
+	{ // Initialization step 7
+
+		// Mode Register = 0x231: burst length 2, burst type sequential, CAS latency 3 clocks, Write burst mode single bit, normal operation mode
+		FMC_SDRAM_CommandTypeDef cmd = {
+			.CommandMode = FMC_SDRAM_CMD_LOAD_MODE,		 //MODE 0b100 << 0
+			.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK2, //CTB2 1<<3
+			.AutoRefreshNumber = 5,						 //(5-1) << 5
+			.ModeRegisterDefinition = 0x231,
+		};
+		if (HAL_SDRAM_SendCommand(&hsdram1, &cmd, 0xFFFFFF) != HAL_OK)
+			panic();
+	}
 
 	// Initialization step 8
-	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)
-		;
+	// 62ms refresh rate (from datasheet)
+	// 8192 rows (from datasheet)
+	// 0.062/8192 = 7.56us
+	// 60MHz clock * 7.56us = 459
+	// 90MHz clock * 7.56us = 681
+	if (HAL_SDRAM_ProgramRefreshRate(&hsdram1, 460) != HAL_OK)
+		panic();
 
-	// refresh rate in number of SDCLK clock cycles between the refresh cycles
-	// 683 = 7.6uS x 90Mhz
-	// 7.6uS x 8196 rows = 62ms refresh rate
-	FMC_Bank5_6->SDRTR |= (663 << 1);
-
-	while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)
-		;
+	while
+		__FMC_SDRAM_GET_FLAG(hsdram1.Instance, FMC_SDRAM_FLAG_BUSY);
 }
 
 static uint32_t FMC_Initialized = 0;
