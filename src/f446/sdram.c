@@ -16,8 +16,12 @@ void SDRAM_Init(void) {
 	hsdram1.Init.InternalBankNumber = FMC_SDRAM_INTERN_BANKS_NUM_4;
 	hsdram1.Init.CASLatency = FMC_SDRAM_CAS_LATENCY_3;
 	hsdram1.Init.WriteProtection = FMC_SDRAM_WRITE_PROTECTION_DISABLE;
-	hsdram1.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_2;
-	hsdram1.Init.ReadBurst = FMC_SDRAM_RBURST_ENABLE;
+
+	// @clk2, burst enable = 21.3us, disable = 21.7us
+	// @clk3, burst enable = 21.5us, disable = 21.9us;
+	hsdram1.Init.SDClockPeriod = FMC_SDRAM_CLOCK_PERIOD_3;
+	hsdram1.Init.ReadBurst = FMC_SDRAM_RBURST_DISABLE;
+
 	hsdram1.Init.ReadPipeDelay = FMC_SDRAM_RPIPE_DELAY_2;
 
 	SdramTiming.LoadToActiveDelay = 2;	  //MRD
