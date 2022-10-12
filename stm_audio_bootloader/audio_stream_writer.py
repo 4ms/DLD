@@ -49,7 +49,8 @@ class AudioStreamWriter(object):
     self._sample_rate = sample_rate
     self._bitdepth = bitdepth
     self._num_channels = num_channels
-    self._f = file(file_name, 'wb')
+    #self._f = file(file_name, 'wb')
+    self._f = open(file_name, 'wb')
     self._num_bytes = 0
     self._write_header(False)
   
@@ -94,9 +95,10 @@ class AudioStreamWriter(object):
     
     current_position = f.tell()
     f.seek(0)
-    f.write('RIFF')
+    # f.write('RIFF')
+    f.write(str.encode('RIFF'))
     f.write(struct.pack('<L', total_size))
-    f.write('WAVEfmt ')
+    f.write(str.encode('WAVEfmt '))
     bitrate = self._sample_rate * self._num_channels * (self._bitdepth / 8)
     bits_per_sample = self._num_channels * (self._bitdepth / 8)
     f.write(struct.pack(
@@ -105,10 +107,10 @@ class AudioStreamWriter(object):
         1,
         self._num_channels,
         self._sample_rate,
-        bitrate,
-        bits_per_sample,
+        int(bitrate),
+        int(bits_per_sample),
         self._bitdepth))
-    f.write('data')
+    f.write(str.encode('data'))
     f.write(struct.pack('<L', self._num_bytes))
     if restore_position:
       f.seek(current_position)
@@ -127,3 +129,6 @@ class AudioStreamWriter(object):
     scaled_signal.tofile(self._f)
     self._num_bytes += scaled_signal.nbytes
     self._write_header(True)
+
+  def close(self):
+      self._f.close()

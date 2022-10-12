@@ -75,11 +75,12 @@ class FskEncoder(object):
   def _code_packet(self, data):
     assert len(data) <= self._packet_size
     if len(data) != self._packet_size:
-      data = data + '\x00' * (self._packet_size - len(data))
+      data = data + b'\x00' * (self._packet_size - len(data))
 
     crc = zlib.crc32(data) & 0xffffffff
 
-    data = map(ord, data)
+    #data = map(ord, data)
+    data = list(data)
     crc_bytes = [crc >> 24, (crc >> 16) & 0xff, (crc >> 8) & 0xff, crc & 0xff]
     bytes = [0x55] * 4 + data + crc_bytes
     
@@ -93,11 +94,11 @@ class FskEncoder(object):
     return self._encode(symbol_stream)
 
   def code(self, data, page_size=1024, blank_duration=0.06):
-    yield numpy.zeros((1.0 * self._sr, 1)).ravel()
+    yield numpy.zeros((1 * self._sr, 1)).ravel()
     yield self._code_blank(1.0)
     if len(data) % page_size != 0:
       tail = page_size - (len(data) % page_size)
-      data += '\xff' * tail
+      data += b'\xff' * tail
     
     offset = 0
     remaining_bytes = len(data)
@@ -174,7 +175,10 @@ def main():
       metavar='FILE')
   
   options, args = parser.parse_args()
-  data = file(args[0], 'rb').read()
+  #data = file(args[0], 'rb').read()
+  with open(args[0], 'rb') as input_file:
+      data = input_file.read()
+
   if len(args) != 1:
     logging.fatal('Specify one, and only one firmware .bin file!')
     sys.exit(1)
@@ -202,6 +206,7 @@ def main():
   for block in encoder.code(data, options.page_size, blank_duration):
     if len(block):
       writer.append(block)
+  writer.close()
 
 
 if __name__ == '__main__':
