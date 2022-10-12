@@ -95,17 +95,17 @@ uint32_t Codec_WriteRegister(uint8_t RegisterAddr, uint8_t RegisterValue, I2C_Ty
  */
 void Codec_B_CtrlInterface_Init(void) {
 	__HAL_RCC_I2C2_CLK_ENABLE();
-	hal_i2c1.Instance = I2C2;
-	hal_i2c1.Init.ClockSpeed = 50000;
-	hal_i2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-	hal_i2c1.Init.OwnAddress1 = 0x33;
-	hal_i2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-	hal_i2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-	hal_i2c1.Init.OwnAddress2 = 0;
-	hal_i2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-	hal_i2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-	HAL_I2C_DeInit(&hal_i2c1);
-	HAL_I2C_Init(&hal_i2c1);
+	hal_i2c2.Instance = I2C2;
+	hal_i2c2.Init.ClockSpeed = 50000;
+	hal_i2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+	hal_i2c2.Init.OwnAddress1 = 0x33;
+	hal_i2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	hal_i2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	hal_i2c2.Init.OwnAddress2 = 0;
+	hal_i2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	hal_i2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	HAL_I2C_DeInit(&hal_i2c2);
+	HAL_I2C_Init(&hal_i2c2);
 }
 
 void Codec_A_CtrlInterface_Init(void) {
