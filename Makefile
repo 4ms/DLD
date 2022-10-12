@@ -26,7 +26,7 @@ CORE = stm32/core
 PERIPH = stm32/periph/STM32F4xx_HAL_Driver
 BUILDDIR = build/f446
 target_incs = -Iinc/f446
-target_srcs = $(wildcard src/f446/*.c)
+target_srcs = $(wildcard src/f446/*.c) $(wildcard src/f446/*.cc)
 target_defs = -DSTM32F446xx -DUSE_HAL_DRIVER
 endif
 

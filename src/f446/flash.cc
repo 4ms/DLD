@@ -27,21 +27,13 @@
  */
 
 #include "flash.h"
+#include "flash_layout.h"
 #include "globals.h"
 #include "stm32f4xx.h"
 
 typedef unsigned FlashStatus;
+static void _clear_error_codes();
 
-static uint32_t kSectorBaseAddress[] = {
-	0x08000000,
-	0x08004000,
-	0x08008000,
-	0x0800C000,
-	0x08010000,
-	0x08020000,
-	0x08040000,
-	0x08060000,
-};
 
 static FlashStatus _erase_sector(uint32_t sector) {
 	FLASH_EraseInitTypeDef erase_conf = {
@@ -59,7 +51,7 @@ static FlashStatus _erase_sector(uint32_t sector) {
 FlashStatus flash_erase_sector(uint32_t address) {
 	HAL_FLASH_Unlock();
 	for (uint32_t i = 0; i < 8; ++i) {
-		if (address == kSectorBaseAddress[i]) {
+		if (address == get_sector_addr(i)) {
 			return _erase_sector(i);
 		}
 	}
@@ -70,7 +62,7 @@ FlashStatus flash_erase_sector(uint32_t address) {
 
 FlashStatus flash_open_erase_sector(uint32_t address) {
 	for (uint32_t i = 0; i < 8; ++i) {
-		if (address == kSectorBaseAddress[i]) {
+		if (address == get_sector_addr(i)) {
 			return _erase_sector(i);
 		}
 	}
@@ -78,18 +70,19 @@ FlashStatus flash_open_erase_sector(uint32_t address) {
 }
 
 void flash_begin_open_program(void) {
+	_clear_error_codes();
 	HAL_FLASH_Unlock();
 }
 
 FlashStatus flash_open_program_byte(uint8_t byte, uint32_t address) {
-	if (address < kSectorBaseAddress[1])
+	if (address < get_sector_addr(1))
 		return HAL_FLASH_ERROR_PGP;
 	else
 		return HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, address, byte);
 }
 
 FlashStatus flash_open_program_word(uint32_t word, uint32_t address) {
-	if (address < kSectorBaseAddress[1])
+	if (address < get_sector_addr(1))
 		return HAL_FLASH_ERROR_PGP;
 	else
 		return HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address, word);
@@ -104,7 +97,7 @@ FlashStatus flash_open_program_array(uint8_t *arr, uint32_t address, uint32_t si
 	FlashStatus status;
 
 	while (size--) {
-		if (address >= kSectorBaseAddress[1])
+		if (address >= get_sector_addr(1))
 			status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, address, *arr);
 		*arr++;
 		address++;
@@ -127,4 +120,15 @@ uint32_t flash_read_word(uint32_t address) {
 
 uint8_t flash_read_byte(uint32_t address) {
 	return ((uint8_t)(*(__IO uint32_t *)address));
+}
+
+static void _clear_error_codes() {
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_WRPERR);
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGAERR);
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGPERR);
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR);
+#if defined(FLASH_SR_RDERR)
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_RDERR);
+#endif
+	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPERR);
 }
