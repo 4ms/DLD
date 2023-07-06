@@ -586,12 +586,8 @@ void process_audio_block_codec(int16_t *src, int16_t *dst, uint16_t sz, uint8_t 
 	// reversed direction, so we should continue reading from rd_buff in the same direction (which is now !REV),
 	// and cross fade towards dest_rd_buff being read in the direction of REV
 
-	crossed_start_fade_addr = memory_read(read_addr,
-										  channel,
-										  rd_buff,
-										  sz / 2,
-										  start_fade_addr,
-										  doing_reverse_fade[channel] /*| mode[channel][CONTINUOUS_REVERSE]*/);
+	crossed_start_fade_addr =
+		memory_read(read_addr, channel, rd_buff, sz / 2, start_fade_addr, doing_reverse_fade[channel]);
 
 	if (mode[channel][INF] != INF_OFF && crossed_start_fade_addr) {
 		reset_loopled_tmr(channel);
