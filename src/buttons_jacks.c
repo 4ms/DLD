@@ -252,6 +252,7 @@ void buttons_jacks_read(void) {
 	static uint16_t State[10] = {0, 0, 0, 0xFFFF, 0xFFFF, 0, 0, 0xFFFF, 0xFFFF, 0}; // Current debounce status
 	uint16_t t;
 	static uint32_t ch1_clear_ctr = 0, ch2_clear_ctr = 0, ch1_contrev_ctr = 0, ch2_contrev_ctr = 0;
+	static uint32_t bothch_clear_ctr = 0;
 
 	// Check Ping Button
 
@@ -476,7 +477,7 @@ void buttons_jacks_read(void) {
 	//check continuously held down buttons:
 
 	if (RAM_CLEAR_CH1_BUTTONS) {
-		if (ch1_clear_ctr++ > 54000) {
+		if (ch1_clear_ctr++ > 14000) {
 			flag_ignore_infdown[0] = 1;
 			flag_ignore_revdown[0] = 1;
 
@@ -495,7 +496,7 @@ void buttons_jacks_read(void) {
 		ch1_clear_ctr = 0;
 
 	if (RAM_CLEAR_CH2_BUTTONS) {
-		if (ch2_clear_ctr++ > 54000) {
+		if (ch2_clear_ctr++ > 14000) {
 			flag_ignore_infdown[1] = 1;
 			flag_ignore_revdown[1] = 1;
 
@@ -512,6 +513,34 @@ void buttons_jacks_read(void) {
 		}
 	} else
 		ch2_clear_ctr = 0;
+
+	if (RAM_CLEAR_BOTHCHAN_BUTTONS) {
+		if (bothch_clear_ctr++ > 10000) {
+			flag_ignore_infdown[0] = 1;
+			flag_ignore_revdown[0] = 1;
+			flag_ignore_infdown[1] = 1;
+			flag_ignore_revdown[1] = 1;
+
+			LED_REV1_ON;
+			LED_INF1_ON;
+			LED_LOOP1_ON;
+			LED_REV2_ON;
+			LED_INF2_ON;
+			LED_LOOP2_ON;
+
+			memory_clear(0);
+			memory_clear(1);
+			bothch_clear_ctr = 0;
+
+			LED_REV1_OFF;
+			LED_INF1_OFF;
+			LED_LOOP1_OFF;
+			LED_REV2_OFF;
+			LED_INF2_OFF;
+			LED_LOOP2_OFF;
+		}
+	} else
+		bothch_clear_ctr = 0;
 
 #ifdef ALLOW_CONT_REVERSE
 	if (mode[0][INF] == INF_OFF && CONTINUOUS_REV1_BUTTONS) {
